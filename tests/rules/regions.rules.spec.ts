@@ -6,7 +6,18 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 // Regions exist only in code: ids come from the static list in firestore.rules and the
@@ -153,5 +164,90 @@ describe('regions/{id} writes', () => {
     await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { aboutText: 'Hallo', updatedAt: 2 }));
     await assertFails(updateDoc(doc(db, 'regions/tirol'), { active: true }));
     await assertFails(updateDoc(doc(db, 'regions/tirol'), { bezirke: [] }));
+  });
+});
+
+// Moderator applications and team notes (Trello 6afc59ed): only the functions write.
+describe('moderator_applications and staff_notifications', () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      const application = { name: 'Maria', email: 'maria@x.at', message: 'Hallo', status: 'open' };
+      await setDoc(doc(db, 'moderator_applications/tirolApp'), {
+        ...application,
+        regionId: 'tirol',
+      });
+      await setDoc(doc(db, 'moderator_applications/vbgApp'), {
+        ...application,
+        regionId: 'vorarlberg',
+      });
+      await setDoc(doc(db, 'moderator_applications/noRegion'), { ...application, regionId: null });
+      const note = { kind: 'application', applicationId: 'tirolApp', name: 'Maria', readAt: null };
+      await setDoc(doc(db, 'staff_notifications/modNote'), { ...note, recipientUid: 'mod' });
+      await setDoc(doc(db, 'staff_notifications/adminNote'), { ...note, recipientUid: 'admin' });
+      await setDoc(doc(db, 'staff_notifications/memberNote'), { ...note, recipientUid: 'member' });
+    });
+  });
+
+  it('applications: Super-Admin reads all, a moderator only those of her regions', async () => {
+    const admin = env.authenticatedContext('admin').firestore();
+    for (const id of ['tirolApp', 'vbgApp', 'noRegion']) {
+      await assertSucceeds(getDoc(doc(admin, `moderator_applications/${id}`)));
+    }
+    const mod = env.authenticatedContext('mod').firestore();
+    await assertSucceeds(getDoc(doc(mod, 'moderator_applications/tirolApp')));
+    await assertFails(getDoc(doc(mod, 'moderator_applications/vbgApp')));
+    await assertFails(getDoc(doc(mod, 'moderator_applications/noRegion')));
+    const member = env.authenticatedContext('member').firestore();
+    await assertFails(getDoc(doc(member, 'moderator_applications/tirolApp')));
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'moderator_applications/tirolApp'))
+    );
+  });
+
+  it('applications: nobody writes from the client', async () => {
+    for (const uid of ['admin', 'mod']) {
+      const db = env.authenticatedContext(uid).firestore();
+      await assertFails(updateDoc(doc(db, 'moderator_applications/tirolApp'), { status: 'done' }));
+      await assertFails(setDoc(doc(db, 'moderator_applications/new'), { regionId: 'tirol' }));
+      await assertFails(deleteDoc(doc(db, 'moderator_applications/tirolApp')));
+    }
+  });
+
+  it('notes: staff read only their own, also as a query', async () => {
+    const mod = env.authenticatedContext('mod').firestore();
+    await assertSucceeds(getDoc(doc(mod, 'staff_notifications/modNote')));
+    await assertFails(getDoc(doc(mod, 'staff_notifications/adminNote')));
+    await assertSucceeds(
+      getDocs(query(collection(mod, 'staff_notifications'), where('recipientUid', '==', 'mod')))
+    );
+    await assertFails(getDocs(collection(mod, 'staff_notifications')));
+    // Someone who is no longer staff cannot read old notes.
+    const member = env.authenticatedContext('member').firestore();
+    await assertFails(getDoc(doc(member, 'staff_notifications/memberNote')));
+  });
+
+  it('notes: the recipient only marks her own as read, once', async () => {
+    const mod = env.authenticatedContext('mod').firestore();
+    await assertFails(updateDoc(doc(mod, 'staff_notifications/modNote'), { readAt: 123 }));
+    await assertFails(
+      updateDoc(doc(mod, 'staff_notifications/modNote'), {
+        readAt: serverTimestamp(),
+        name: 'Eve',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(mod, 'staff_notifications/adminNote'), { readAt: serverTimestamp() })
+    );
+    await assertSucceeds(
+      updateDoc(doc(mod, 'staff_notifications/modNote'), { readAt: serverTimestamp() })
+    );
+    await assertFails(
+      updateDoc(doc(mod, 'staff_notifications/modNote'), { readAt: serverTimestamp() })
+    );
+    await assertFails(
+      setDoc(doc(mod, 'staff_notifications/forged'), { recipientUid: 'mod', readAt: null })
+    );
+    await assertFails(deleteDoc(doc(mod, 'staff_notifications/modNote')));
   });
 });

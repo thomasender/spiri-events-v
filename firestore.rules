@@ -1954,6 +1954,34 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Moderator applications (Trello 6afc59ed), written only by the functions
+    // (submitModeratorApplication, inviteModeratorApplicant,
+    // acceptModeratorInvite). Super-Admins read all; a moderator reads those
+    // of her regions; an application without region is Super-Admin only.
+    match /moderator_applications/{applicationId} {
+      allow read: if isAdminOrEmulatorAdmin()
+                  || (resource.data.regionId is string
+                      && isRegionModeratorFor(resource.data.regionId));
+      allow write: if false;
+    }
+
+    // One note per recipient for the admin tab "Team-Hinweise", written only
+    // by the functions. The recipient (while still staff) reads her own and
+    // may only mark them read.
+    match /staff_notifications/{notificationId} {
+      function isOwnStaffNotification(data) {
+        return isAuthenticated()
+          && data.recipientUid == request.auth.uid
+          && (isAdminOrEmulatorAdmin() || isRegionModerator());
+      }
+      allow read: if isOwnStaffNotification(resource.data);
+      allow update: if isOwnStaffNotification(resource.data)
+                    && resource.data.readAt == null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+                    && request.resource.data.readAt == request.time;
+      allow create, delete: if false;
+    }
+
     // Idempotency/audit records of Instagram posts. Written only by the
     // Cloud Function (Admin SDK bypasses rules); admins may read them.
     match /instagram_posts/{postId} {

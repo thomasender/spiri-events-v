@@ -1,0 +1,113 @@
+.staff-notes-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.staff-notes-intro,
+.staff-notes-empty {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.staff-notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.staff-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.staff-note--unread {
+  border-color: var(--accent-primary);
+}
+
+.staff-note-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.staff-note-title {
+  margin: 0;
+  font-size: var(--text-100);
+}
+
+.staff-note-date {
+  color: var(--text-light);
+  font-size: var(--text-85);
+}
+
+.staff-note-body,
+.staff-note-message,
+.staff-note-status,
+.staff-note-hint,
+.staff-note-error {
+  margin: 0;
+}
+
+.staff-note-message {
+  white-space: pre-wrap;
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.staff-note-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-90);
+}
+
+.staff-note-details dt {
+  color: var(--text-secondary);
+}
+
+.staff-note-details dd {
+  margin: 0;
+}
+
+.staff-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.staff-note-actions select {
+  padding: var(--space-1-5) var(--space-2-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.staff-note-status {
+  color: var(--accent-secondary);
+  font-size: var(--text-90);
+}
+
+.staff-note-hint {
+  color: var(--text-secondary);
+  font-size: var(--text-90);
+}
+
+.staff-note-error {
+  color: var(--error);
+  font-size: var(--text-90);
+}

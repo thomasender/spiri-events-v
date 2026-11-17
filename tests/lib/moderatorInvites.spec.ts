@@ -9,6 +9,7 @@ import {
   getModeratorInviteHandler,
   hashInviteToken,
   inviteBaseUrl,
+  inviteModeratorApplicantHandler,
   listModeratorInvitesHandler,
   revokeModeratorInviteHandler,
   type InviteDeps,
@@ -17,6 +18,10 @@ import {
 } from '../../functions/src/moderatorInvites';
 import type { AuditEntry, TargetUser } from '../../functions/src/adminModerators';
 import type { EmailPayload } from '../../functions/src/emailTemplates';
+import type {
+  ApplicationRecord,
+  StaffNotificationInput,
+} from '../../functions/src/staffNotifications';
 import {
   MODERATOR_ONBOARDING_CONSENTS,
   MODERATOR_ONBOARDING_TEXT_VERSION,
@@ -37,13 +42,19 @@ function makeWorld({
   roles = {},
   users = {},
   invites = {},
+  applications = {},
   mailFails = false,
 }: {
   roles?: Record<string, Doc>;
   users?: Record<string, Partial<TargetUser>>;
   invites?: Record<string, InviteRecord>;
+  applications?: Record<string, ApplicationRecord>;
   mailFails?: boolean;
 } = {}) {
+  const applicationDocs = new Map<string, ApplicationRecord & Doc>(
+    Object.entries(applications).map(([id, a]) => [id, { ...a }])
+  );
+  const notes: StaffNotificationInput[] = [];
   const roleDocs = new Map<string, Doc>(Object.entries(roles));
   const authUsers = new Map<string, TargetUser>(
     Object.entries(users).map(([uid, u]) => [uid, { uid, ...u }])
@@ -97,11 +108,31 @@ function makeWorld({
     },
     getSuperAdminEmails: async () => ['boss@tribe.at'],
     enforceRateLimit: () => {},
+    getApplication: async (id) => applicationDocs.get(id) ?? null,
+    markApplicationInvited: async (id, data) => {
+      Object.assign(applicationDocs.get(id) as Doc, { status: 'invited', ...data });
+    },
+    closeApplicationsFor: async (email, uid) => {
+      const ids: string[] = [];
+      for (const [id, a] of applicationDocs) {
+        if (a.email === email && a.status !== 'done') {
+          Object.assign(a, { status: 'done', acceptedUid: uid });
+          ids.push(id);
+        }
+      }
+      return ids;
+    },
+    loadStaffDocs: async () => [...roleDocs.entries()].map(([uid, data]) => ({ uid, data })),
+    addStaffNotifications: async (list) => {
+      notes.push(...list);
+    },
   };
   return {
     deps,
     roleDocs,
     inviteDocs,
+    applicationDocs,
+    notes,
     audit,
     mails,
     setNow: (ms: number) => {
@@ -542,6 +573,164 @@ describe('acceptModeratorInvite', () => {
     });
     await acceptModeratorInviteHandler(call('neu', acceptData()), w.deps);
     expect(w.roleDocs.get('neu')?.role).toBe('RegionModerator');
+  });
+});
+
+describe('acceptModeratorInvite: applications and team notes (6afc59ed)', () => {
+  it('closes the open application and tells Super-Admins and the region moderators', async () => {
+    const w = makeWorld({
+      roles: { boss: ADMIN, mod: { role: 'RegionModerator', regionIds: ['tirol'] } },
+      users: { neu: { email: 'Neu@X.at' } },
+      invites: { [TOKEN_ID]: pendingInvite() },
+      applications: { app1: application({ email: 'neu@x.at', status: 'invited' }) },
+    });
+    await acceptModeratorInviteHandler(call('neu', acceptData()), w.deps);
+    expect(w.applicationDocs.get('app1')).toMatchObject({ status: 'done', acceptedUid: 'neu' });
+    expect(w.notes.map((n) => [n.recipientUid, n.kind, n.audience, n.applicationId])).toEqual([
+      ['boss', 'newModerator', 'superAdmin', 'app1'],
+      ['mod', 'newModerator', 'moderator', 'app1'],
+    ]);
+    // The new moderator herself gets no note; the mail to the Super-Admins stays.
+    expect(w.notes.some((n) => n.recipientUid === 'neu')).toBe(false);
+    expect(w.mails).toHaveLength(1);
+  });
+
+  it('writes no notes when the same person opens the link again', async () => {
+    const w = makeWorld({
+      roles: { boss: ADMIN },
+      users: { neu: { email: 'neu@x.at' } },
+      invites: { [TOKEN_ID]: pendingInvite() },
+    });
+    await acceptModeratorInviteHandler(call('neu', acceptData()), w.deps);
+    const count = w.notes.length;
+    await acceptModeratorInviteHandler(call('neu', acceptData()), w.deps);
+    expect(w.notes).toHaveLength(count);
+  });
+});
+
+function application(over: Partial<ApplicationRecord> = {}): ApplicationRecord {
+  return {
+    name: 'Neu Person',
+    email: 'neu@x.at',
+    message: 'Ich möchte mithelfen.',
+    regionId: 'tirol',
+    hasPhoto: false,
+    status: 'open',
+    createdAtMs: NOW - 1000,
+    reminderSentAtMs: null,
+    ...over,
+  };
+}
+
+describe('inviteModeratorApplicant', () => {
+  const roles = {
+    boss: ADMIN,
+    mod: { role: 'RegionModerator', regionIds: ['tirol'] },
+    other: { role: 'RegionModerator', regionIds: ['vorarlberg'] },
+  };
+
+  it('a moderator of the region invites the applicant as RegionModerator of that region', async () => {
+    const w = makeWorld({ roles, applications: { app1: application() } });
+    const result = await inviteModeratorApplicantHandler(
+      call('mod', { applicationId: 'app1' }),
+      w.deps
+    );
+    expect(result.emailSent).toBe(true);
+    const [[inviteId, invite]] = [...w.inviteDocs.entries()];
+    expect(invite).toMatchObject({ email: 'neu@x.at', regionIds: ['tirol'], invitedBy: 'mod' });
+    expect(w.mails.map((m) => m.to)).toEqual(['neu@x.at']);
+    expect(w.applicationDocs.get('app1')).toMatchObject({
+      status: 'invited',
+      invitedBy: 'mod',
+      inviteId,
+      regionId: 'tirol',
+    });
+    // The link goes to the applicant only.
+    expect(result).not.toHaveProperty('inviteUrl');
+  });
+
+  it('moderators of other regions, organizers and guests may not', async () => {
+    const w = makeWorld({
+      roles: { ...roles, user: { role: 'User' } },
+      applications: { app1: application(), app2: application({ regionId: null }) },
+    });
+    await expectCode(
+      inviteModeratorApplicantHandler(call('other', { applicationId: 'app1' }), w.deps),
+      'permission-denied'
+    );
+    // Without region only Super-Admins.
+    await expectCode(
+      inviteModeratorApplicantHandler(call('mod', { applicationId: 'app2' }), w.deps),
+      'permission-denied'
+    );
+    await expectCode(
+      inviteModeratorApplicantHandler(call('user', { applicationId: 'app1' }), w.deps),
+      'permission-denied'
+    );
+    await expectCode(
+      inviteModeratorApplicantHandler(call(null, { applicationId: 'app1' }), w.deps),
+      'unauthenticated'
+    );
+    expect(w.inviteDocs.size).toBe(0);
+  });
+
+  it('never makes anyone Super-Admin and refuses Super-Admin accounts as applicants', async () => {
+    const w = makeWorld({
+      roles: { ...roles, chef: ADMIN },
+      users: { chef: { email: 'chef@x.at' } },
+      applications: { app1: application({ email: 'chef@x.at' }) },
+    });
+    await expectCode(
+      inviteModeratorApplicantHandler(
+        call('mod', { applicationId: 'app1', regionIds: ['tirol'], role: 'Admin' }),
+        w.deps
+      ),
+      'failed-precondition'
+    );
+    expect(w.inviteDocs.size).toBe(0);
+  });
+
+  it('a moderator cannot widen the region; a Super-Admin names one only when none was given', async () => {
+    const w = makeWorld({
+      roles,
+      applications: { app1: application(), app2: application({ regionId: null }) },
+    });
+    await inviteModeratorApplicantHandler(
+      call('mod', { applicationId: 'app1', regionId: 'vorarlberg' }),
+      w.deps
+    );
+    expect([...w.inviteDocs.values()][0].regionIds).toEqual(['tirol']);
+
+    await expectCode(
+      inviteModeratorApplicantHandler(call('boss', { applicationId: 'app2' }), w.deps),
+      'invalid-argument',
+      /region/
+    );
+    await inviteModeratorApplicantHandler(
+      call('boss', { applicationId: 'app2', regionId: 'vorarlberg' }),
+      w.deps
+    );
+    expect(w.applicationDocs.get('app2')).toMatchObject({
+      status: 'invited',
+      regionId: 'vorarlberg',
+    });
+  });
+
+  it('refuses finished applications and unknown ids', async () => {
+    const w = makeWorld({ roles, applications: { app1: application({ status: 'done' }) } });
+    await expectCode(
+      inviteModeratorApplicantHandler(call('mod', { applicationId: 'app1' }), w.deps),
+      'failed-precondition',
+      /Already a moderator/
+    );
+    await expectCode(
+      inviteModeratorApplicantHandler(call('mod', { applicationId: 'nope' }), w.deps),
+      'not-found'
+    );
+    await expectCode(
+      inviteModeratorApplicantHandler(call('mod', { applicationId: '../x' }), w.deps),
+      'invalid-argument'
+    );
   });
 });
 
