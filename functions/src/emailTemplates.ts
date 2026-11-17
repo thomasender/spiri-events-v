@@ -1,4 +1,5 @@
 import { DEFAULT_SITE_ORIGIN } from './siteOrigin';
+import { describeOccurrence } from './occurrenceDescription';
 
 export type NotificationType =
   | 'submitted'
@@ -836,12 +837,14 @@ export function buildEventChatPayload({
 export interface EventRegistrationOrganizerPayloadInput {
   recipient: string;
   recipientName?: string | null;
-  event: { title: string; slug?: string | null };
+  event: { title: string; slug?: string | null; time?: string | null };
   attendeeName: string;
   contact: string;
   contactType: 'email' | 'phone';
   /** Chosen date of a series (YYYY-MM-DD), if any. */
   occurrenceDate?: string | null;
+  /** "Now" for the colloquial date wording; tests only. */
+  now?: Date;
 }
 
 function contactLinkHtml(contact: string, contactType: 'email' | 'phone'): string {
@@ -859,18 +862,19 @@ export function buildEventRegistrationOrganizerPayload({
   contact,
   contactType,
   occurrenceDate,
+  now,
 }: EventRegistrationOrganizerPayloadInput): EmailPayload {
   const name = chatMailLine(recipientName);
   const attendee = chatMailName(attendeeName, 'Jemand');
   const title = shorten(chatMailLine(event.title), CHAT_MAIL_TITLE_MAX) || 'deine Veranstaltung';
   const url = eventUrl(event.slug);
-  const dateLabel = occurrenceDate ? formatGermanDate(occurrenceDate) : '';
+  const dateLabel = describeOccurrence(occurrenceDate, event.time, now);
   const contactLabel = contactType === 'email' ? 'E-Mail' : 'Telefon';
   const subject = `Neue Anmeldung: ${title}`;
   const htmlBody = `
     <h1 style="${headingStyle(1)}">Neue Anmeldung</h1>
     <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
-    <p style="${paragraphStyle()}">für <strong>${escapeHtml(title)}</strong>${dateLabel ? ` am <strong>${escapeHtml(dateLabel)}</strong>` : ''} hat sich jemand über Tribe angemeldet:</p>
+    <p style="${paragraphStyle()}">für <strong>${escapeHtml(title)}</strong>${dateLabel ? ` <strong>${escapeHtml(dateLabel)}</strong>` : ''} hat sich jemand über Tribe angemeldet:</p>
     <p style="${paragraphStyle()}background:${COLOR_BG_SOFT};padding:12px 14px;border-radius:8px;border:1px solid ${COLOR_BORDER};">
       <strong>Name:</strong> ${escapeHtml(attendee)}<br/>
       <strong>${contactLabel}:</strong> ${contactLinkHtml(contact, contactType)}
@@ -881,7 +885,7 @@ export function buildEventRegistrationOrganizerPayload({
     </p>`;
   const textBody =
     `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
-    `für „${title}“${dateLabel ? ` am ${dateLabel}` : ''} hat sich jemand über Tribe angemeldet:\n\n` +
+    `für „${title}“${dateLabel ? ` ${dateLabel}` : ''} hat sich jemand über Tribe angemeldet:\n\n` +
     `Name: ${attendee}\n` +
     `${contactLabel}: ${contact}\n\n` +
     `Bitte melde dich bei Bedarf direkt bei dieser Person. Tribe führt keine Teilnehmerliste und vergibt keine Plätze.\n\n` +
@@ -897,8 +901,10 @@ export function buildEventRegistrationOrganizerPayload({
 export interface EventRegistrationConfirmationPayloadInput {
   recipient: string;
   attendeeName?: string | null;
-  event: { title: string; slug?: string | null };
+  event: { title: string; slug?: string | null; time?: string | null };
   occurrenceDate?: string | null;
+  /** "Now" for the colloquial date wording; tests only. */
+  now?: Date;
 }
 
 /** Mail to the person who registered (only when they gave an e-mail address). */
@@ -907,22 +913,23 @@ export function buildEventRegistrationConfirmationPayload({
   attendeeName,
   event,
   occurrenceDate,
+  now,
 }: EventRegistrationConfirmationPayloadInput): EmailPayload {
   const name = chatMailName(attendeeName, '');
   const title = shorten(chatMailLine(event.title), CHAT_MAIL_TITLE_MAX) || 'ein Event';
   const url = eventUrl(event.slug);
-  const dateLabel = occurrenceDate ? formatGermanDate(occurrenceDate) : '';
+  const dateLabel = describeOccurrence(occurrenceDate, event.time, now);
   const subject = `Deine Anmeldung: ${title}`;
   const htmlBody = `
     <h1 style="${headingStyle(1)}">Deine Anmeldung ist angekommen</h1>
     <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
-    <p style="${paragraphStyle()}">danke für deine Anmeldung zu <strong>${escapeHtml(title)}</strong>${dateLabel ? ` am <strong>${escapeHtml(dateLabel)}</strong>` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.</p>
+    <p style="${paragraphStyle()}">danke für deine Anmeldung zu <strong>${escapeHtml(title)}</strong>${dateLabel ? ` <strong>${escapeHtml(dateLabel)}</strong>` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.</p>
     <p style="margin:8px 0 24px 0;">
       <a href="${url}" style="${brandButtonStyle()}">Event ansehen</a>
     </p>`;
   const textBody =
     `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
-    `danke für deine Anmeldung zu „${title}“${dateLabel ? ` am ${dateLabel}` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.\n\n` +
+    `danke für deine Anmeldung zu „${title}“${dateLabel ? ` ${dateLabel}` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.\n\n` +
     `Event ansehen: ${url}`;
   return {
     to: recipient,

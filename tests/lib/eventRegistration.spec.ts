@@ -109,17 +109,19 @@ describe('registration mails (payload only, nothing is sent)', () => {
     const payload = buildEventRegistrationOrganizerPayload({
       recipient: 'org@x.at',
       recipientName: 'Olga',
-      event: { title: 'Klangreise <live>', slug: 'klangreise' },
+      event: { title: 'Klangreise <live>', slug: 'klangreise', time: '19:30' },
       attendeeName: 'Anna',
       contact: '+43 664 1234567',
       contactType: 'phone',
       occurrenceDate: '2026-11-21',
+      now: new Date('2026-11-17T11:00:00Z'),
     });
     expect(payload.to).toBe('org@x.at');
     expect(payload.subject).toBe('Neue Anmeldung: Klangreise <live>');
     expect(payload.text).toContain('Name: Anna');
     expect(payload.text).toContain('Telefon: +43 664 1234567');
-    expect(payload.text).toContain('Samstag, 21. November 2026');
+    expect(payload.text).toContain('diese Woche am Samstagabend um 19:30 Uhr');
+    expect(payload.html).toContain('<strong>diese Woche am Samstagabend um 19:30 Uhr</strong>');
     expect(payload.text).toContain('https://www.thetribe.at/event/klangreise');
     expect(payload.html).toContain('Klangreise &lt;live&gt;');
     expect(payload.html).toContain('href="tel:+436641234567"');
@@ -136,6 +138,24 @@ describe('registration mails (payload only, nothing is sent)', () => {
     expect(payload.subject).toBe('Deine Anmeldung: Klangreise');
     expect(payload.text).toContain('Hallo Anna,');
     expect(payload.text).toContain('Pro Event schicken wir dir nur eine Bestätigung.');
+  });
+
+  it('names the chosen date colloquially in the guest confirmation, only the day without a time', () => {
+    const now = new Date('2026-11-17T11:00:00Z');
+    const base = { recipient: 'anna@example.com', attendeeName: 'Anna', now };
+    const withTime = buildEventRegistrationConfirmationPayload({
+      ...base,
+      event: { title: 'Klangreise', slug: 'klangreise', time: '19:30' },
+      occurrenceDate: '2026-11-17',
+    });
+    expect(withTime.text).toContain('zu „Klangreise“ heute Dienstagabend um 19:30 Uhr.');
+    expect(withTime.html).toContain('<strong>heute Dienstagabend um 19:30 Uhr</strong>');
+    const dayOnly = buildEventRegistrationConfirmationPayload({
+      ...base,
+      event: { title: 'Klangreise', slug: 'klangreise' },
+      occurrenceDate: '2026-11-24',
+    });
+    expect(dayOnly.text).toContain('zu „Klangreise“ am Dienstag, 24. November.');
   });
 
   it('names the event in the account confirmation mail only when given', () => {

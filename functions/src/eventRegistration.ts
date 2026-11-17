@@ -132,7 +132,15 @@ export const submitEventRegistration = onCall(
       }
     }
 
-    const event = { title: readText(eventData.title) ?? '', slug: readText(eventData.slug) };
+    const event = {
+      title: readText(eventData.title) ?? '',
+      slug: readText(eventData.slug),
+      time: readText(eventData.time),
+    };
+    // A single event has exactly one date; for a series the guest's chosen date is needed.
+    const mailDate =
+      input.occurrenceDate ??
+      (!eventData.recurrence || eventData.recurrence === 'none' ? readText(eventData.date) : null);
     const organizerUid = readText(eventData.createdBy);
     const organizerData = (eventData.organizer ?? {}) as Record<string, unknown>;
     const account = await organizerAccount(organizerUid);
@@ -187,7 +195,7 @@ export const submitEventRegistration = onCall(
           attendeeName: input.name,
           contact: input.contact,
           contactType: input.contactType,
-          occurrenceDate: input.occurrenceDate,
+          occurrenceDate: mailDate,
         }),
         organizerUid ? await getUserSiteOrigin(organizerUid) : null
       );
@@ -214,7 +222,7 @@ export const submitEventRegistration = onCall(
             recipient: input.contact,
             attendeeName: input.name,
             event,
-            occurrenceDate: input.occurrenceDate,
+            occurrenceDate: mailDate,
           }),
           requestSiteOrigin(request)
         );

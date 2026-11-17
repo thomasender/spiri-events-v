@@ -77,6 +77,35 @@ describe('EventRegistrationModal', () => {
     expect(readPendingRegistration()).toBeNull();
   });
 
+  it('names the chosen date in the form and falls back to the next date of a series', async () => {
+    mocks.call.mockResolvedValue({ data: { ok: true } });
+    const series = {
+      ...event,
+      time: '19:30',
+      recurrence: 'custom',
+      date: '2999-01-10',
+      customDates: ['2999-01-10', '2999-01-24'],
+    };
+    const { unmount } = renderModal({ event: series, occurrenceDate: '2999-01-24' });
+    expect(screen.getByText(/Du meldest dich an für:/)).toHaveTextContent(
+      'Du meldest dich an für: Klangreise, am Donnerstag, 24. Januar 2999, abends um 19:30 Uhr.'
+    );
+    unmount();
+    // A list link carries no occurrenceDate: the next upcoming date is used and sent.
+    renderModal({ event: series });
+    expect(screen.getByText(/Du meldest dich an für:/)).toHaveTextContent(
+      'am Donnerstag, 10. Januar 2999, abends um 19:30 Uhr'
+    );
+    fireEvent.change(nameInput(), { target: { value: 'Ben' } });
+    fireEvent.change(contactInput(), { target: { value: 'ben@example.com' } });
+    fireEvent.click(screen.getByTestId('event-registration-submit'));
+    await screen.findByTestId('event-registration-success');
+    expect(mocks.call).toHaveBeenCalledWith(
+      'submitEventRegistration',
+      expect.objectContaining({ occurrenceDate: '2999-01-10' })
+    );
+  });
+
   it('invites a guest to create an account and remembers the registration', async () => {
     mocks.call.mockResolvedValue({
       data: { ok: true, organizerNotified: true, confirmationSent: true, favorite: false },
