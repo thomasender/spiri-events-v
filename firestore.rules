@@ -607,6 +607,20 @@ service cloud.firestore {
         allow read: if isAdminOrEmulatorAdmin();
         allow write: if false;
       }
+
+      // "Zum Event anmelden" (docs/event-registration.md): name + contact of people who
+      // registered, written only by the submitEventRegistration callable (Admin SDK)
+      // and deleted once the event is over. Only the organizer and admins may read;
+      // nobody writes from the client.
+      match /registrations/{registrationId} {
+        allow read: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
+        allow write: if false;
+      }
+
+      // "Confirmation already sent" markers (hashed e-mail), server-only.
+      match /registration_mails/{markerId} {
+        allow read, write: if false;
+      }
     }
 
     // Role docs ({ role: 'Admin' } or { role: 'RegionModerator', regionIds }).

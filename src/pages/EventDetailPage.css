@@ -334,6 +334,10 @@
   margin-bottom: var(--space-6);
 }
 
+.event-registration-button.event-link {
+  margin-right: var(--space-3);
+}
+
 .event-not-found {
   max-width: 560px;
   margin: var(--space-12) auto;

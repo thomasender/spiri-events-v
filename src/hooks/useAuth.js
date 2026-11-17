@@ -39,6 +39,7 @@ import { splitProfileData } from '../utils/profile';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
 import { auth, db, callable, getStorageInstance } from '../lib/firebase';
+import { readPendingRegistration } from '../lib/eventRegistration';
 import {
   checkRateLimit,
   recordRateLimitAttempt,
@@ -308,6 +309,8 @@ export function useAuth() {
       throw err;
     }
     recordRateLimitAttempt({ bucket, ...preset });
+    // Read before the account exists: once signed in, the favorites store consumes it.
+    const pendingEventId = readPendingRegistration()?.eventId ?? null;
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
       await updateProfile(credential.user, { displayName });
@@ -317,7 +320,7 @@ export function useAuth() {
       isNewAccount: true,
     });
     try {
-      await requestVerificationEmail(credential.user);
+      await requestVerificationEmail(credential.user, pendingEventId);
     } catch (err) {
       console.warn('Failed to send initial verification email:', err);
     }
@@ -325,12 +328,16 @@ export function useAuth() {
     return credential;
   };
 
-  const requestVerificationEmail = async (targetUser = auth.currentUser) => {
+  // `pendingEventId`: a guest registered for this event before creating the
+  // account ("Zum Event anmelden"); the mail then names the event.
+  const requestVerificationEmail = async (targetUser = auth.currentUser, pendingEventId = null) => {
     if (!targetUser) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
     const fn = callable('sendVerificationEmail');
-    await fn({ userId: targetUser.uid });
+    await fn(
+      pendingEventId ? { userId: targetUser.uid, pendingEventId } : { userId: targetUser.uid }
+    );
   };
 
   const resendVerificationEmail = async () => {

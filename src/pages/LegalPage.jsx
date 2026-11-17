@@ -433,7 +433,18 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Beim Löschen Ihres Kontos wird die Angabe zusammen mit Ihrem öffentlichen Profil gelöscht`,
       },
       {
-        heading: '19. Änderungen dieser Datenschutzerklärung',
+        heading: '19. Anmeldung zu Events',
+        text: `Bei Events können Sie sich über den Button „Zum Event anmelden“ bzw. „Über Tribe anmelden“ anmelden, mit oder ohne Konto.
+
+- Wir verarbeiten Ihren Namen und die von Ihnen angegebene E-Mail-Adresse oder Telefonnummer, das Event (und gegebenenfalls den gewählten Termin), den Zeitpunkt sowie, wenn Sie angemeldet sind, eine interne Konto-Kennung
+- Name und Kontaktangabe schicken wir per E-Mail an die Veranstalterin bzw. den Veranstalter des Events, damit sie sich bei Ihnen melden können. Bei einer E-Mail-Adresse erhalten Sie einmal pro Event eine Bestätigung per E-Mail. Mit Konto wird das Event zusätzlich in Ihren Favoriten gespeichert
+- Es gibt keine öffentliche Teilnehmerliste. Die gespeicherte Anmeldung können nur die Veranstalter:innen des Events und die Administrator:innen einsehen; sie wird gelöscht, sobald das Event vorbei ist. Die E-Mail an die Veranstalter:innen liegt danach in deren Postfach, darauf haben wir keinen Einfluss
+- Für Bestätigungen speichern wir bis zum Ende des Events zusätzlich einen nicht lesbaren Prüfwert (Hash) Ihrer E-Mail-Adresse, damit Sie nicht mehrfach dieselbe Bestätigung erhalten
+- Ohne Konto merkt sich Ihr Browser Name, E-Mail-Adresse und Event bis zum Schließen des Tabs (Sitzungsspeicher), damit Sie danach ohne erneute Eingabe ein Konto anlegen können
+- Rechtsgrundlage ist die Durchführung Ihrer Anfrage (Art. 6 Abs. 1 lit. b DSGVO). Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9), der E-Mail-Versand läuft über Mailgun (siehe Abschnitt 4)`,
+      },
+      {
+        heading: '20. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],

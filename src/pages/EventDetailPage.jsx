@@ -84,6 +84,7 @@ import FavoriteButton from '../components/FavoriteButton';
 import LoginPromptModal from '../components/LoginPromptModal';
 import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
 import ShareButton from '../components/ShareButton';
+import EventRegistrationButton from '../components/EventRegistrationButton';
 import { AdminInstagramPreview } from '../components/InstagramPostPreview';
 import AdminCoverPreview from '../components/AdminCoverPreview';
 import EventCoverImage from '../components/EventCoverImage';
@@ -1051,6 +1052,13 @@ export default function EventDetailPage() {
           </div>
         )}
       </div>
+
+      <EventRegistrationButton
+        event={event}
+        user={user}
+        occurrenceDate={occurrenceDate}
+        className="event-link"
+      />
 
       {ticketLink && (
         <a

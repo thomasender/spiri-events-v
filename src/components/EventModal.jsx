@@ -28,6 +28,7 @@ import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
 import RichTextView from './RichTextView';
 import EventCoverImage from './EventCoverImage';
+import EventRegistrationButton from './EventRegistrationButton';
 import { getMonthlyWeekdayPhrase } from '../utils/eventOccurrences';
 import './EventModal.css';
 
@@ -90,7 +91,8 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
   return label;
 }
 
-export default function EventModal({ event, onClose }) {
+// `user` (optional): the signed-in member, prefills the registration form.
+export default function EventModal({ event, onClose, user = null }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const fallbackImage = getEventFallbackImage(event);
 
@@ -318,6 +320,8 @@ export default function EventModal({ event, onClose }) {
             <RichTextView html={event.description} />
           </div>
         )}
+
+        <EventRegistrationButton event={event} user={user} className="modal-link" />
 
         {event.link && (
           <a
