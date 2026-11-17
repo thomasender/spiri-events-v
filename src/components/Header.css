@@ -302,6 +302,13 @@
     left: 0;
     right: 0;
     padding: var(--space-3) var(--space-4) var(--space-5);
+    /* The page behind is scroll-locked while the menu is open, so on small
+       phones the menu must scroll itself or "Abmelden" is out of reach. */
+    max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     background-color: rgba(246, 241, 236, 0.98);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
