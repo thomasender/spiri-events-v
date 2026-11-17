@@ -36,6 +36,7 @@ import { REACTION_EMOJIS } from '../utils/reactions';
 import { chatRoomIdsToClean } from '../utils/chat';
 import { knownActiveRegionIds } from './useRegions';
 import { splitProfileData } from '../utils/profile';
+import { termsAcceptanceFields } from '../utils/terms';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
 import { auth, db, callable, getStorageInstance } from '../lib/firebase';
@@ -151,7 +152,12 @@ async function seedProfileDoc(
   user,
   displayName,
   photoURL,
-  { notifyNewsletter = false, isNewAccount = false, recordSiteOrigin = isNewAccount } = {}
+  {
+    notifyNewsletter = false,
+    isNewAccount = false,
+    recordSiteOrigin = isNewAccount,
+    acceptedTerms = false,
+  } = {}
 ) {
   try {
     const profileRef = doc(db, 'users', user.uid);
@@ -175,6 +181,9 @@ async function seedProfileDoc(
       // Domain the account was created on (thetribe.at, deintribe.de, ...): the
       // links in all mails to this user point to it. Never changed afterwards.
       ...(recordSiteOrigin ? { siteOrigin: window.location.origin } : {}),
+      // Consent to the Nutzungsbedingungen, only when the account is created
+      // (checkbox / Google hint). Existing accounts are not asked again.
+      ...(acceptedTerms ? termsAcceptanceFields(now) : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -322,6 +331,8 @@ export function useAuth() {
     await seedProfileDoc(credential.user, displayName, null, {
       notifyNewsletter: Boolean(subscribeNewsletter),
       isNewAccount: true,
+      // AuthForm only calls register() with the terms checkbox ticked.
+      acceptedTerms: true,
     });
     try {
       await requestVerificationEmail(credential.user, pendingEventId, afterVerify);
@@ -373,8 +384,11 @@ export function useAuth() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     const credential = await signInWithPopup(auth, provider);
+    // A new Google account agrees through the hint under the Google button.
+    const isNewUser = getAdditionalUserInfo(credential)?.isNewUser === true;
     await seedProfileDoc(credential.user, credential.user.displayName, credential.user.photoURL, {
-      recordSiteOrigin: getAdditionalUserInfo(credential)?.isNewUser === true,
+      recordSiteOrigin: isNewUser,
+      acceptedTerms: isNewUser,
     });
     return credential;
   };

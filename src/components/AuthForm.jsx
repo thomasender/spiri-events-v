@@ -7,6 +7,7 @@ import { Mail, Lock, User } from 'lucide-react';
 import { EVENTS, trackEvent } from '../lib/analytics';
 import './AuthForm.css';
 import PasswordInput from './PasswordInput';
+import { TERMS_PATH } from '../utils/terms';
 
 function GoogleIcon() {
   return (
@@ -61,7 +62,7 @@ export default function AuthForm() {
   // Coming from the end of the "Event erstellen" wizard (guest draft kept).
   const createEventDraft = location.state?.createEventDraft === true;
   const [displayName, setDisplayName] = useState(prefillName);
-  const [acceptDatenschutz, setAcceptDatenschutz] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState('');
@@ -95,7 +96,7 @@ export default function AuthForm() {
     setPassword('');
     setConfirmPassword('');
     setDisplayName(prefillName);
-    setAcceptDatenschutz(false);
+    setAcceptTerms(false);
     setSubscribeNewsletter(false);
     setWobbling(false);
     if (wobbleTimerRef.current) {
@@ -132,8 +133,8 @@ export default function AuthForm() {
     setError('');
     setErrorCode('');
 
-    if (!isLogin && !acceptDatenschutz) {
-      setError('Bitte akzeptiere die Datenschutzerklärung.');
+    if (!isLogin && !acceptTerms) {
+      setError('Bitte stimme den Nutzungsbedingungen und der Datenschutzerklärung zu.');
       triggerWobble();
       return;
     }
@@ -410,16 +411,21 @@ export default function AuthForm() {
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={acceptDatenschutz}
-                      onChange={(e) => setAcceptDatenschutz(e.target.checked)}
+                      checked={acceptTerms}
+                      onChange={(e) => setAcceptTerms(e.target.checked)}
                       aria-required="true"
+                      data-testid="auth-terms-consent"
                     />
                     <span>
                       Ich habe die{' '}
+                      <Link to={TERMS_PATH} target="_blank" rel="noopener noreferrer">
+                        Nutzungsbedingungen
+                      </Link>{' '}
+                      und die{' '}
                       <Link to="/datenschutz" target="_blank" rel="noopener noreferrer">
                         Datenschutzerklärung
                       </Link>{' '}
-                      gelesen und stimme dieser zu.
+                      gelesen und stimme zu.
                     </span>
                   </label>
                   <label className="checkbox-label">
@@ -496,6 +502,19 @@ export default function AuthForm() {
               <GoogleIcon />
               <span>{isLogin ? 'Mit Google anmelden' : 'Mit Google registrieren'}</span>
             </button>
+
+            {/* "Mit Google anmelden" also creates an account for a new address. */}
+            <p className="auth-google-terms" data-testid="auth-google-terms">
+              Mit der Registrierung stimmst du den{' '}
+              <Link to={TERMS_PATH} target="_blank" rel="noopener noreferrer">
+                Nutzungsbedingungen
+              </Link>{' '}
+              und der{' '}
+              <Link to="/datenschutz" target="_blank" rel="noopener noreferrer">
+                Datenschutzerklärung
+              </Link>{' '}
+              zu.
+            </p>
 
             {(!showCreateAccountCta || isLogin) && (
               <div className="auth-footer">

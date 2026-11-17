@@ -201,6 +201,10 @@ function AppLayout() {
               <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
               <Route path="/impressum" element={<LegalPage page="impressum" />} />
               <Route
+                path="/nutzungsbedingungen"
+                element={<LegalPage page="nutzungsbedingungen" />}
+              />
+              <Route
                 path="/admin"
                 element={
                   <ProtectedRoute>

@@ -300,6 +300,20 @@
   cursor: not-allowed;
 }
 
+.auth-google-terms {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-80);
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.auth-google-terms a {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .google-icon {
   flex-shrink: 0;
   display: block;
