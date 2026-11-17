@@ -675,7 +675,12 @@ function PreEntryRows({
                   {status === 'claimed' || status === 'editing' ? (
                     <p className="pre-entry-muted">
                       Änderungen der Veranstalter:in (vorher/nachher) siehst du im Verlauf des
-                      Events im Bereich „Review“, sobald sie es einreicht.
+                      Events im Bereich „Review“, sobald sie es einreicht.{' '}
+                      {ev.status === 'pending' && (
+                        <Link to={`/admin?tab=review#${row.eventId}`} className="detail-link">
+                          Im Review ansehen
+                        </Link>
+                      )}
                     </p>
                   ) : null}
                 </section>

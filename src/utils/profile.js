@@ -1,3 +1,4 @@
+import { SYSTEM_UID } from './systemAccount.js';
 export const PUBLIC_PROFILE_FIELDS = [
   'displayName',
   'bio',
@@ -124,6 +125,9 @@ function combineOrganizerName(organizer) {
 export function resolveOrganizerProfilePath(event, profile) {
   if (!event || !profile || !profile.slug) return null;
   if (!event.createdBy) return null;
+  // Pre-entered events belong to "Dein Tribe" (Trello 6afb1116): the shown
+  // organizer name is not that profile, so it is not linked to it.
+  if (event.createdBy === SYSTEM_UID) return null;
   if (!combineOrganizerName(event.organizer)) return null;
   return getOrganizerProfilePath(profile.slug);
 }

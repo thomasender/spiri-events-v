@@ -420,3 +420,10 @@
   max-height: 40vh;
   overflow-y: auto;
 }
+
+.detail-entered-by {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-85);
+}
