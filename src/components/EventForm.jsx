@@ -11,7 +11,6 @@ import { useProfile } from '../hooks/useProfile';
 import { resolveOrganizerPhotoURL } from '../utils/organizerPhoto';
 import {
   uploadImage,
-  uploadEventCover,
   CoverUploadError,
   COVER_UPLOAD_ERROR,
   deleteImageByUrl,
@@ -85,6 +84,7 @@ import { pruneExceptionDates } from '../utils/eventOccurrences';
 import { reviewEditChanges } from '../utils/eventReviewFields';
 import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
 import { newEventId } from '../utils/eventId';
+import { useBackgroundCoverUpload } from '../hooks/useBackgroundCoverUpload';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -608,19 +608,22 @@ export default function EventForm({ event }) {
     }
   };
 
+  // The Titelbild starts uploading in the background as soon as it is picked
+  // (or restored from the wizard draft); saving only waits for that upload.
+  const { awaitCover, markCoverSaved } = useBackgroundCoverUpload({
+    file: imageFile,
+    enabled: Boolean(user),
+    getEventId: () =>
+      (eventIdRef.current ??= event?.id ?? createdEventRef.current?.id ?? newEventId()),
+  });
+
   const handleImageUpload = async (eventId) => {
     if (!imageFile) return null;
 
     setImageUploading(true);
     setImageProgress(0);
     try {
-      return await uploadEventCover(imageFile, {
-        eventId,
-        onProgress: setImageProgress,
-      });
-    } catch (err) {
-      console.error('Image upload failed:', err);
-      throw new CoverUploadError(err);
+      return await awaitCover(imageFile, eventId, setImageProgress);
     } finally {
       setImageUploading(false);
     }
@@ -1023,6 +1026,7 @@ export default function EventForm({ event }) {
         docRef = await addEvent(data, data.status || 'pending', eventId);
         createdEventRef.current = docRef;
       }
+      if (imageFile) markCoverSaved();
 
       if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
         const instagramUploadUrl = await uploadImage(instagramFile, { eventId: docRef.id });

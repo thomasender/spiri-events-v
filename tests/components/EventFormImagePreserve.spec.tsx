@@ -73,7 +73,7 @@ vi.mock('../../src/lib/imageUpload', () => ({
 }));
 
 import EventForm from '../../src/components/EventForm';
-import { uploadEventCover } from '../../src/lib/imageUpload';
+import { uploadEventCover, deleteImageByUrl } from '../../src/lib/imageUpload';
 
 const EXISTING_IMAGE_URL =
   'https://firebasestorage.googleapis.com/v0/b/test.appspot.com/o/events%2Fevent-with-picture%2Foriginal.jpg';
@@ -110,6 +110,8 @@ beforeEach(() => {
   mockEvents.addEvent.mockClear();
   mockEvents.updateEvent.mockClear();
   mockEvents.deleteEvent.mockClear();
+  vi.mocked(uploadEventCover).mockClear();
+  vi.mocked(deleteImageByUrl).mockClear();
 });
 
 describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
@@ -186,7 +188,9 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
       </MemoryRouter>
     );
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.querySelector(
+      'input[type="file"]:not(.rte-image-file-input)'
+    ) as HTMLInputElement;
     expect(fileInput).toBeTruthy();
     const file = new File(['fake-bytes'], 'new-cover.jpg', { type: 'image/jpeg' });
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -211,14 +215,19 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
   });
 
   it('tells the user when the new cover photo could not be uploaded (uNQ0vQ3E)', async () => {
-    vi.mocked(uploadEventCover).mockRejectedValueOnce(new Error('storage/unauthorized'));
+    // Fails in the background and again on the retry when saving.
+    vi.mocked(uploadEventCover)
+      .mockRejectedValueOnce(new Error('storage/unauthorized'))
+      .mockRejectedValueOnce(new Error('storage/unauthorized'));
     render(
       <MemoryRouter>
         <EventForm event={baseEvent} />
       </MemoryRouter>
     );
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.querySelector(
+      'input[type="file"]:not(.rte-image-file-input)'
+    ) as HTMLInputElement;
     const file = new File(['fake-bytes'], 'new-cover.jpg', { type: 'image/jpeg' });
     fireEvent.change(fileInput, { target: { files: [file] } });
     await waitFor(() => {
@@ -231,6 +240,84 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
     expect(await screen.findByText(/Titelbild konnte nicht hochgeladen werden/)).toBeTruthy();
     // Nothing was written: the event keeps its old photo (7iDvAj4U).
     expect(mockEvents.updateEvent).not.toHaveBeenCalled();
+  });
+
+  // The Titelbild uploads in the background right after it is picked; saving
+  // only waits for (or retries) that upload (7iDvAj4U).
+  async function pickCover(name: string) {
+    const fileInput = document.querySelector(
+      'input[type="file"]:not(.rte-image-file-input)'
+    ) as HTMLInputElement;
+    const file = new File(['fake-bytes'], name, { type: 'image/jpeg' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await waitFor(() => {
+      const preview = screen.getByTestId('title-image-focal-picker-image') as HTMLImageElement;
+      expect(preview.src).not.toBe(EXISTING_IMAGE_URL);
+    });
+    return file;
+  }
+
+  it('uploads a picked picture right away and saving reuses that upload', async () => {
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+    const file = await pickCover('new-cover.jpg');
+
+    await waitFor(() => expect(uploadEventCover).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(uploadEventCover).mock.calls[0][0]).toBe(file);
+    expect(vi.mocked(uploadEventCover).mock.calls[0][1]).toMatchObject({
+      eventId: 'event-with-picture',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    expect(mockEvents.updateEvent.mock.calls[0][1].imageUrl).toBe(
+      'https://example.com/brand-new-image.jpg'
+    );
+    expect(uploadEventCover).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a failed background upload when saving', async () => {
+    vi.mocked(uploadEventCover).mockRejectedValueOnce(new Error('storage/retry-limit-exceeded'));
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+    await pickCover('new-cover.jpg');
+    await waitFor(() => expect(uploadEventCover).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    expect(uploadEventCover).toHaveBeenCalledTimes(2);
+    expect(mockEvents.updateEvent.mock.calls[0][1].imageUrl).toBe(
+      'https://example.com/brand-new-image.jpg'
+    );
+  });
+
+  it('deletes the upload of a picture that was replaced before saving', async () => {
+    const STALE = 'https://example.com/stale.jpg';
+    vi.mocked(uploadEventCover).mockResolvedValueOnce({ url: STALE, thumbUrl: null });
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+    await pickCover('first.jpg');
+    await waitFor(() => expect(uploadEventCover).toHaveBeenCalledTimes(1));
+    const second = await pickCover('second.jpg');
+    await waitFor(() => expect(uploadEventCover).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(uploadEventCover).mock.calls[1][0]).toBe(second);
+    await waitFor(() => expect(deleteImageByUrl).toHaveBeenCalledWith(STALE));
+
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    expect(mockEvents.updateEvent.mock.calls[0][1].imageUrl).toBe(
+      'https://example.com/brand-new-image.jpg'
+    );
+    expect(deleteImageByUrl).not.toHaveBeenCalledWith('https://example.com/brand-new-image.jpg');
   });
 
   it('does not save an event whose Titelbild was removed without a new one (7iDvAj4U)', async () => {

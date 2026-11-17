@@ -337,8 +337,30 @@ describe('EventFormWizard Titelbild check on submit', () => {
     expect(vi.mocked(uploadEventCover).mock.calls.at(-1)?.[1]).toMatchObject({ eventId });
   });
 
+  it('uploads the restored Titelbild in the background and submitting reuses that upload', async () => {
+    vi.mocked(uploadEventCover).mockClear();
+    seedDraft({ currentStep: 4, rightsConfirmed: true });
+    renderWizard();
+    await waitFor(() => expect(uploadEventCover).toHaveBeenCalledTimes(1));
+    const bgEventId = (vi.mocked(uploadEventCover).mock.calls[0][1] as { eventId: string }).eventId;
+
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    const dialog = await waitFor(() => {
+      const el = document.querySelector('.confirm-dialog') as HTMLElement | null;
+      if (!el) throw new Error('no dialog');
+      return el;
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /^einreichen$/i }));
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledTimes(1));
+    expect(mockEvents.addEvent.mock.calls[0][2]).toBe(bgEventId);
+    expect(uploadEventCover).toHaveBeenCalledTimes(1);
+  });
+
   it('does not save the event at all when the Titelbild upload fails', async () => {
-    vi.mocked(uploadEventCover).mockRejectedValueOnce(new Error('storage/retry-limit-exceeded'));
+    // Fails in the background and again on the retry when submitting.
+    vi.mocked(uploadEventCover)
+      .mockRejectedValueOnce(new Error('storage/retry-limit-exceeded'))
+      .mockRejectedValueOnce(new Error('storage/retry-limit-exceeded'));
     await submitStep4();
     expect(await screen.findByText(/Titelbild konnte nicht hochgeladen werden/)).toBeTruthy();
     expect(mockEvents.addEvent).not.toHaveBeenCalled();
