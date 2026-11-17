@@ -110,12 +110,14 @@ export const ADMIN_TABS = [
   'chat',
   'instagram',
   'analytics',
+  'funfacts',
   'mailgun',
   'ledger',
   'moderation',
   'regions',
   'about',
   'faq',
+  'vorab',
 ];
 const MODERATOR_TABS = [
   'events',
@@ -126,6 +128,8 @@ const MODERATOR_TABS = [
   'members',
   'helpers',
   'about',
+  // Shown only while app_settings/preEntries.mode is 'all' (AdminPage).
+  'vorab',
 ];
 const ORGANIZER_TABS = ['events', 'drafts', 'messages', 'trash'];
 

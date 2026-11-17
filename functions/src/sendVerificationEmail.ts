@@ -4,6 +4,7 @@ import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { DEFAULT_SITE_ORIGIN, requestSiteOrigin } from './siteOrigin';
 import { logger } from 'firebase-functions';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import {
   MAILGUN_API_KEY,
   MAILGUN_DOMAIN,
@@ -33,7 +34,13 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export function renderEmail(args: { displayName: string; buttonUrl: string; appName: string }): {
+export function renderEmail(args: {
+  displayName: string;
+  buttonUrl: string;
+  appName: string;
+  /** Event the new member registered for just before creating the account ("Zum Event anmelden"). */
+  eventTitle?: string | null;
+}): {
   subject: string;
   html: string;
   text: string;
@@ -41,11 +48,18 @@ export function renderEmail(args: { displayName: string; buttonUrl: string; appN
   const displayName = escapeHtml(args.displayName);
   const buttonUrl = escapeHtml(args.buttonUrl);
   const appName = escapeHtml(args.appName);
+  const eventTitle = (args.eventTitle ?? '').trim();
+  const eventHtml = eventTitle
+    ? `\n    <p style="font-size:15px;line-height:1.5;color:#222;">Deine Anmeldung für <strong>${escapeHtml(eventTitle)}</strong> ist beim Veranstalter angekommen. Nach der Bestätigung findest du das Event unter deinen Favoriten.</p>`
+    : '';
+  const eventText = eventTitle
+    ? `\n\nDeine Anmeldung für „${eventTitle}“ ist beim Veranstalter angekommen. Nach der Bestätigung findest du das Event unter deinen Favoriten.`
+    : '';
   const subject = `Bestätige deine E-Mail-Adresse für den ${appName}`;
   const html = `<!DOCTYPE html><html lang="de"><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#faf7f2;padding:24px;margin:0;">
   <div style="max-width:520px;margin:0 auto;background:#ffffff;padding:32px;border-radius:8px;">
     <h1 style="color:#4a5d23;font-size:20px;margin-top:0;">Hallo ${displayName},</h1>
-    <p style="font-size:15px;line-height:1.5;color:#222;">bitte bestätige deine E-Mail-Adresse, damit dein Account aktiviert wird.</p>
+    <p style="font-size:15px;line-height:1.5;color:#222;">bitte bestätige deine E-Mail-Adresse, damit dein Account aktiviert wird.</p>${eventHtml}
     <p style="text-align:center;margin:32px 0;">
       <a href="${buttonUrl}" style="background:#4a5d23;color:#ffffff;padding:14px 28px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:600;font-size:15px;">E-Mail bestätigen</a>
     </p>
@@ -53,8 +67,35 @@ export function renderEmail(args: { displayName: string; buttonUrl: string; appN
     <p style="color:#999;font-size:11px;margin-top:24px;">Wenn du diese E-Mail nicht angefordert hast, kannst du sie ignorieren.</p>
   </div>
 </body></html>`;
-  const text = `Hallo ${args.displayName},\n\nbitte bestätige deine E-Mail-Adresse, damit dein Account aktiviert wird:\n${args.buttonUrl}\n\nLiebe Grüße,\ndas ${appName} Team`;
+  const text = `Hallo ${args.displayName},\n\nbitte bestätige deine E-Mail-Adresse, damit dein Account aktiviert wird:\n${args.buttonUrl}${eventText}\n\nLiebe Grüße,\ndas ${appName} Team`;
   return { subject, html, text };
+}
+
+/**
+ * Where the confirmation link leads afterwards (`next`), by the optional
+ * `afterVerify` of the request. Only these fixed paths, never a path sent by
+ * the client, so the link cannot become an open redirect. The page side checks
+ * the same list (src/utils/returnPath.js, AFTER_VERIFY_PATHS).
+ */
+export const AFTER_VERIFY_PATHS: Readonly<Record<string, string>> = {
+  // A guest filled in "Event erstellen" before creating the account
+  // (docs/guest-event-draft.md): back to the wizard's last page.
+  createEvent: '/admin/new',
+};
+
+/** The button link of the mail: the action page, plus `next` for a known `afterVerify`. */
+export function buildVerificationButtonUrl(
+  origin: string,
+  oobCode: string,
+  afterVerify?: unknown
+): string {
+  const base = `${origin}/auth-action?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
+  const next =
+    typeof afterVerify === 'string' &&
+    Object.prototype.hasOwnProperty.call(AFTER_VERIFY_PATHS, afterVerify)
+      ? AFTER_VERIFY_PATHS[afterVerify]
+      : null;
+  return next ? `${base}&next=${encodeURIComponent(next)}` : base;
 }
 
 function isFirebaseRateLimit(err: unknown): boolean {
@@ -94,6 +135,26 @@ export function toVerificationEmailHttpsError(err: unknown): HttpsError {
   return new HttpsError('internal', 'Could not send verification email.');
 }
 
+/**
+ * Title of the event a guest registered for before creating the account
+ * (optional `pendingEventId`, docs/event-registration.md). Only published events;
+ * anything else (or a lookup error) leaves the mail as it always was.
+ */
+async function pendingEventTitle(eventId: unknown): Promise<string | null> {
+  if (typeof eventId !== 'string' || !eventId || eventId.length > 200 || eventId.includes('/')) {
+    return null;
+  }
+  try {
+    const snap = await getFirestore().doc(`events/${eventId}`).get();
+    if (!snap.exists || snap.get('status') !== 'approved') return null;
+    const title = snap.get('title');
+    return typeof title === 'string' && title.trim() ? title.trim().slice(0, 200) : null;
+  } catch (err) {
+    logger.warn('Could not read pending registration event', { eventId, err });
+    return null;
+  }
+}
+
 export const sendVerificationEmail = onCall(
   {
     region: 'europe-west3',
@@ -106,7 +167,11 @@ export const sendVerificationEmail = onCall(
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Must be signed in.');
     }
-    const payload = (request.data ?? {}) as { userId?: string };
+    const payload = (request.data ?? {}) as {
+      userId?: string;
+      pendingEventId?: string;
+      afterVerify?: string;
+    };
     const userId = payload.userId;
     if (typeof userId !== 'string' || !userId) {
       throw new HttpsError('invalid-argument', 'userId is required.');
@@ -138,10 +203,15 @@ export const sendVerificationEmail = onCall(
     }
 
     // The link goes to the domain the user is on, so their session there stays valid.
-    const buttonUrl = `${requestSiteOrigin(request)}/auth-action?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
+    const buttonUrl = buildVerificationButtonUrl(
+      requestSiteOrigin(request),
+      oobCode,
+      payload.afterVerify
+    );
     const displayName = user.displayName || user.email;
     const appName = process.env.APP_DISPLAY_NAME || 'Tribe';
-    const { subject, html, text } = renderEmail({ displayName, buttonUrl, appName });
+    const eventTitle = await pendingEventTitle(payload.pendingEventId);
+    const { subject, html, text } = renderEmail({ displayName, buttonUrl, appName, eventTitle });
 
     const apiKey = MAILGUN_API_KEY.value();
     const domain = MAILGUN_DOMAIN.value();

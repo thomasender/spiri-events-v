@@ -75,6 +75,7 @@ import {
 import {
   REGISTRATION_MAX_LENGTH,
   KONTAKT_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   contactPhone,
   normalizeMessengerSelection,
 } from '../utils/contactFormat';
@@ -83,6 +84,8 @@ import SeriesDatesOverview from './SeriesDatesOverview';
 import { pruneExceptionDates } from '../utils/eventOccurrences';
 import { reviewEditChanges } from '../utils/eventReviewFields';
 import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
+import { preEntryAdmin } from '../hooks/usePreEntries';
+import { preEntryErrorMessage } from '../utils/preEntries';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -388,6 +391,10 @@ export default function EventForm({ event }) {
 
   const isAdmin = role === 'Admin';
   const isEdit = Boolean(event);
+  // A pre-entered event a moderator took out to edit (Trello 6afb1116, check-out in
+  // the tab "Vorab eingetragene Events"): it stays a draft, has no organizer e-mail and
+  // goes back to "Dein Tribe" after saving.
+  const isPreEntry = isEdit && event?.preEntry === true;
   const wasApproved = event?.status === 'approved';
   const isDraft = event?.status === 'draft';
   const isPending = event?.status === 'pending';
@@ -395,6 +402,7 @@ export default function EventForm({ event }) {
   const deleteReasonRequired = isEdit && requiresDeleteReason(user, event, role);
 
   const getFormTitle = () => {
+    if (isPreEntry) return 'Vorab eingetragenes Event bearbeiten';
     if (isEdit) return 'Event bearbeiten';
     return isAdmin ? 'Neues Event erstellen' : 'Event zur Genehmigung einreichen';
   };
@@ -513,7 +521,9 @@ export default function EventForm({ event }) {
     if (!formData.organizer.name.trim()) {
       newErrors['organizer.name'] = 'Veranstalter ist erforderlich';
     }
-    if (!formData.organizer.email.trim()) {
+    if (isPreEntry) {
+      // No organizer e-mail on a pre-entry: its organizer is reached via the contact data.
+    } else if (!formData.organizer.email.trim()) {
       newErrors['organizer.email'] = 'E-Mail ist erforderlich';
     } else if (!isValidEmail(formData.organizer.email)) {
       newErrors['organizer.email'] = 'Bitte gib eine gültige E-Mail-Adresse ein';
@@ -1023,6 +1033,20 @@ export default function EventForm({ event }) {
         await deleteImageByUrl(originalImageUrl);
         await deleteImageByUrl(originalImageThumbUrl);
       }
+      if (isPreEntry) {
+        try {
+          await preEntryAdmin('checkin', { eventId: event.id });
+        } catch (err) {
+          console.error('Pre-entry check-in failed:', err);
+          setSubmitError(
+            `Gespeichert, aber nicht an „Dein Tribe“ zurückgegeben: ${preEntryErrorMessage(err)} Bitte beende die Bearbeitung in der Übersicht.`
+          );
+          setLoading(false);
+          return;
+        }
+        navigate('/admin?tab=vorab');
+        return;
+      }
       navigate(cancelTarget);
     } catch (err) {
       console.error('Event save failed:', err.code, err.message);
@@ -1190,7 +1214,7 @@ export default function EventForm({ event }) {
               <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
               <span className="input-info">
                 <Info size={14} />
-                <span>E-Mail oder Telefonnummer</span>
+                <span>Telefonnummer oder E-Mail</span>
               </span>
             </div>
             <input
@@ -1228,7 +1252,7 @@ export default function EventForm({ event }) {
               value={formData.registration}
               onChange={handleChange}
               maxLength={REGISTRATION_MAX_LENGTH}
-              placeholder="z.B. Buchungslink, E-Mail oder Telefonnummer"
+              placeholder="z.B. Buchungslink, Telefonnummer oder E-Mail"
             />
           </div>
 
@@ -1244,8 +1268,11 @@ export default function EventForm({ event }) {
               type="text"
               value={formData.title}
               onChange={handleChange}
+              maxLength={TITLE_MAX_LENGTH}
               placeholder="z.B. Morgen-Yoga im Park"
-              className={errors.title ? 'input-error' : ''}
+              className={
+                errors.title || formData.title.length >= TITLE_MAX_LENGTH ? 'input-error' : ''
+              }
             />
             {errors.title && <span className="error-text">{errors.title}</span>}
           </div>
@@ -1856,24 +1883,26 @@ export default function EventForm({ event }) {
             </div>
           )}
 
-          <InstagramConsentField
-            checked={instagramConsent}
-            onChange={(value) => {
-              instagramConsentTouched.current = true;
-              setInstagramConsent(value);
-            }}
-            instagramHandle={organizerInstagramHandle}
-            forOrganizer={editsForeignEvent}
-            handleOverride={instagramHandleOverride}
-            onHandleOverrideChange={setInstagramHandleOverride}
-            extraHandles={instagramExtraHandles}
-            onExtraHandlesChange={setInstagramExtraHandles}
-            regionId={pickEventRegionId(
-              formData.placeRegionId ||
-                (regionChoices.enabled ? selectedRegion : formData.regionId),
-              event
-            )}
-          />
+          {!isPreEntry && (
+            <InstagramConsentField
+              checked={instagramConsent}
+              onChange={(value) => {
+                instagramConsentTouched.current = true;
+                setInstagramConsent(value);
+              }}
+              instagramHandle={organizerInstagramHandle}
+              forOrganizer={editsForeignEvent}
+              handleOverride={instagramHandleOverride}
+              onHandleOverrideChange={setInstagramHandleOverride}
+              extraHandles={instagramExtraHandles}
+              onExtraHandlesChange={setInstagramExtraHandles}
+              regionId={pickEventRegionId(
+                formData.placeRegionId ||
+                  (regionChoices.enabled ? selectedRegion : formData.regionId),
+                event
+              )}
+            />
+          )}
 
           {instagramConsent && (
             <details
@@ -1911,7 +1940,7 @@ export default function EventForm({ event }) {
             >
               Abbrechen
             </button>
-            {canSaveAsDraft && (
+            {canSaveAsDraft && !isPreEntry && (
               <button
                 type="button"
                 onClick={handleSaveAsDraft}
@@ -1942,7 +1971,7 @@ export default function EventForm({ event }) {
               <Save size={22} />
               <span>{getSubmitButtonText()}</span>
             </button>
-            {canDelete && (
+            {canDelete && !isPreEntry && (
               <button
                 type="button"
                 onClick={() => {

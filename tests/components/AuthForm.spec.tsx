@@ -195,7 +195,7 @@ describe('AuthForm newsletter opt-in during registration', () => {
     fireEvent.change(screen.getByLabelText('Passwort bestätigen'), {
       target: { value: 'supergeheim123' },
     });
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getByTestId('auth-terms-consent'));
     if (tickNewsletter) {
       fireEvent.click(screen.getByTestId('auth-newsletter-opt-in'));
     }
@@ -362,7 +362,7 @@ describe('AuthForm analytics', () => {
     fireEvent.change(screen.getByLabelText('Passwort bestätigen'), {
       target: { value: 'supergeheim123' },
     });
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getByTestId('auth-terms-consent'));
     fireEvent.click(screen.getByRole('button', { name: 'Registrieren' }));
     await waitFor(() => expect(track).toHaveBeenCalledWith(EVENTS.SIGN_UP, { method: 'password' }));
   });
@@ -446,5 +446,93 @@ describe('AuthForm password manager hints', () => {
       'autocomplete',
       'new-password'
     );
+  });
+});
+
+describe('AuthForm after "Zum Event anmelden"', () => {
+  const state = {
+    authMode: 'register',
+    email: 'ben@example.com',
+    displayName: 'Ben',
+    registrationEventTitle: 'Klangreise',
+  };
+
+  it('prefills name and e-mail and names the event', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
+        <AuthForm />
+      </MemoryRouter>
+    );
+    expect(screen.getByLabelText('Name')).toHaveValue('Ben');
+    expect(screen.getByLabelText('E-Mail')).toHaveValue('ben@example.com');
+    expect(screen.getByTestId('auth-registration-hint')).toHaveTextContent('„Klangreise“');
+  });
+
+  it('keeps the prefilled name when switching tabs', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
+        <AuthForm />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByTestId('auth-tab-login'));
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+    expect(screen.getByLabelText('Name')).toHaveValue('Ben');
+  });
+});
+
+describe('AuthForm consent to Nutzungsbedingungen and Datenschutz', () => {
+  function fillRegistration() {
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+    fireEvent.change(screen.getByLabelText('E-Mail'), { target: { value: 'neu@example.com' } });
+    fireEvent.change(screen.getByLabelText('Passwort', { exact: true }), {
+      target: { value: 'supergeheim123' },
+    });
+    fireEvent.change(screen.getByLabelText('Passwort bestätigen'), {
+      target: { value: 'supergeheim123' },
+    });
+  }
+
+  it('does not register without the tick and says why', async () => {
+    renderForm();
+    fillRegistration();
+    fireEvent.click(screen.getByRole('button', { name: 'Registrieren' }));
+    expect(
+      await screen.findByText(
+        'Bitte stimme den Nutzungsbedingungen und der Datenschutzerklärung zu.'
+      )
+    ).toBeInTheDocument();
+    expect(mocks.register).not.toHaveBeenCalled();
+  });
+
+  it('registers once the box is ticked', async () => {
+    mocks.register.mockResolvedValueOnce({ user: { uid: 'n1' } });
+    renderForm();
+    fillRegistration();
+    fireEvent.click(screen.getByTestId('auth-terms-consent'));
+    fireEvent.click(screen.getByRole('button', { name: 'Registrieren' }));
+    await waitFor(() => expect(mocks.register).toHaveBeenCalledTimes(1));
+  });
+
+  it('the checkbox names and links both documents', () => {
+    renderForm();
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+    const label = screen.getByTestId('auth-terms-consent').closest('label') as HTMLElement;
+    expect(label).toHaveTextContent(
+      'Ich habe die Nutzungsbedingungen und die Datenschutzerklärung gelesen und stimme zu.'
+    );
+    const hrefs = Array.from(label.querySelectorAll('a')).map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/nutzungsbedingungen', '/datenschutz']);
+  });
+
+  it('shows the consent hint with links under the Google button', () => {
+    renderForm();
+    for (const tab of ['auth-tab-login', 'auth-tab-register']) {
+      fireEvent.click(screen.getByTestId(tab));
+      const hint = screen.getByTestId('auth-google-terms');
+      expect(hint).toHaveTextContent(
+        'Mit der Registrierung stimmst du den Nutzungsbedingungen und der Datenschutzerklärung zu.'
+      );
+      expect(hint.querySelector('a[href="/nutzungsbedingungen"]')).not.toBeNull();
+    }
   });
 });

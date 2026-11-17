@@ -16,6 +16,7 @@ const mockAuth = vi.hoisted(() => ({
     unknown
   >,
   role: null as string | null,
+  canCreateEvents: true,
   staffRegionIds: [] as string[],
 }));
 
@@ -47,6 +48,9 @@ vi.mock('../../src/hooks/useEvents', () => ({
 vi.mock('../../src/hooks/useCategories', () => ({ useCategories: () => ['Yoga', 'Sonstiges'] }));
 vi.mock('../../src/lib/imageUpload', () => ({
   uploadImage: vi.fn(async () => 'https://example.com/test.jpg'),
+  uploadEventCover: vi.fn(async () => ({ url: 'https://example.com/test.jpg', thumbUrl: null })),
+  CoverUploadError: class CoverUploadError extends Error {},
+  COVER_UPLOAD_ERROR: 'Titelbild konnte nicht hochgeladen werden.',
   deleteImageByUrl: vi.fn(async () => {}),
   getImageDimensions: vi.fn(async () => ({ width: 1200, height: 800 })),
   getAspectRatioRecommendation: vi.fn(() => ({ isRecommended: true })),
@@ -64,6 +68,16 @@ vi.mock('../../src/lib/placeData', async () => {
 });
 
 import EventFormWizard from '../../src/components/EventFormWizard';
+import { clearWizardDraftFiles, saveWizardDraftFiles } from '../../src/utils/wizardDraftFiles';
+
+// The Titelbild of a seeded draft (kept in memory by wizardDraftFiles); a save
+// re-checks it, so every seeded draft gets one unless a test removes it.
+function seedCover() {
+  clearWizardDraftFiles('user-uid');
+  saveWizardDraftFiles('user-uid', {
+    cover: new File(['x'], 'cover.jpg', { type: 'image/jpeg' }),
+  });
+}
 import EventForm from '../../src/components/EventForm';
 
 // Static register with the given regions active; Tirol has its Bezirke like
@@ -169,6 +183,7 @@ const optionTexts = (select: HTMLElement) =>
     .map((o) => o.textContent);
 
 beforeEach(() => {
+  seedCover();
   localStorage.clear();
   mockAuth.user = { uid: 'user-uid', email: 'user@test.local', emailVerified: true };
   mockAuth.role = null;

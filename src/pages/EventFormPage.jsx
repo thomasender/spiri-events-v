@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEventById } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import EventForm from '../components/EventForm';
 import EventFormWizard from '../components/EventFormWizard';
-import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import SeoMeta from '../components/SeoMeta';
 import NoAccess from '../components/NoAccess';
 import { canEditEvent } from '../utils/eventPermissions';
@@ -13,56 +12,46 @@ import '../components/EventFormWizard.css';
 export default function EventFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, role, loading: authLoading, canCreateEvents } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const { event, loading: eventLoading, error } = useEventById(id);
-  const [checkedAuth, setCheckedAuth] = useState(false);
 
   const isEdit = Boolean(id);
 
+  // Editing needs an account (the route is protected); creating does not:
+  // guests and members whose e-mail is not confirmed yet fill in the wizard,
+  // which asks for the login / confirmation only at the end
+  // (docs/guest-event-draft.md).
   useEffect(() => {
-    if (!user && checkedAuth) {
-      navigate('/login');
-    } else if (user) {
-      setCheckedAuth(true);
-    } else {
-      setCheckedAuth(true);
-    }
-  }, [user, checkedAuth, navigate]);
+    if (isEdit && !authLoading && !user) navigate('/login');
+  }, [isEdit, authLoading, user, navigate]);
 
-  if (!checkedAuth || eventLoading || (isEdit && authLoading)) {
+  if (authLoading || (isEdit && eventLoading)) {
     return <div className="loading-spinner"></div>;
+  }
+
+  if (!isEdit) {
+    return (
+      <>
+        <SeoMeta title="Neues Event" path="/admin/new" noindex />
+        {/* A new key per account: after a login the wizard starts again from the draft. */}
+        <EventFormWizard key={user?.uid ?? 'guest'} />
+      </>
+    );
   }
 
   if (!user) {
     return <div className="loading-spinner"></div>;
   }
 
-  if (isEdit && (error || !event)) {
+  if (error || !event) {
     navigate('/admin');
     return null;
-  }
-
-  if (!isEdit && !canCreateEvents) {
-    return (
-      <div className="event-form-page" data-testid="event-create-blocked">
-        <SeoMeta title="Event erstellen" path="/admin/new" noindex />
-        <div className="event-form-container">
-          <h1>Event erstellen</h1>
-          <EmailVerificationBanner />
-          <div className="event-form-actions">
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/admin')}>
-              Zurück zur Verwaltung
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   // Content edits: owner or Super-Admin only. A Regions-Moderator:in can
   // read events of her region but only review them, so a direct link to the
   // form gets a clear "Kein Zugriff" instead of a form that cannot save.
-  if (isEdit && !canEditEvent(user, event, role)) {
+  if (!canEditEvent(user, event, role)) {
     return (
       <div className="event-form-page" data-testid="event-edit-blocked">
         <SeoMeta title="Event bearbeiten" path={`/admin/edit/${id}`} noindex />
@@ -71,19 +60,10 @@ export default function EventFormPage() {
     );
   }
 
-  if (isEdit) {
-    return (
-      <>
-        <SeoMeta title="Event bearbeiten" path={id ? `/admin/edit/${id}` : '/admin'} noindex />
-        <EventForm event={event} />
-      </>
-    );
-  }
-
   return (
     <>
-      <SeoMeta title="Neues Event" path="/admin/new" noindex />
-      <EventFormWizard />
+      <SeoMeta title="Event bearbeiten" path={`/admin/edit/${id}`} noindex />
+      <EventForm event={event} />
     </>
   );
 }

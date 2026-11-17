@@ -23,6 +23,10 @@ The check uses a normal browser user agent because GA drops "HeadlessChrome" tra
 
 ## Admin tab "Statistik"
 
+Not to be confused with the Super-Admin tab "Fun Facts" (`?tab=funfacts`, callable
+`adminFunFacts`): it counts moderation numbers from the `moderation_log` in Firestore, not
+visitors from GA (see [regions.md](./regions.md), Moderationsprotokoll).
+
 The admin tab reads GA through the callable `adminAnalyticsReport`
 (`functions/src/adminAnalytics.ts`, pure logic in `analyticsReport.ts`). It runs as the
 functions' default service account `54424804895-compute@developer.gserviceaccount.com`,

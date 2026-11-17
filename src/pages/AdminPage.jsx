@@ -25,6 +25,8 @@ import {
   Wallet,
   HelpCircle,
   ScrollText,
+  Sparkles,
+  CalendarPlus,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -41,6 +43,7 @@ import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
+import FunFactsTab from '../components/FunFactsTab';
 import ModerationTab from '../components/ModerationTab';
 import ModerationLogTab from '../components/ModerationLogTab';
 import RegionsTab from '../components/RegionsTab';
@@ -49,8 +52,8 @@ import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
 import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
+import PreEntriesTab from '../components/PreEntriesTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
-import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -58,6 +61,7 @@ import { useReviewNotifications } from '../hooks/useReviewNotifications';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
+import { usePreEntryAccess } from '../hooks/usePreEntries';
 import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
 import './AdminPage.css';
 
@@ -71,6 +75,7 @@ const TAB_GROUPS = [
       { id: 'events', label: 'Meine Events', Icon: CalendarDays },
       { id: 'drafts', label: 'Entwürfe', Icon: FileText },
       { id: 'review', label: 'Review', Icon: ClipboardCheck },
+      { id: 'vorab', label: 'Vorab eingetragene Events', Icon: CalendarPlus },
       { id: 'protokoll', label: 'Protokoll', Icon: ScrollText },
       { id: 'feedback', label: 'Feedback', Icon: MessageSquare },
     ],
@@ -104,6 +109,7 @@ const TAB_GROUPS = [
     Icon: BarChart3,
     tabs: [
       { id: 'analytics', label: 'Statistik', Icon: BarChart3 },
+      { id: 'funfacts', label: 'Fun Facts', Icon: Sparkles },
       { id: 'ledger', label: 'Finanzen', Icon: Wallet },
       { id: 'theme', label: 'Theme', Icon: Palette },
       { id: 'trash', label: 'Papierkorb', Icon: Trash2 },
@@ -137,9 +143,11 @@ const PANELS = {
   chat: ChatTab,
   instagram: InstagramTab,
   analytics: AnalyticsTab,
+  funfacts: FunFactsTab,
   mailgun: MailgunTab,
   ledger: LedgerTab,
   faq: FaqTab,
+  vorab: PreEntriesTab,
   moderation: ModerationTab,
   regions: RegionsTab,
   about: RegionAboutTab,
@@ -167,8 +175,10 @@ export default function AdminPage() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { hasFeedback } = useHasFeedback(isAdmin);
   const { count: trashedCount } = useTrashedEventsCount();
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
+  // Pre-entries (Trello 6afb1116): Super-Admins always (to switch the flag on),
+  // moderators while the flag allows them.
+  const { available: preEntriesAvailable } = usePreEntryAccess();
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
   const hashEventId = useMemo(() => {
@@ -200,14 +210,25 @@ export default function AdminPage() {
       chat: allowedTabs.has('chat'),
       instagram: isAdmin,
       analytics: isAdmin,
+      funfacts: isAdmin,
       moderation: isAdmin,
       regions: isAdmin,
       about: allowedTabs.has('about'),
       mailgun: isAdmin,
       ledger: isAdmin,
       faq: isAdmin,
+      vorab: isAdmin || (allowedTabs.has('vorab') && preEntriesAvailable),
     };
-  }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
+  }, [
+    draftCount,
+    hasMessages,
+    isAdmin,
+    canReview,
+    allowedTabs,
+    hasFeedback,
+    trashedCount,
+    preEntriesAvailable,
+  ]);
 
   const rawTab = searchParams.get('tab');
   // A known tab this role may not open: wait for the role, then say so.
@@ -292,23 +313,11 @@ export default function AdminPage() {
           <h1>Verwaltung</h1>
           <p>Verwalte deine Events und Nachrichten</p>
         </div>
-        {canCreateEvents ? (
-          <Link to="/admin/new" className="btn btn-primary">
-            <PlusCircle size={18} aria-hidden="true" />
-            <span>Neues Event</span>
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-primary btn-disabled"
-            onClick={() => setVerificationModalOpen(true)}
-            title="Bitte bestätige zuerst deine E-Mail-Adresse."
-            data-testid="new-event-locked"
-          >
-            <PlusCircle size={18} aria-hidden="true" />
-            <span>Neues Event</span>
-          </button>
-        )}
+        {/* Also without a confirmed e-mail: the wizard asks for it only at the end. */}
+        <Link to="/admin/new" className="btn btn-primary">
+          <PlusCircle size={18} aria-hidden="true" />
+          <span>Neues Event</span>
+        </Link>
       </header>
 
       {!canCreateEvents && <EmailVerificationBanner />}
@@ -415,11 +424,6 @@ export default function AdminPage() {
           </div>
         ) : null
       )}
-
-      <EmailVerificationModal
-        open={verificationModalOpen}
-        onClose={() => setVerificationModalOpen(false)}
-      />
     </div>
   );
 }

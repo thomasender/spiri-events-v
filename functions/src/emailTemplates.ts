@@ -178,7 +178,15 @@ function brandHeader(): string {
     </table>`;
 }
 
-type FooterKind = 'notification' | 'auth' | 'favorite' | 'directMessage' | 'eventChat';
+type FooterKind =
+  | 'notification'
+  | 'auth'
+  | 'favorite'
+  | 'directMessage'
+  | 'eventChat'
+  | 'eventRegistration'
+  | 'eventRegistrationConfirm'
+  | 'preEntry';
 
 /** Why the person gets the mail; the settings link doubles as the way to switch it off. */
 const FOOTER_REASON: Partial<Record<FooterKind, string>> = {
@@ -190,7 +198,25 @@ const FOOTER_REASON: Partial<Record<FooterKind, string>> = {
     'Du erhältst diese E-Mail, weil im Event Chat einer Veranstaltung, die du erstellt hast, eine neue Nachricht steht. Wir schicken dir dazu höchstens eine E-Mail pro Tag.',
 };
 
+/** Reasons for mails without a switch in the profile (no settings link). */
+const FOOTER_REASON_NO_SETTINGS: Partial<Record<FooterKind, string>> = {
+  eventRegistration:
+    'Du erhältst diese E-Mail, weil sich jemand über Tribe zu einer Veranstaltung angemeldet hat, die du erstellt hast oder bei der du als Kontakt angegeben bist.',
+  eventRegistrationConfirm:
+    'Du erhältst diese E-Mail, weil du dich über Tribe zu diesem Event angemeldet hast. Pro Event schicken wir dir nur eine Bestätigung.',
+  preEntry:
+    'Du erhältst diese E-Mail, weil wir dein Event für unseren Kalender vorbereitet haben. Wir nutzen deine Kontaktdaten nur für diese Anfrage. Mehr dazu in unserer Datenschutzerklärung: https://www.thetribe.at/datenschutz#vorab-eintraege',
+};
+
 function footerHtml(kind: FooterKind = 'notification'): string {
+  const plainReason = FOOTER_REASON_NO_SETTINGS[kind];
+  if (plainReason) {
+    return `
+      <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
+        ${plainReason}
+        Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:${COLOR_MUTED};text-decoration:underline;">admin@thetribe.at</a>.
+      </p>`;
+  }
   const reason = FOOTER_REASON[kind];
   if (reason) {
     return `
@@ -215,6 +241,10 @@ function footerHtml(kind: FooterKind = 'notification'): string {
 }
 
 function footerText(kind: FooterKind = 'notification'): string {
+  const plainReason = FOOTER_REASON_NO_SETTINGS[kind];
+  if (plainReason) {
+    return `\n--\n${plainReason}\nBei Fragen wende dich an admin@thetribe.at.`;
+  }
   const reason = FOOTER_REASON[kind];
   if (reason) {
     return `\n--\n${reason}\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
@@ -805,6 +835,107 @@ export function buildEventChatPayload({
   };
 }
 
+// ---- Event registration ("Zum Event anmelden", docs/event-registration.md) ----
+
+export interface EventRegistrationOrganizerPayloadInput {
+  recipient: string;
+  recipientName?: string | null;
+  event: { title: string; slug?: string | null };
+  attendeeName: string;
+  contact: string;
+  contactType: 'email' | 'phone';
+  /** Chosen date of a series (YYYY-MM-DD), if any. */
+  occurrenceDate?: string | null;
+}
+
+function contactLinkHtml(contact: string, contactType: 'email' | 'phone'): string {
+  const href =
+    contactType === 'email' ? `mailto:${contact}` : `tel:${contact.replace(/[^\d+]/g, '')}`;
+  return `<a href="${escapeHtml(href)}" style="color:${COLOR_TEXT};text-decoration:underline;">${escapeHtml(contact)}</a>`;
+}
+
+/** Mail to the organizer: someone registered (name + contact). */
+export function buildEventRegistrationOrganizerPayload({
+  recipient,
+  recipientName,
+  event,
+  attendeeName,
+  contact,
+  contactType,
+  occurrenceDate,
+}: EventRegistrationOrganizerPayloadInput): EmailPayload {
+  const name = chatMailLine(recipientName);
+  const attendee = chatMailName(attendeeName, 'Jemand');
+  const title = shorten(chatMailLine(event.title), CHAT_MAIL_TITLE_MAX) || 'deine Veranstaltung';
+  const url = eventUrl(event.slug);
+  const dateLabel = occurrenceDate ? formatGermanDate(occurrenceDate) : '';
+  const contactLabel = contactType === 'email' ? 'E-Mail' : 'Telefon';
+  const subject = `Neue Anmeldung: ${title}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Neue Anmeldung</h1>
+    <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
+    <p style="${paragraphStyle()}">für <strong>${escapeHtml(title)}</strong>${dateLabel ? ` am <strong>${escapeHtml(dateLabel)}</strong>` : ''} hat sich jemand über Tribe angemeldet:</p>
+    <p style="${paragraphStyle()}background:${COLOR_BG_SOFT};padding:12px 14px;border-radius:8px;border:1px solid ${COLOR_BORDER};">
+      <strong>Name:</strong> ${escapeHtml(attendee)}<br/>
+      <strong>${contactLabel}:</strong> ${contactLinkHtml(contact, contactType)}
+    </p>
+    <p style="${paragraphStyle()}">Bitte melde dich bei Bedarf direkt bei dieser Person. Tribe führt keine Teilnehmerliste und vergibt keine Plätze.</p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${url}" style="${brandButtonStyle()}">Event ansehen</a>
+    </p>`;
+  const textBody =
+    `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
+    `für „${title}“${dateLabel ? ` am ${dateLabel}` : ''} hat sich jemand über Tribe angemeldet:\n\n` +
+    `Name: ${attendee}\n` +
+    `${contactLabel}: ${contact}\n\n` +
+    `Bitte melde dich bei Bedarf direkt bei dieser Person. Tribe führt keine Teilnehmerliste und vergibt keine Plätze.\n\n` +
+    `Event ansehen: ${url}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'eventRegistration'),
+    text: textBody + footerText('eventRegistration'),
+  };
+}
+
+export interface EventRegistrationConfirmationPayloadInput {
+  recipient: string;
+  attendeeName?: string | null;
+  event: { title: string; slug?: string | null };
+  occurrenceDate?: string | null;
+}
+
+/** Mail to the person who registered (only when they gave an e-mail address). */
+export function buildEventRegistrationConfirmationPayload({
+  recipient,
+  attendeeName,
+  event,
+  occurrenceDate,
+}: EventRegistrationConfirmationPayloadInput): EmailPayload {
+  const name = chatMailName(attendeeName, '');
+  const title = shorten(chatMailLine(event.title), CHAT_MAIL_TITLE_MAX) || 'ein Event';
+  const url = eventUrl(event.slug);
+  const dateLabel = occurrenceDate ? formatGermanDate(occurrenceDate) : '';
+  const subject = `Deine Anmeldung: ${title}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Deine Anmeldung ist angekommen</h1>
+    <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
+    <p style="${paragraphStyle()}">danke für deine Anmeldung zu <strong>${escapeHtml(title)}</strong>${dateLabel ? ` am <strong>${escapeHtml(dateLabel)}</strong>` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.</p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${url}" style="${brandButtonStyle()}">Event ansehen</a>
+    </p>`;
+  const textBody =
+    `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
+    `danke für deine Anmeldung zu „${title}“${dateLabel ? ` am ${dateLabel}` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.\n\n` +
+    `Event ansehen: ${url}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'eventRegistrationConfirm'),
+    text: textBody + footerText('eventRegistrationConfirm'),
+  };
+}
+
 export interface PasswordResetPayloadInput {
   recipient: string;
   buttonUrl: string;
@@ -1174,6 +1305,103 @@ export function buildClubMemberInvitePayload({
   return {
     to: recipient,
     subject,
+    html: wrapHtml(htmlBody, 'auth'),
+    text: textBody + footerText('auth'),
+  };
+}
+
+// ── Pre-entries ("Events vorab eintragen", Trello 6afb1116) ──────────────
+
+/** Escapes a plain text and turns http(s) links into anchors (for moderator-written mails). */
+function linkifyPlainText(text: string): string {
+  return escapeHtml(text).replace(
+    /https?:\/\/[^\s<]+/g,
+    (url) => `<a href="${url}" style="color:${COLOR_TEXT};text-decoration:underline;">${url}</a>`
+  );
+}
+
+export interface PreEntryOrganizerMessageInput {
+  recipient: string;
+  subject: string;
+  /** Plain text, already filled in and edited by the moderator. */
+  text: string;
+}
+
+/** The moderator's message to the organizer (first request, reminder, ...). */
+export function buildPreEntryOrganizerMessagePayload({
+  recipient,
+  subject,
+  text,
+}: PreEntryOrganizerMessageInput): EmailPayload {
+  const htmlBody = `
+    <div style="${paragraphStyle()}white-space:pre-wrap;">${linkifyPlainText(text)}</div>`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'preEntry'),
+    text: text + footerText('preEntry'),
+  };
+}
+
+export type PreEntryNoticeKind = 'viewed' | 'published' | 'rejected' | 'claimed';
+
+const PRE_ENTRY_NOTICE_TEXT: Record<PreEntryNoticeKind, { subject: string; line: string }> = {
+  viewed: {
+    subject: 'Vorschau geöffnet',
+    line: 'Die Veranstalter:in hat die Vorschau zum ersten Mal geöffnet.',
+  },
+  published: {
+    subject: 'Veröffentlicht',
+    line: 'Die Veranstalter:in hat das Event ohne Profil veröffentlicht. Es steht jetzt unter „Dein Tribe“ im Kalender.',
+  },
+  rejected: {
+    subject: 'Abgelehnt',
+    line: 'Die Veranstalter:in möchte das Event nicht im Kalender haben.',
+  },
+  claimed: {
+    subject: 'Übernommen',
+    line: 'Die Veranstalter:in hat sich angemeldet und das Event in das eigene Profil übernommen.',
+  },
+};
+
+export interface PreEntryModeratorNoticeInput {
+  recipient: string;
+  kind: PreEntryNoticeKind;
+  eventTitle: string;
+  comment?: string | null;
+  /** Link to the tab "Vorab eingetragene Events". */
+  adminUrl: string;
+}
+
+/** Tells the moderator who pre-entered the event what the organizer did. */
+export function buildPreEntryModeratorNoticePayload({
+  recipient,
+  kind,
+  eventTitle,
+  comment,
+  adminUrl,
+}: PreEntryModeratorNoticeInput): EmailPayload {
+  const { subject, line } = PRE_ENTRY_NOTICE_TEXT[kind];
+  const title = eventTitle.trim() || 'Event';
+  const commentText = (comment ?? '').trim();
+  const commentHtml = commentText
+    ? `<blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};white-space:pre-wrap;">${escapeHtml(commentText)}</blockquote>`
+    : '';
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">${escapeHtml(subject)}: ${escapeHtml(title)}</h1>
+    <p style="${paragraphStyle()}">Hallo,</p>
+    <p style="${paragraphStyle()}">${escapeHtml(line)}</p>
+    ${commentHtml}
+    <p style="margin:8px 0 24px 0;">
+      <a href="${escapeHtml(adminUrl)}" style="${brandButtonStyle()}">Vorab eingetragene Events ansehen</a>
+    </p>`;
+  const textBody =
+    `Hallo,\n\n${line}\n\nEvent: ${title}\n` +
+    (commentText ? `\nKommentar:\n${commentText}\n` : '') +
+    `\nVorab eingetragene Events ansehen: ${adminUrl}`;
+  return {
+    to: recipient,
+    subject: `Vorab-Eintrag ${subject.toLowerCase()}: ${title}`,
     html: wrapHtml(htmlBody, 'auth'),
     text: textBody + footerText('auth'),
   };

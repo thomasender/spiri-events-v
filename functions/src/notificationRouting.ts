@@ -1,4 +1,5 @@
 import type { AdminMessageContext, EventOrganizer, NotificationEvent } from './emailTemplates';
+import { SYSTEM_UID } from './systemAccount';
 
 export type EventLifecycleStatus = 'draft' | 'pending' | 'approved' | 'trashed';
 
@@ -142,6 +143,9 @@ export function decideEventStatusNotification(
   const beforeStatus = isStatus(before.status) ? before.status : null;
   const afterStatus = isStatus(after.status) ? after.status : null;
   if (!afterStatus) return null;
+  // Pre-entered events of the system account "Dein Tribe" (Trello 6afb1116) have
+  // no owner who could read a mail; the organizer is reached via the moderator.
+  if (after.createdBy === SYSTEM_UID && afterStatus !== 'pending') return null;
 
   // An owner edited an approved event and it stayed approved (Trello 6af0678b):
   // the owner still gets the "Dein Event ist live" mail.

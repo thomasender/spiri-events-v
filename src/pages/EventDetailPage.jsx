@@ -54,7 +54,8 @@ import {
   getEventCityName,
   getEventDistrictPrefix,
 } from '../utils/eventFormat';
-import { resolveOrganizerProfilePath } from '../utils/profile';
+import { getOrganizerProfilePath, resolveOrganizerProfilePath } from '../utils/profile';
+import { SYSTEM_DISPLAY_NAME, SYSTEM_USERNAME, isSystemUid } from '../utils/systemAccount';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
 import { parseRegistrationText } from '../utils/contactFormat';
@@ -84,6 +85,7 @@ import FavoriteButton from '../components/FavoriteButton';
 import LoginPromptModal from '../components/LoginPromptModal';
 import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
 import ShareButton from '../components/ShareButton';
+import EventRegistrationButton from '../components/EventRegistrationButton';
 import { AdminInstagramPreview } from '../components/InstagramPostPreview';
 import AdminCoverPreview from '../components/AdminCoverPreview';
 import EventCoverImage from '../components/EventCoverImage';
@@ -127,6 +129,20 @@ function OrganizerLine({ event }) {
   return (
     <span className="detail-value organizer-value" data-testid="organizer-text">
       {organizerContent}
+    </span>
+  );
+}
+
+// Pre-entered events (Trello 6afb1116) still belong to the system account until the
+// organizer takes them over.
+function EnteredByLine({ event }) {
+  if (!isSystemUid(event?.createdBy)) return null;
+  return (
+    <span className="detail-entered-by" data-testid="organizer-entered-by">
+      Eingetragen von{' '}
+      <Link to={getOrganizerProfilePath(SYSTEM_USERNAME)} className="detail-link">
+        {SYSTEM_DISPLAY_NAME}
+      </Link>
     </span>
   );
 }
@@ -1008,6 +1024,7 @@ export default function EventDetailPage() {
                   </span>
                 )}
               </span>
+              <EnteredByLine event={event} />
             </div>
           </div>
         )}
@@ -1051,6 +1068,13 @@ export default function EventDetailPage() {
           </div>
         )}
       </div>
+
+      <EventRegistrationButton
+        event={event}
+        user={user}
+        occurrenceDate={occurrenceDate}
+        className="event-link"
+      />
 
       {ticketLink && (
         <a

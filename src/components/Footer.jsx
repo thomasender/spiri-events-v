@@ -64,6 +64,7 @@ export default function Footer() {
           <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>
+          <Link to="/nutzungsbedingungen">Nutzungsbedingungen</Link>
           <button
             type="button"
             className="footer-cookie-link"

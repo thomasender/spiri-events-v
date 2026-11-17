@@ -1,6 +1,6 @@
 import { EVENTS, trackEvent } from '../lib/analytics';
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
@@ -45,6 +45,7 @@ import FocalPointPicker from './FocalPointPicker';
 import EventCard from './EventCard';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
+import { FAQ_EVENT_GUIDE_PATH } from '../utils/faqs';
 import {
   DEFAULT_FOCAL_POINT,
   MAX_IMAGE_ZOOM,
@@ -73,7 +74,22 @@ import {
   pruneExceptionDates,
 } from '../utils/eventOccurrences';
 import SeriesDatesOverview from './SeriesDatesOverview';
-import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
+import {
+  saveWizardDraft,
+  loadWizardDraft,
+  clearWizardDraft,
+  adoptGuestWizardDraft,
+  wizardDraftOwner,
+} from '../utils/wizardDraftStorage';
+import {
+  adoptGuestWizardDraftFiles,
+  clearWizardDraftFiles,
+  loadWizardDraftFiles,
+  peekWizardDraftFiles,
+  pruneWizardDraftFiles,
+  saveWizardDraftFiles,
+} from '../utils/wizardDraftFiles';
+import EmailVerificationBanner from './EmailVerificationBanner';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
 import { getMissingProfileFields } from '../utils/profile';
@@ -94,11 +110,23 @@ import {
 import {
   REGISTRATION_MAX_LENGTH,
   KONTAKT_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   messengerLinks,
   contactPhone,
   normalizeMessengerSelection,
 } from '../utils/contactFormat';
 import ContactMessengerChoice from './ContactMessengerChoice';
+import { PreEntryContactFields } from './PreEntryContactFields';
+import { preEntryAdmin, usePreEntryAccess } from '../hooks/usePreEntries';
+import { copyToClipboard } from '../utils/copyToClipboard';
+import {
+  EMPTY_CONTACT,
+  NOTE_MAX,
+  PRE_ENTRY_LIMITS,
+  formatDayDe,
+  preEntryErrorMessage,
+  validateContact,
+} from '../utils/preEntries';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -170,6 +198,21 @@ function splitOrganizerName(name) {
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
 }
 
+// Opens the FAQ guide ("Welche Events passen in unseren Kalender?") in a new tab so the draft stays open.
+function EventGuideLink({ children, testId }) {
+  return (
+    <a
+      className="wizard-guide-link"
+      href={FAQ_EVENT_GUIDE_PATH}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-testid={testId}
+    >
+      {children}
+    </a>
+  );
+}
+
 const isValidLink = (link) => {
   const trimmed = link.trim();
   if (!trimmed) return true;
@@ -191,9 +234,19 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 };
 
+// Guests cannot upload into Storage (rules): description photos come after the login.
+const guestDescriptionImageUpload = async () => {
+  const err = new Error('guest description image');
+  err.userMessage = 'Bilder in der Beschreibung kannst du nach der Anmeldung einfügen.';
+  throw err;
+};
+
 export default function EventFormWizard() {
-  const { user } = useAuth();
-  const { role } = useAuth();
+  // Guests and members whose e-mail is not confirmed yet fill in the wizard too;
+  // only submitting needs a confirmed account (docs/guest-event-draft.md).
+  const { user, role, canCreateEvents, refreshEmailVerified } = useAuth();
+  const location = useLocation();
+  const draftOwner = wizardDraftOwner(user);
   const { profile } = useProfile(user?.uid);
   const { addEvent, updateEvent } = useEvents(user);
   const allCategories = useCategories();
@@ -219,13 +272,35 @@ export default function EventFormWizard() {
     },
     kontakt: user?.email || '',
   };
-  const restoredDraft = user ? loadWizardDraft(user.uid) : null;
+  // Read once: after a login the guest draft moves onto the account first.
+  const [restoredDraft] = useState(() => {
+    if (user) {
+      adoptGuestWizardDraft(user.uid);
+      // Moves the in-memory photos at once; IndexedDB follows asynchronously.
+      adoptGuestWizardDraftFiles(user.uid);
+    }
+    return loadWizardDraft(draftOwner);
+  });
+  // Photos still in memory (back from /login without a reload): restored at once.
+  const [memoryFiles] = useState(() => (restoredDraft ? peekWizardDraftFiles(draftOwner) : null));
+  // Coming back from the confirmation link (AuthActionPage, `next=/admin/new`).
+  const cameFromVerification = location.state?.afterVerify === true;
   // `?region=tirol` (coming-soon page "Event eintragen"): the event is for that
   // region even though it is not open yet.
   const [searchParams] = useSearchParams();
   const requestedRegion = isRegionSlug(searchParams.get('region'))
     ? searchParams.get('region')
     : '';
+  // `?vorab=1` from Verwaltung -> "Vorab eingetragene Events" (Trello 6afb1116): a staff
+  // member prepares an existing event for its organizer. Only while the flag allows it.
+  const { available: preEntryAvailable, settings: preEntrySettings } = usePreEntryAccess();
+  const preEntryMode = searchParams.get('vorab') === '1' && preEntryAvailable;
+  // Contact data of the organizer: never part of the event, never in the local draft.
+  const [preEntryContact, setPreEntryContact] = useState(() => ({ ...EMPTY_CONTACT }));
+  const [preEntryNote, setPreEntryNote] = useState('');
+  const [preEntryValidDays, setPreEntryValidDays] = useState(null);
+  const [preEntryResult, setPreEntryResult] = useState(null);
+  const [preEntryLinkCopied, setPreEntryLinkCopied] = useState(false);
 
   const [formData, setFormData] = useState(() => {
     if (restoredDraft && restoredDraft.formData) {
@@ -291,10 +366,20 @@ export default function EventFormWizard() {
   const [validationError, setValidationError] = useState('');
   const [wobblingAction, setWobblingAction] = useState(null);
   const wobbleTimersRef = useRef({});
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
-  const [imageFocalPoint, setImageFocalPoint] = useState(DEFAULT_FOCAL_POINT);
-  const [imageZoom, setImageZoom] = useState(MIN_IMAGE_ZOOM);
+  const [imageFile, setImageFile] = useState(() => memoryFiles?.cover ?? null);
+  const [imagePreview, setImagePreview] = useState(() =>
+    memoryFiles?.cover ? URL.createObjectURL(memoryFiles.cover) : ''
+  );
+  const [imageFocalPoint, setImageFocalPoint] = useState(() =>
+    memoryFiles?.cover && restoredDraft?.imageFocalPoint
+      ? restoredDraft.imageFocalPoint
+      : DEFAULT_FOCAL_POINT
+  );
+  const [imageZoom, setImageZoom] = useState(() =>
+    memoryFiles?.cover && typeof restoredDraft?.imageZoom === 'number'
+      ? restoredDraft.imageZoom
+      : MIN_IMAGE_ZOOM
+  );
   const createdEventRef = useRef(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
@@ -305,11 +390,14 @@ export default function EventFormWizard() {
   const [successState, setSuccessState] = useState(null);
   useConfettiCelebration(successState !== null);
   const [showFocalPointInSummary, setShowFocalPointInSummary] = useState(false);
-  const [currentStep, setCurrentStep] = useState(() =>
-    restoredDraft && Number.isInteger(restoredDraft.currentStep)
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (!restoredDraft) return 1;
+    // Confirmed the e-mail: straight to the last page to submit.
+    if (cameFromVerification) return STEPS.length;
+    return Number.isInteger(restoredDraft.currentStep)
       ? Math.min(Math.max(restoredDraft.currentStep, 1), STEPS.length)
-      : 1
-  );
+      : 1;
+  });
   const [rightsConfirmed, setRightsConfirmed] = useState(
     Boolean(restoredDraft && restoredDraft.rightsConfirmed)
   );
@@ -350,14 +438,32 @@ export default function EventFormWizard() {
     );
   }, [profileDisplayName, emailFallbackName]);
 
+  // A guest has no account e-mail yet: once signed in, it fills the (hidden)
+  // organizer e-mail, but only while that is still empty.
+  const accountEmail = user?.email || '';
+  useEffect(() => {
+    if (!accountEmail) return;
+    setFormData((prev) =>
+      prev.organizer.email.trim()
+        ? prev
+        : { ...prev, organizer: { ...prev.organizer, email: accountEmail } }
+    );
+  }, [accountEmail]);
+
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
   }, [profileInstagramDefault]);
   // Which photo + 4:5 crop the Instagram post uses ({ source, focalPoint, zoom }).
-  const [instagramImageChoice, setInstagramImageChoice] = useState(null);
+  const [instagramImageChoice, setInstagramImageChoice] = useState(() =>
+    restoredDraft?.instagramImageChoice && typeof restoredDraft.instagramImageChoice === 'object'
+      ? restoredDraft.instagramImageChoice
+      : null
+  );
   // Extra photo uploaded only for Instagram (e.g. portrait format).
-  const [instagramFile, setInstagramFile] = useState(null);
-  const [instagramPreview, setInstagramPreview] = useState('');
+  const [instagramFile, setInstagramFile] = useState(() => memoryFiles?.instagram ?? null);
+  const [instagramPreview, setInstagramPreview] = useState(() =>
+    memoryFiles?.instagram ? URL.createObjectURL(memoryFiles.instagram) : ''
+  );
   const [instagramUploadError, setInstagramUploadError] = useState('');
   const instagramImageCandidates = useMemo(
     () =>
@@ -397,23 +503,29 @@ export default function EventFormWizard() {
     }
   }, [currentStep]);
 
+  const persistDraft = () =>
+    saveWizardDraft(draftOwner, {
+      formData,
+      currentStep,
+      rightsConfirmed,
+      instagramConsent,
+      instagramNoTextConfirmed,
+      instagramHandleOverride,
+      instagramExtraHandles,
+      imageFocalPoint,
+      imageZoom,
+      instagramImageChoice,
+    });
+
+  // Set once the event is saved: the draft is gone and must not come back.
+  const draftDoneRef = useRef(false);
   useEffect(() => {
-    if (!user) return;
-    if (loading) return;
-    const timeoutId = setTimeout(() => {
-      saveWizardDraft(user.uid, {
-        formData,
-        currentStep,
-        rightsConfirmed,
-        instagramConsent,
-        instagramNoTextConfirmed,
-        instagramHandleOverride,
-        instagramExtraHandles,
-      });
-    }, 300);
+    if (loading || draftDoneRef.current) return;
+    const timeoutId = setTimeout(persistDraft, 300);
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    user,
+    draftOwner,
     formData,
     currentStep,
     rightsConfirmed,
@@ -421,10 +533,73 @@ export default function EventFormWizard() {
     instagramNoTextConfirmed,
     instagramHandleOverride,
     instagramExtraHandles,
+    imageFocalPoint,
+    imageZoom,
+    instagramImageChoice,
     loading,
   ]);
 
+  // Photos of the draft (IndexedDB, best-effort): restore once, then keep in sync.
+  const [draftFilesReady, setDraftFilesReady] = useState(false);
+  const coverTouchedRef = useRef(false);
+  const instagramTouchedRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (user) await adoptGuestWizardDraftFiles(user.uid);
+      await pruneWizardDraftFiles();
+      const files = restoredDraft && !memoryFiles ? await loadWizardDraftFiles(draftOwner) : null;
+      if (cancelled) return;
+      if (files?.cover && !coverTouchedRef.current) {
+        setImageFile(files.cover);
+        setImagePreview(URL.createObjectURL(files.cover));
+        if (restoredDraft?.imageFocalPoint) setImageFocalPoint(restoredDraft.imageFocalPoint);
+        if (typeof restoredDraft?.imageZoom === 'number') setImageZoom(restoredDraft.imageZoom);
+      }
+      if (files?.instagram && !instagramTouchedRef.current) {
+        setInstagramFile(files.instagram);
+        setInstagramPreview(URL.createObjectURL(files.instagram));
+      }
+      setDraftFilesReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Once per mount; the page remounts the wizard when the account changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!draftFilesReady || loading || draftDoneRef.current) return;
+    saveWizardDraftFiles(draftOwner, { cover: imageFile, instagram: instagramFile });
+  }, [draftFilesReady, draftOwner, imageFile, instagramFile, loading]);
+
+  // Not confirmed yet: notice the click on the link (other tab, phone) as soon
+  // as the person looks at this page again, and unlock "Einreichen".
+  const awaitingVerification = Boolean(user) && !canCreateEvents && currentStep === STEPS.length;
+  useEffect(() => {
+    if (!awaitingVerification || typeof refreshEmailVerified !== 'function') return undefined;
+    const check = () => {
+      if (document.visibilityState !== 'hidden') refreshEmailVerified();
+    };
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
+    const intervalId = setInterval(check, 15000);
+    return () => {
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
+      clearInterval(intervalId);
+    };
+  }, [awaitingVerification, refreshEmailVerified]);
+
   const isAdmin = role === 'Admin';
+
+  // Pre-entries never go to Instagram on their own (consent of the organizer is missing).
+  useEffect(() => {
+    if (!preEntryMode) return;
+    instagramConsentTouched.current = true;
+    setInstagramConsent(false);
+  }, [preEntryMode]);
 
   // Admins get the mandatory fields pre-filled for testing (new events only;
   // a restored draft is left untouched). The role may arrive after first render.
@@ -496,16 +671,28 @@ export default function EventFormWizard() {
       if (!formData.organizer.name.trim()) {
         newErrors['organizer.name'] = 'Veranstalter ist erforderlich';
       }
-      if (!formData.organizer.email.trim()) {
-        newErrors['organizer.email'] = 'E-Mail ist erforderlich';
-      } else if (!isValidEmail(formData.organizer.email)) {
-        newErrors['organizer.email'] = 'Bitte gib eine gültige E-Mail-Adresse ein';
+      // The organizer e-mail has no field: it is the account e-mail, so a guest
+      // gets it only after signing in. A pre-entry has none (the event belongs to
+      // "Dein Tribe"); its organizer is reached through the contact section.
+      if (preEntryMode) {
+        const contactErrors = validateContact(preEntryContact);
+        for (const [key, message] of Object.entries(contactErrors)) {
+          newErrors[`preEntry.${key}`] = message;
+        }
+      } else if (user) {
+        if (!formData.organizer.email.trim()) {
+          newErrors['organizer.email'] = 'E-Mail ist erforderlich';
+        } else if (!isValidEmail(formData.organizer.email)) {
+          newErrors['organizer.email'] = 'Bitte gib eine gültige E-Mail-Adresse ein';
+        }
       }
       if (!formData.kontakt.trim()) {
         newErrors.kontakt = 'Kontakt ist erforderlich';
       }
     } else if (step === 2) {
       if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
+      else if (formData.title.trim().length > TITLE_MAX_LENGTH)
+        newErrors.title = `Der Titel darf höchstens ${TITLE_MAX_LENGTH} Zeichen lang sein`;
       if (isHtmlEmpty(formData.description))
         newErrors.description = 'Beschreibung ist erforderlich';
       if (!imageFile) newErrors.image = 'Bitte lade ein Titelbild hoch';
@@ -609,6 +796,7 @@ export default function EventFormWizard() {
       setErrors((prev) => ({ ...prev, image: null }));
     }
 
+    coverTouchedRef.current = true;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setImageFocalPoint(DEFAULT_FOCAL_POINT);
@@ -643,6 +831,7 @@ export default function EventFormWizard() {
   };
 
   const removeImage = () => {
+    coverTouchedRef.current = true;
     setImageFile(null);
     setImagePreview('');
     setImageFocalPoint(DEFAULT_FOCAL_POINT);
@@ -664,6 +853,7 @@ export default function EventFormWizard() {
       return;
     }
     setInstagramUploadError('');
+    instagramTouchedRef.current = true;
     setInstagramFile(file);
     setInstagramPreview(URL.createObjectURL(file));
     setInstagramImageChoice({
@@ -674,6 +864,7 @@ export default function EventFormWizard() {
   };
 
   const removeInstagramImage = () => {
+    instagramTouchedRef.current = true;
     setInstagramFile(null);
     setInstagramPreview('');
     setInstagramUploadError('');
@@ -961,12 +1152,19 @@ export default function EventFormWizard() {
     city: formData.isOnline ? '' : canonicalCity(formData.city),
     isOnline: Boolean(formData.isOnline),
     regionId: eventRegionId,
-    organizer: {
-      firstName: splitOrganizerName(formData.organizer.name).firstName,
-      lastName: splitOrganizerName(formData.organizer.name).lastName,
-      email: formData.organizer.email.trim(),
-      photoURL: profile?.photoURL || null,
-    },
+    organizer: preEntryMode
+      ? {
+          name: formData.organizer.name.trim(),
+          firstName: splitOrganizerName(formData.organizer.name).firstName,
+          lastName: splitOrganizerName(formData.organizer.name).lastName,
+          email: '',
+        }
+      : {
+          firstName: splitOrganizerName(formData.organizer.name).firstName,
+          lastName: splitOrganizerName(formData.organizer.name).lastName,
+          email: formData.organizer.email.trim(),
+          photoURL: profile?.photoURL || null,
+        },
     kontakt: formData.kontakt.trim(),
     // Only with a phone number in the contact; otherwise the choice is dropped.
     kontaktMessenger: contactPhone(formData.kontakt)
@@ -998,58 +1196,79 @@ export default function EventFormWizard() {
       : {}),
   });
 
+  // Everything a save needs (steps 2–4). Step 2 is checked again because a
+  // reloaded draft may have lost its Titelbild (no IndexedDB): then the person
+  // is sent back to step 2 instead of submitting without a photo.
+  const validateBeforeSave = (action) => {
+    setSubmitError('');
+    setValidationError('');
+    const step2Errors = validateStep(2);
+    if (Object.keys(step2Errors).length > 0) {
+      setErrors(step2Errors);
+      setCurrentStep(2);
+      setValidationError(
+        step2Errors.image
+          ? 'Bitte lade dein Titelbild (noch einmal) hoch.'
+          : 'Bitte fülle alle Pflichtfelder aus.'
+      );
+      return false;
+    }
+    const step3Errors = validateStep(3);
+    const step4Errors = validateStep(4);
+    const newErrors = { ...step3Errors, ...step4Errors };
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (step4Errors.rightsConfirmed) {
+        setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else if (step4Errors.instagramImage) {
+        setValidationError(step4Errors.instagramImage + '.');
+      } else if (step4Errors.instagramNoText) {
+        setValidationError(step4Errors.instagramNoText + '.');
+      } else {
+        setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      }
+      triggerWobble(action);
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (currentStep < 4) {
       return;
     }
-    setSubmitError('');
-    setValidationError('');
-
-    const step3Errors = validateStep(3);
-    const step4Errors = validateStep(4);
-    const newErrors = { ...step3Errors, ...step4Errors };
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      if (step4Errors.rightsConfirmed) {
-        setValidationError('Bitte bestätige die Nutzungsrechte.');
-      } else if (step4Errors.instagramImage) {
-        setValidationError(step4Errors.instagramImage + '.');
-      } else if (step4Errors.instagramNoText) {
-        setValidationError(step4Errors.instagramNoText + '.');
-      } else {
-        setValidationError('Bitte fülle alle Pflichtfelder aus.');
-      }
-      triggerWobble('submit');
+    if (preEntryMode) {
+      await handlePreEntrySubmit();
       return;
     }
-
+    if (!canCreateEvents) return;
+    if (!validateBeforeSave('submit')) return;
     setShowConfirmModal(true);
   };
 
   const handleSaveAsDraft = async () => {
-    setSubmitError('');
-    setValidationError('');
-
-    const step3Errors = validateStep(3);
-    const step4Errors = validateStep(4);
-    const newErrors = { ...step3Errors, ...step4Errors };
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      if (step4Errors.rightsConfirmed) {
-        setValidationError('Bitte bestätige die Nutzungsrechte.');
-      } else if (step4Errors.instagramImage) {
-        setValidationError(step4Errors.instagramImage + '.');
-      } else if (step4Errors.instagramNoText) {
-        setValidationError(step4Errors.instagramNoText + '.');
-      } else {
-        setValidationError('Bitte fülle alle Pflichtfelder aus.');
-      }
-      triggerWobble('draft');
-      return;
-    }
-
+    if (!canCreateEvents) return;
+    if (!validateBeforeSave('draft')) return;
     await saveEvent(buildEventData('draft'));
+  };
+
+  // Guest at the end of the wizard: check the draft, keep it, then log in or
+  // create the account; the login page brings the person back here (step 4).
+  const handleGuestAuth = (authMode) => {
+    if (!validateBeforeSave(authMode)) return;
+    persistDraft();
+    const organizerName = formData.organizer.name.trim();
+    const contactEmail = isValidEmail(formData.kontakt) ? formData.kontakt.trim() : '';
+    navigate('/login', {
+      state: {
+        from: `/admin/new${location.search}`,
+        authMode,
+        createEventDraft: true,
+        ...(authMode === 'register' && organizerName && { displayName: organizerName }),
+        ...(contactEmail && { email: contactEmail }),
+      },
+    });
   };
 
   const saveEvent = async (eventData) => {
@@ -1097,9 +1316,25 @@ export default function EventFormWizard() {
         await updateEvent(docRef.id, patch);
       }
 
-      if (user) {
-        clearWizardDraft(user.uid);
+      if (preEntryMode) {
+        // Hands the saved draft (photos uploaded) to "Dein Tribe"; contact data goes
+        // into the server-only pre_entries doc.
+        const result = await preEntryAdmin('create', {
+          eventId: docRef.id,
+          contact: { ...preEntryContact, name: formData.organizer.name.trim() },
+          note: preEntryNote,
+          ...(preEntryValidDays ? { validDays: preEntryValidDays } : {}),
+        });
+        draftDoneRef.current = true;
+        clearWizardDraft(draftOwner);
+        clearWizardDraftFiles(draftOwner);
+        setPreEntryResult(result);
+        return;
       }
+
+      draftDoneRef.current = true;
+      clearWizardDraft(draftOwner);
+      clearWizardDraftFiles(draftOwner);
 
       if (eventData.status === 'draft') {
         navigate('/admin');
@@ -1115,10 +1350,25 @@ export default function EventFormWizard() {
       setSubmitError(
         err instanceof CoverUploadError
           ? COVER_UPLOAD_ERROR
-          : 'Event konnte nicht gespeichert werden. Bitte versuche es erneut.'
+          : preEntryMode && String(err?.code || '').startsWith('functions/')
+            ? `${preEntryErrorMessage(err)} Das Event liegt als Entwurf in deiner Verwaltung.`
+            : 'Event konnte nicht gespeichert werden. Bitte versuche es erneut.'
       );
       setLoading(false);
     }
+  };
+
+  const handlePreEntrySubmit = async () => {
+    if (!canCreateEvents) return;
+    const step1Errors = validateStep(1);
+    if (Object.keys(step1Errors).length > 0) {
+      setErrors(step1Errors);
+      setCurrentStep(1);
+      setValidationError('Bitte prüfe die Kontaktdaten der Veranstalter:in.');
+      return;
+    }
+    if (!validateBeforeSave('submit')) return;
+    await saveEvent(buildEventData('draft'));
   };
 
   const handleSuccessConfirm = () => {
@@ -1181,7 +1431,7 @@ export default function EventFormWizard() {
           <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
           <span className="input-info">
             <Info size={14} />
-            <span>E-Mail oder Telefonnummer</span>
+            <span>Telefonnummer oder E-Mail</span>
           </span>
         </div>
         <input
@@ -1217,9 +1467,63 @@ export default function EventFormWizard() {
           value={formData.registration}
           onChange={handleChange}
           maxLength={REGISTRATION_MAX_LENGTH}
-          placeholder="z.B. Buchungslink, E-Mail oder Telefonnummer"
+          placeholder="z.B. Buchungslink, Telefonnummer oder E-Mail"
         />
       </div>
+
+      {preEntryMode && (
+        <section className="wizard-pre-entry" data-testid="wizard-pre-entry-contact">
+          <div className="form-section-header">
+            <h3 className="form-section-title">Veranstalter-Kontakt (nur intern)</h3>
+            <p className="form-section-hint">
+              Damit erreichst du die Veranstalter:in mit dem Vorschau-Link. Diese Angaben sind nie
+              öffentlich und werden gelöscht, sobald sie nicht mehr gebraucht werden.
+            </p>
+          </div>
+          <PreEntryContactFields
+            contact={preEntryContact}
+            onChange={(key) => (e) => {
+              const value = e.target.value;
+              setPreEntryContact((prev) => ({ ...prev, [key]: value }));
+            }}
+            errors={Object.fromEntries(
+              Object.entries(errors)
+                .filter(([k, v]) => k.startsWith('preEntry.') && v)
+                .map(([k, v]) => [k.slice('preEntry.'.length), v])
+            )}
+          />
+          <div className="form-group">
+            <label htmlFor="pre-entry-note">Interne Notiz (optional)</label>
+            <textarea
+              id="pre-entry-note"
+              rows={3}
+              maxLength={NOTE_MAX}
+              value={preEntryNote}
+              onChange={(e) => setPreEntryNote(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="pre-entry-valid-days">Vorschau-Link gültig (Tage)</label>
+            <input
+              id="pre-entry-valid-days"
+              type="number"
+              min={PRE_ENTRY_LIMITS.validDays[0]}
+              max={PRE_ENTRY_LIMITS.validDays[1]}
+              value={preEntryValidDays ?? preEntrySettings.validDays}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                setPreEntryValidDays(
+                  Number.isInteger(n) &&
+                    n >= PRE_ENTRY_LIMITS.validDays[0] &&
+                    n <= PRE_ENTRY_LIMITS.validDays[1]
+                    ? n
+                    : null
+                );
+              }}
+            />
+          </div>
+        </section>
+      )}
     </div>
   );
 
@@ -1238,8 +1542,9 @@ export default function EventFormWizard() {
           type="text"
           value={formData.title}
           onChange={handleChange}
+          maxLength={TITLE_MAX_LENGTH}
           placeholder="z.B. Morgen-Yoga im Park"
-          className={errors.title ? 'input-error' : ''}
+          className={errors.title || formData.title.length >= TITLE_MAX_LENGTH ? 'input-error' : ''}
         />
         {errors.title && <span className="error-text">{errors.title}</span>}
       </div>
@@ -1256,6 +1561,7 @@ export default function EventFormWizard() {
             }
           }}
           placeholder="Beschreibe das Event… (Was erwartet die Teilnehmer? Für wen ist es geeignet? Was sollte man mitbringen?)"
+          uploadImage={user ? undefined : guestDescriptionImageUpload}
           hasError={Boolean(errors.description)}
           describedBy={errors.description ? 'description-error' : undefined}
         />
@@ -1523,7 +1829,15 @@ export default function EventFormWizard() {
       )}
 
       <div className="form-group">
-        <label htmlFor="category">Kategorie *</label>
+        <div className="input-label-row">
+          <label htmlFor="category">Kategorie *</label>
+          <span className="input-info">
+            <Info size={14} />
+            <EventGuideLink testId="faq-guide-link-category">
+              Welche Events passen in unseren Kalender?
+            </EventGuideLink>
+          </span>
+        </div>
         <CreatableSelect
           id="category"
           options={kategorieOptions}
@@ -2005,21 +2319,23 @@ export default function EventFormWizard() {
         )}
       </div>
 
-      <InstagramConsentField
-        checked={instagramConsent}
-        onChange={(value) => {
-          instagramConsentTouched.current = true;
-          setInstagramConsent(value);
-        }}
-        instagramHandle={profile?.socialMedia?.instagram}
-        handleOverride={instagramHandleOverride}
-        onHandleOverrideChange={setInstagramHandleOverride}
-        extraHandles={instagramExtraHandles}
-        onExtraHandlesChange={setInstagramExtraHandles}
-        regionId={eventRegionId}
-      />
+      {!preEntryMode && (
+        <InstagramConsentField
+          checked={instagramConsent}
+          onChange={(value) => {
+            instagramConsentTouched.current = true;
+            setInstagramConsent(value);
+          }}
+          instagramHandle={profile?.socialMedia?.instagram}
+          handleOverride={instagramHandleOverride}
+          onHandleOverrideChange={setInstagramHandleOverride}
+          extraHandles={instagramExtraHandles}
+          onExtraHandlesChange={setInstagramExtraHandles}
+          regionId={eventRegionId}
+        />
+      )}
 
-      {instagramConsent && (
+      {instagramConsent && !preEntryMode && (
         <details className="instagram-image-accordion" open data-testid="instagram-image-accordion">
           <summary>Foto und Bildausschnitt für Instagram wählen</summary>
           {errors.instagramImage && (
@@ -2062,12 +2378,39 @@ export default function EventFormWizard() {
     <div className="event-form-page">
       <div className="event-form-container" ref={wizardContainerRef}>
         <div className="event-form-header">
-          <button onClick={() => navigate('/admin')} className="btn btn-secondary back-btn">
-            <ArrowLeft size={18} />
-            <span>Zurück zur Verwaltung</span>
-          </button>
-          <h1>{isAdmin ? 'Neues Event erstellen' : 'Event zur Genehmigung einreichen'}</h1>
+          {user ? (
+            <button onClick={() => navigate('/admin')} className="btn btn-secondary back-btn">
+              <ArrowLeft size={18} />
+              <span>Zurück zur Verwaltung</span>
+            </button>
+          ) : (
+            <button onClick={() => navigate('/')} className="btn btn-secondary back-btn">
+              <ArrowLeft size={18} />
+              <span>Zurück zum Kalender</span>
+            </button>
+          )}
+          <h1>
+            {preEntryMode
+              ? 'Event vorab eintragen'
+              : isAdmin
+                ? 'Neues Event erstellen'
+                : 'Event zur Genehmigung einreichen'}
+          </h1>
         </div>
+
+        {cameFromVerification && !restoredDraft && (
+          <div
+            className="wizard-draft-elsewhere"
+            role="status"
+            data-testid="wizard-draft-elsewhere"
+          >
+            <strong>Deine E-Mail-Adresse ist bestätigt.</strong>
+            <span>
+              Dein Event-Entwurf liegt im ursprünglichen Browser, in dem du ihn angefangen hast.
+              Öffne die Seite dort wieder, um ihn einzureichen – oder beginne hier neu.
+            </span>
+          </div>
+        )}
 
         {renderStepIndicator()}
 
@@ -2090,7 +2433,7 @@ export default function EventFormWizard() {
                 <span>Zurück</span>
               </button>
             )}
-            {currentStep === 4 && (
+            {currentStep === 4 && canCreateEvents && !preEntryMode && (
               <button
                 type="button"
                 onClick={handleSaveAsDraft}
@@ -2131,7 +2474,27 @@ export default function EventFormWizard() {
                 <span>Weiter</span>
                 <ArrowRight size={18} />
               </button>
-            ) : (
+            ) : canCreateEvents && preEntryMode ? (
+              <button
+                type="button"
+                onClick={handlePreEntrySubmit}
+                className={`btn btn-primary ${!rightsConfirmed ? 'btn-greyed-out' : ''} ${
+                  wobblingAction === 'submit' ? 'btn-wobble' : ''
+                }`}
+                disabled={loading || imageUploading}
+                aria-disabled={!rightsConfirmed}
+                data-testid="pre-entry-submit"
+              >
+                <Save size={22} />
+                <span>
+                  {imageUploading
+                    ? `Wird hochgeladen… (${imageProgress}%)`
+                    : loading
+                      ? 'Speichern...'
+                      : 'Vorab eintragen'}
+                </span>
+              </button>
+            ) : canCreateEvents ? (
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -2158,8 +2521,60 @@ export default function EventFormWizard() {
                         : 'Einreichen zur Genehmigung'}
                 </span>
               </button>
-            )}
+            ) : null}
           </div>
+
+          {(currentStep === 1 || currentStep === 4) && (
+            <p className="wizard-guide-hint">
+              <EventGuideLink testId="faq-guide-link-step">
+                Welche Events passen in unseren Kalender?
+              </EventGuideLink>
+            </p>
+          )}
+
+          {currentStep === 4 && !user && (
+            <div
+              className="wizard-auth-gate wizard-auth-gate--guest"
+              data-testid="wizard-guest-gate"
+            >
+              <p className="wizard-auth-gate-title">
+                Fast geschafft! Zum Einreichen melde dich an oder erstelle ein Konto.
+              </p>
+              <p className="wizard-auth-gate-text">
+                Dein Event bleibt in diesem Browser gespeichert. Danach kommst du direkt hierher
+                zurück und kannst es einreichen.
+              </p>
+              <div className="wizard-auth-gate-actions">
+                <button
+                  type="button"
+                  className={`btn btn-primary ${wobblingAction === 'register' ? 'btn-wobble' : ''}`}
+                  onClick={() => handleGuestAuth('register')}
+                  data-testid="wizard-guest-register"
+                >
+                  Konto erstellen
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-secondary ${wobblingAction === 'login' ? 'btn-wobble' : ''}`}
+                  onClick={() => handleGuestAuth('login')}
+                  data-testid="wizard-guest-login"
+                >
+                  Ich habe schon ein Konto
+                </button>
+              </div>
+            </div>
+          )}
+
+          {awaitingVerification && (
+            <div className="wizard-auth-gate" data-testid="wizard-verify-gate">
+              <EmailVerificationBanner
+                title="Fast geschafft! Bitte bestätige noch deine E-Mail-Adresse."
+                text="Wir haben dir einen Bestätigungslink geschickt. Sobald du ihn angeklickt hast, kannst du dein Event hier einreichen – dein Entwurf bleibt gespeichert."
+                afterVerify="createEvent"
+                showProfileLink={false}
+              />
+            </div>
+          )}
         </form>
       </div>
 
@@ -2186,6 +2601,38 @@ export default function EventFormWizard() {
           setCurrentStep(4);
         }}
         onCancel={() => setShowMultiDayRecurrenceConfirm(false)}
+      />
+
+      <SuccessDialog
+        isOpen={preEntryResult !== null}
+        title="Vorab eingetragen"
+        message={
+          preEntryResult
+            ? `„${formData.title.trim()}“ gehört jetzt „Dein Tribe“ und ist nicht öffentlich. Der Vorschau-Link ist bis ${formatDayDe(preEntryResult.expiresAtMs)} gültig.`
+            : ''
+        }
+        details={
+          preEntryResult
+            ? `Vorschau-Link: ${preEntryResult.previewUrl}\nDu kannst ihn jetzt kopieren oder später in der Übersicht beim Kontaktieren mit einer Nachrichtenvorlage verschicken.`
+            : ''
+        }
+        cta={
+          preEntryResult
+            ? {
+                text: 'Link für die Veranstalter:in:',
+                label: preEntryLinkCopied ? 'Kopiert' : 'Link kopieren',
+                onClick: async () => {
+                  setPreEntryLinkCopied(await copyToClipboard(preEntryResult.previewUrl));
+                },
+              }
+            : null
+        }
+        confirmLabel="Zur Übersicht"
+        onConfirm={() => {
+          setPreEntryResult(null);
+          setLoading(false);
+          navigate('/admin?tab=vorab');
+        }}
       />
 
       <SuccessDialog

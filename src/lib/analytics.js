@@ -140,10 +140,16 @@ export function setAnalyticsRegion(slug) {
 }
 
 /** Current page URL without query string or hash (no tokens, no search terms). */
+// Secret links (preview of pre-entered events, Trello 6afb1116) never reach GA:
+// the token in the path is cut off.
+export function redactSecretPath(path) {
+  return String(path ?? '').replace(/^\/vorschau\/[^/]*/, '/vorschau');
+}
+
 function currentPageLocation() {
   try {
     const { origin, pathname } = window.location;
-    return origin && pathname ? `${origin}${pathname}` : undefined;
+    return origin && pathname ? `${origin}${redactSecretPath(pathname)}` : undefined;
   } catch {
     return undefined;
   }
@@ -180,7 +186,7 @@ export async function trackEvent(name, params) {
  * GA's default (the external referrer, e.g. Instagram).
  */
 export async function trackPageView(path, title) {
-  const clean = String(path ?? '').split(/[?#]/)[0];
+  const clean = redactSecretPath(String(path ?? '').split(/[?#]/)[0]);
   const location = currentPageLocation();
   const referrer = lastPageLocation && lastPageLocation !== location ? lastPageLocation : undefined;
   if (collecting() && envAllowed()) lastPageLocation = location ?? null;

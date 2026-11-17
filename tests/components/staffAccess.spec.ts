@@ -48,7 +48,17 @@ describe('allowedAdminTabs', () => {
     expect([...allowedAdminTabs(superAdmin)]).toContain('faq');
     expect([...allowedAdminTabs(superAdmin)]).toContain('protokoll');
     expect([...allowedAdminTabs(tirolMod)].sort()).toEqual(
-      ['about', 'drafts', 'events', 'helpers', 'members', 'messages', 'review', 'trash'].sort()
+      [
+        'about',
+        'drafts',
+        'events',
+        'helpers',
+        'members',
+        'messages',
+        'review',
+        'trash',
+        'vorab',
+      ].sort()
     );
     expect([...allowedAdminTabs(organizer)].sort()).toEqual(
       ['drafts', 'events', 'messages', 'trash'].sort()

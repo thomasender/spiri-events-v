@@ -147,8 +147,18 @@ vi.mock('../../src/components/ModerationTab', () => ({
 vi.mock('../../src/components/ModerationLogTab', () => ({
   default: () => <div data-testid="moderation-log-tab-stub">Protokoll</div>,
 }));
+vi.mock('../../src/components/FunFactsTab', () => ({
+  default: () => <div data-testid="funfacts-tab-stub">Fun Facts</div>,
+}));
 vi.mock('../../src/components/RegionsTab', () => ({
   default: () => <div data-testid="regions-tab-stub">Regionen</div>,
+}));
+const mockPreEntries = vi.hoisted(() => ({ available: false }));
+vi.mock('../../src/hooks/usePreEntries', () => ({
+  usePreEntryAccess: () => ({ available: mockPreEntries.available, settings: {}, loading: false }),
+}));
+vi.mock('../../src/components/PreEntriesTab', () => ({
+  default: () => <div data-testid="pre-entries-tab-stub">Vorab</div>,
 }));
 vi.mock('../../src/components/MembersTab', () => ({
   default: () => <div data-testid="members-tab-stub">Mitglieder</div>,
@@ -168,6 +178,7 @@ function renderAdmin(initialEntries: string[] = ['/admin']) {
 }
 
 beforeEach(() => {
+  mockPreEntries.available = false;
   mockAuth.user = { uid: 'test-uid' };
   mockAuth.role = 'User';
   mockAuth.staffRegionIds = [];
@@ -641,6 +652,7 @@ describe('AdminPage access per role', () => {
     'admin-tab-moderation',
     'admin-tab-protokoll',
     'admin-tab-regions',
+    'admin-tab-funfacts',
   ];
 
   function asModerator(regionIds = ['tirol']) {
@@ -709,6 +721,7 @@ describe('AdminPage access per role', () => {
     'moderation',
     'protokoll',
     'regions',
+    'funfacts',
   ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {
     asModerator();
     mockUseHasFeedback.hasFeedback = true;
@@ -718,6 +731,24 @@ describe('AdminPage access per role', () => {
     expect(screen.queryByTestId('moderation-tab-stub')).not.toBeInTheDocument();
     expect(screen.queryByTestId('moderation-log-tab-stub')).not.toBeInTheDocument();
     expect(screen.queryByTestId('regions-tab-stub')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('funfacts-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('Super-Admin opens Fun Facts under Dashboard & Einstellungen', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=funfacts']);
+    expect(screen.getByTestId('admin-group-menu-settings')).toContainElement(
+      screen.getByTestId('admin-tab-funfacts')
+    );
+    expect(screen.getByTestId('admin-tab-funfacts')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('funfacts-tab-stub')).toBeInTheDocument();
+  });
+
+  it('organizers get "Kein Zugriff" for Fun Facts', () => {
+    mockAuth.role = 'User';
+    renderAdmin(['/admin?tab=funfacts']);
+    expect(screen.getByTestId('no-access')).toBeInTheDocument();
+    expect(screen.queryByTestId('funfacts-tab-stub')).not.toBeInTheDocument();
   });
 
   it('Super-Admin opens the Protokoll tab by URL', () => {
@@ -808,5 +839,33 @@ describe('AdminPage tab groups', () => {
     renderAdmin();
     expect(screen.queryByTestId('admin-group-community')).not.toBeInTheDocument();
     expect(screen.queryByTestId('admin-group-settings')).not.toBeInTheDocument();
+  });
+});
+
+// Feature flag app_settings/preEntries.mode (Trello 6afb1116): Super-Admins always see
+// the tab (to switch it on); moderators only while the flag lets them use it.
+describe('AdminPage "Vorab eingetragene Events" tab', () => {
+  it('is hidden for organizers, even with the flag on', () => {
+    mockPreEntries.available = false;
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.queryByTestId('admin-tab-vorab')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pre-entries-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('is shown to Super-Admins while the flag is off', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.getByTestId('admin-tab-vorab')).toHaveTextContent('Vorab eingetragene Events');
+    expect(screen.getByTestId('pre-entries-tab-stub')).toBeInTheDocument();
+  });
+
+  it('is shown to a Regions-Moderator:in only when the flag allows her', () => {
+    mockAuth.role = 'RegionModerator';
+    mockAuth.staffRegionIds = ['vorarlberg'];
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.queryByTestId('pre-entries-tab-stub')).not.toBeInTheDocument();
+    mockPreEntries.available = true;
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.getByTestId('pre-entries-tab-stub')).toBeInTheDocument();
   });
 });

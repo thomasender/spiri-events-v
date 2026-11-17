@@ -162,6 +162,21 @@ service cloud.firestore {
         && (!('fireplaceVisible' in d) || d.fireplaceVisible is bool);
     }
 
+    // Consent to the Nutzungsbedingungen on `users/{uid}` (src/utils/terms.js):
+    // `termsAcceptedAt` is the server time of the write that sets it (no
+    // back-dating), `termsVersion` a short version string; both are written
+    // together and cannot be removed. Accounts from before the terms have
+    // neither field. `changedKeys`: all keys on create, affected keys on update.
+    function isValidTermsAcceptance(d, changedKeys) {
+      return (('termsAcceptedAt' in changedKeys) == ('termsVersion' in changedKeys))
+        && (!('termsAcceptedAt' in changedKeys)
+              || (d.termsAcceptedAt is timestamp && d.termsAcceptedAt == request.time))
+        && (!('termsVersion' in d)
+            || (d.termsVersion is string
+                && d.termsVersion.size() > 0
+                && d.termsVersion.size() <= 20));
+    }
+
     function isValidFireplaceLabel(d) {
       return !('fireplaceLabel' in d)
         || (d.fireplaceLabel is string
@@ -607,6 +622,20 @@ service cloud.firestore {
         allow read: if isAdminOrEmulatorAdmin();
         allow write: if false;
       }
+
+      // "Zum Event anmelden" (docs/event-registration.md): name + contact of people who
+      // registered, written only by the submitEventRegistration callable (Admin SDK)
+      // and deleted once the event is over. Only the organizer and admins may read;
+      // nobody writes from the client.
+      match /registrations/{registrationId} {
+        allow read: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
+        allow write: if false;
+      }
+
+      // "Confirmation already sent" markers (hashed e-mail), server-only.
+      match /registration_mails/{markerId} {
+        allow read, write: if false;
+      }
     }
 
     // Role docs ({ role: 'Admin' } or { role: 'RegionModerator', regionIds }).
@@ -626,9 +655,18 @@ service cloud.firestore {
 
     // Moderation log (admin tab "Protokoll"): one entry per approval,
     // rejection, edit, trash, restore and delete of an event, written only by
-    // the event triggers in functions/src/eventRevisionTrigger.ts (Admin SDK).
+    // the event triggers in functions/src/eventRevisionTrigger.ts and the
+    // "Rückfrage" entry of onAdminMessageCreated (Admin SDK).
     // Super-Admins only; moderators and organizers never read it.
     match /moderation_log/{entryId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
+    }
+
+    // Cached numbers of the Super-Admin tab "Fun Facts" (app_stats/fun_facts),
+    // written only by the callable adminFunFacts (Admin SDK). Super-Admins
+    // only; nobody writes from the client.
+    match /app_stats/{statId} {
       allow read: if isAdminOrEmulatorAdmin();
       allow write: if false;
     }
@@ -666,8 +704,9 @@ service cloud.firestore {
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                        'notifyOnDirectMessage', 'notifyOnEventChat',
                        'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
-                       'siteOrigin', 'createdAt', 'updatedAt']
+                       'siteOrigin', 'termsAcceptedAt', 'termsVersion', 'createdAt', 'updatedAt']
                     )
+                    && isValidTermsAcceptance(request.resource.data, request.resource.data.keys())
                     && (!('siteOrigin' in request.resource.data)
                         || (request.resource.data.siteOrigin is string
                             && request.resource.data.siteOrigin.size() <= 100))
@@ -696,6 +735,8 @@ service cloud.firestore {
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
                     && isValidPlaceSelection(request.resource.data)
+                    && isValidTermsAcceptance(request.resource.data,
+                                              request.resource.data.diff(resource.data).affectedKeys())
                     && (!('instagramConsentDefault' in request.resource.data)
                         || request.resource.data.instagramConsentDefault is bool)
                     && (!('showOnlineStatus' in request.resource.data)
@@ -720,7 +761,7 @@ service cloud.firestore {
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                                   'notifyOnDirectMessage', 'notifyOnEventChat',
                                   'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
-                                  'updatedAt']);
+                                  'termsAcceptedAt', 'termsVersion', 'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
 
@@ -1595,6 +1636,58 @@ service cloud.firestore {
                         .hasOnly(['mode', 'statutesUrl', 'statutesVersion', 'updatedAt', 'updatedBy'])
                     && isValidMembershipSettings(request.resource.data);
       allow delete: if isChatStaff();
+    }
+
+    // ---- Vorab eingetragene Events (Trello 6afb1116, docs/pre-entries.md) ----
+    // Feature flag + defaults app_settings/preEntries { mode, validDays,
+    // reminderDays, autoDeleteDays, templates }. A missing doc means off. Public
+    // read via the app_settings match above (the texts hold no personal data);
+    // Super-Admins write. The functions (functions/src/preEntries.ts) read it too.
+    function isValidPreEntryTemplate(t) {
+      return t is map
+        && t.keys().hasOnly(['subject', 'text'])
+        && (!('subject' in t) || (t.subject is string && t.subject.size() <= 200))
+        && (!('text' in t) || (t.text is string && t.text.size() <= 5000));
+    }
+
+    function isValidPreEntrySettings(d) {
+      return d.get('mode', 'off') in ['off', 'admins', 'all']
+        && (!('validDays' in d) || (d.validDays is int && d.validDays >= 1 && d.validDays <= 60))
+        && (!('reminderDays' in d)
+            || (d.reminderDays is int && d.reminderDays >= 1 && d.reminderDays <= 30))
+        && (!('autoDeleteDays' in d)
+            || (d.autoDeleteDays is int && d.autoDeleteDays >= 0 && d.autoDeleteDays <= 365))
+        && (!('templates' in d)
+            || (d.templates is map
+                && d.templates.keys().hasOnly(['initial', 'reminder', 'expiring', 'published'])
+                && (!('initial' in d.templates) || isValidPreEntryTemplate(d.templates.initial))
+                && (!('reminder' in d.templates) || isValidPreEntryTemplate(d.templates.reminder))
+                && (!('expiring' in d.templates) || isValidPreEntryTemplate(d.templates.expiring))
+                && (!('published' in d.templates)
+                    || isValidPreEntryTemplate(d.templates.published))));
+    }
+
+    match /app_settings/preEntries {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['mode', 'validDays', 'reminderDays',
+                        'autoDeleteDays', 'templates', 'updatedAt', 'updatedBy'])
+                    && isValidPreEntrySettings(request.resource.data);
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['mode', 'validDays', 'reminderDays', 'autoDeleteDays',
+                                  'templates', 'updatedAt', 'updatedBy'])
+                    && isValidPreEntrySettings(request.resource.data);
+      allow delete: if isChatStaff();
+    }
+
+    // Contact data of third parties, link token hashes, contact log and audit
+    // log: only the Cloud Functions read and write them (Admin SDK).
+    match /pre_entries/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /pre_entry_tokens/{tokenId} {
+      allow read, write: if false;
     }
 
     // club_memberships/{uid}: amount, Mollie ids, status, Statuten consent. The

@@ -190,6 +190,7 @@ export {
 } from './moderatorInvites';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
 export { adminAnalyticsReport } from './adminAnalytics';
+export { adminFunFacts } from './adminFunFacts';
 export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { onEventApprovedCount } from './approvedEventsCounter';
@@ -215,8 +216,10 @@ export {
   adminPostDailyStory,
 } from './instagramAdmin';
 export { purgeExpiredEvents } from './purgeExpiredEvents';
+export { preEntryAdmin, preEntryOrganizer, preEntriesDaily } from './preEntries';
 export { onEventCancelledNotifyFavorites } from './eventCancellationNotify';
 export { getEventFavoriteCount } from './eventFavoriteCount';
+export { submitEventRegistration } from './eventRegistration';
 export {
   onEventUpdatedWriteRevision,
   onEventCreatedWriteModerationLog,

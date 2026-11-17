@@ -1,3 +1,4 @@
+import { SYSTEM_UID } from './systemAccount.js';
 import {
   STATIC_REGIONS,
   getBezirke,
@@ -74,7 +75,16 @@ export function annotateOnlineRegionIds(
   const staff = new Set(staffUids);
   return events.map((event) => {
     const uid = event?.createdBy;
-    if (!event?.isOnline || typeof uid !== 'string' || !uid || staff.has(uid)) return event;
+    // The system account "Dein Tribe" counts as staff (pre-entered events).
+    if (
+      !event?.isOnline ||
+      typeof uid !== 'string' ||
+      !uid ||
+      staff.has(uid) ||
+      uid === SYSTEM_UID
+    ) {
+      return event;
+    }
     return { ...event, onlineRegionIds: onlineRegionIdsFor(listings[uid] ?? null, regions) };
   });
 }

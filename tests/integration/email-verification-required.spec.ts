@@ -70,8 +70,10 @@ test.describe('Email verification required for event creation', () => {
     await expect(page.getByTestId('event-create-blocked')).toHaveCount(0);
   });
 
+  // Unconfirmed members open the wizard like everybody; it asks for the
+  // confirmation only at its end (docs/guest-event-draft.md).
   test(
-    'unverified user sees the verification banner and a locked "Neues Event" on /admin',
+    'unverified user sees the verification banner and an open "Neues Event" on /admin',
     { tag: '@smoke' },
     async ({ page }) => {
       await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
@@ -82,101 +84,26 @@ test.describe('Email verification required for event creation', () => {
         'unverified@test.local'
       );
 
-      const lockedButton = page.getByTestId('new-event-locked');
-      await expect(lockedButton).toBeVisible();
-      await expect(lockedButton).toHaveAttribute(
-        'title',
-        'Bitte bestätige zuerst deine E-Mail-Adresse.'
-      );
-
       const realLink = page.locator('.admin-page-header a.btn-primary', {
         hasText: 'Neues Event',
       });
-      await expect(realLink).toHaveCount(0);
+      await expect(realLink).toBeVisible();
     }
   );
 
-  test('unverified user sees a locked "Event erstellen" link in the header', async ({ page }) => {
+  test('unverified user sees the normal "Event erstellen" link in the header', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
     await page.goto('/');
 
-    await expect(page.getByTestId('event-create-locked').first()).toBeVisible();
-
-    const link = page.locator('a.nav-link', { hasText: 'Event erstellen' });
-    await expect(link).toHaveCount(0);
+    await expect(page.locator('a.nav-link', { hasText: 'Event erstellen' }).first()).toBeVisible();
   });
 
-  test('clicking the locked "Event erstellen" in the header opens the verification modal', async ({
-    page,
-  }) => {
-    await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
-    await page.goto('/');
-
-    const locked = page.getByTestId('event-create-locked').first();
-    await expect(locked).toBeVisible();
-    await locked.click();
-
-    const modal = page.getByTestId('email-verification-modal');
-    await expect(modal).toBeVisible();
-    await expect(page.getByTestId('email-verification-modal-email')).toContainText(
-      'unverified@test.local'
-    );
-    await expect(page.getByTestId('email-verification-modal-resend')).toBeVisible();
-    await expect(page.getByTestId('email-verification-modal-refresh')).toBeVisible();
-  });
-
-  test('clicking the locked "Event erstellen" FAB on the home page opens the verification modal', async ({
-    page,
-  }) => {
-    // The phone-only floating action button (CreateEventFab) replaces the
-    // inline create-event CTA on the calendar page. Unverified users see
-    // a locked button that opens the same verification modal as the
-    // header's locked link.
-    await page.setViewportSize({ width: 500, height: 800 });
-    await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
-    await page.goto('/');
-
-    const fab = page.getByTestId('create-event-fab');
-    await expect(fab).toBeVisible();
-    await fab.click();
-
-    const modal = page.getByTestId('email-verification-modal');
-    await expect(modal).toBeVisible();
-  });
-
-  test('clicking the locked "Neues Event" on /admin opens the verification modal', async ({
-    page,
-  }) => {
-    await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
-    await page.goto('/admin');
-
-    const locked = page.getByTestId('new-event-locked');
-    await expect(locked).toBeVisible();
-    await locked.click();
-
-    const modal = page.getByTestId('email-verification-modal');
-    await expect(modal).toBeVisible();
-  });
-
-  test('verification modal can be closed via the close button', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
-    await page.goto('/');
-
-    await page.getByTestId('event-create-locked').first().click();
-    await expect(page.getByTestId('email-verification-modal')).toBeVisible();
-
-    await page.getByRole('button', { name: /schließen/i }).click();
-    await expect(page.getByTestId('email-verification-modal')).toHaveCount(0);
-  });
-
-  test('unverified user navigating directly to /admin/new sees the blocked screen', async ({
-    page,
-  }) => {
+  test('unverified user navigating directly to /admin/new gets the wizard', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
     await page.goto('/admin/new');
 
-    await expect(page.getByTestId('event-create-blocked')).toBeVisible();
-    await expect(page.getByTestId('email-verification-banner')).toBeVisible();
+    await expect(page.getByTestId('continue-button')).toBeVisible();
+    await expect(page.getByTestId('event-create-blocked')).toHaveCount(0);
   });
 
   test('admin (exempt from email verification) can create events even without email confirmed', async ({
@@ -205,18 +132,6 @@ test.describe('Email verification required for event creation', () => {
     await resendButton.click();
 
     await expect(page.getByTestId('email-verification-banner-feedback')).toBeVisible();
-  });
-
-  test('resend inside the verification modal works and shows feedback', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
-    await page.goto('/');
-
-    await page.getByTestId('event-create-locked').first().click();
-    const resendButton = page.getByTestId('email-verification-modal-resend');
-    await expect(resendButton).toBeVisible();
-    await resendButton.click();
-
-    await expect(page.getByTestId('email-verification-modal-feedback')).toBeVisible();
   });
 
   test('forgot-password form routes through the branded sendPasswordResetEmailFn callable', async ({

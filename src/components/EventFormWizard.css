@@ -328,8 +328,69 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
-.wizard-actions .btn-wobble {
+.wizard-guide-hint {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-80);
+  text-align: center;
+}
+
+.wizard-guide-link {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.wizard-guide-link:hover,
+.wizard-guide-link:focus-visible {
+  color: var(--text-primary);
+}
+
+.wizard-actions .btn-wobble,
+.wizard-auth-gate .btn-wobble {
   animation: wizard-btn-wobble 0.8s ease-in-out;
+}
+
+/* End of the wizard for guests / unconfirmed e-mail (docs/guest-event-draft.md). */
+.wizard-auth-gate {
+  margin-top: var(--space-6);
+}
+
+.wizard-auth-gate--guest {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+}
+
+.wizard-auth-gate .email-verification-banner {
+  margin-bottom: 0;
+}
+
+.wizard-auth-gate-title {
+  margin: 0 0 var(--space-1-5);
+  font-weight: 600;
+  font-size: var(--text-100);
+}
+
+.wizard-auth-gate-text {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-92);
+  color: var(--text-secondary);
+}
+
+.wizard-auth-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.wizard-draft-elsewhere {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  font-size: var(--text-92);
 }
 
 @keyframes wizard-btn-wobble {
@@ -676,4 +737,26 @@ textarea {
   .radio-label {
     justify-content: flex-start;
   }
+}
+
+/* "Veranstalter-Kontakt (nur intern)" of a pre-entry (Trello 6afb1116). */
+.wizard-pre-entry {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.wizard-pre-entry .pre-entry-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.wizard-pre-entry .pre-entry-contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
