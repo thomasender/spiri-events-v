@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   collection,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -116,7 +117,9 @@ export function useEvents(user) {
     return unsubscribe;
   }, [user]);
 
-  const addEvent = async (eventData, status = 'pending') => {
+  // `eventId` (optional) is an id made beforehand (utils/eventId.js), so the
+  // Titelbild can be uploaded before the event is written.
+  const addEvent = async (eventData, status = 'pending', eventId = null) => {
     const slug = await findUniqueSlug(
       eventData.title,
       eventData.category,
@@ -125,7 +128,7 @@ export function useEvents(user) {
       user.uid
     );
     const regionId = pickEventRegionId(eventData.regionId);
-    return addDoc(collection(db, 'events'), {
+    const data = {
       ...eventData,
       // Every new event carries its region (form value or the default).
       regionId,
@@ -135,7 +138,11 @@ export function useEvents(user) {
       status,
       createdBy: user.uid,
       createdAt: serverTimestamp(),
-    });
+    };
+    if (!eventId) return addDoc(collection(db, 'events'), data);
+    const ref = doc(db, 'events', eventId);
+    await setDoc(ref, data);
+    return ref;
   };
 
   const updateEvent = async (id, eventData) => {

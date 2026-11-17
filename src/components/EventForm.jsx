@@ -84,6 +84,7 @@ import SeriesDatesOverview from './SeriesDatesOverview';
 import { pruneExceptionDates } from '../utils/eventOccurrences';
 import { reviewEditChanges } from '../utils/eventReviewFields';
 import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
+import { newEventId } from '../utils/eventId';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -314,6 +315,7 @@ export default function EventForm({ event }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const createdEventRef = useRef(null);
+  const eventIdRef = useRef(null);
   const [submitError, setSubmitError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [wobblingAction, setWobblingAction] = useState(null);
@@ -473,6 +475,11 @@ export default function EventForm({ event }) {
     }
     if (!formData.category) {
       newErrors.category = 'Kategorie ist erforderlich';
+    }
+    // The Titelbild is required: it can be replaced, but not just removed
+    // (old events that never had one stay editable).
+    if (imageRemoved && !imageFile && originalImageUrl) {
+      newErrors.image = 'Bitte lade ein Titelbild hoch';
     }
     if (formData.contribution === 'fee' && formData.fee && Number(formData.fee) < 0) {
       newErrors.fee = 'Bitte gib einen gültigen Betrag ein';
@@ -977,21 +984,46 @@ export default function EventForm({ event }) {
     setResubmitWarning(false);
 
     try {
-      // A retry after a failed cover upload reuses the event that already exists.
-      let docRef = createdEventRef.current;
-      if (event) {
-        await updateEvent(event.id, eventData);
-        docRef = { id: event.id };
-      } else if (docRef) {
-        await updateEvent(docRef.id, eventData);
-      } else {
-        docRef = await addEvent(eventData, eventData.status || 'pending');
-        createdEventRef.current = docRef;
-      }
-
       const instagramSource = eventData.instagramConsent
         ? effectiveInstagramImageChoice?.source
         : null;
+      // The new Titelbild is uploaded BEFORE the event is written: a failed
+      // upload then leaves the event (and its old photo) untouched instead of
+      // saving it without a photo (Trello 7iDvAj4U). A retry after a failed
+      // upload reuses the same id / existing event.
+      let docRef = createdEventRef.current;
+      if (!eventIdRef.current) eventIdRef.current = event?.id ?? docRef?.id ?? newEventId();
+      const eventId = eventIdRef.current;
+      const data = { ...eventData };
+      let newImageUrl = null;
+      if (imageFile) {
+        const uploaded = await handleImageUpload(eventId);
+        newImageUrl = uploaded.url;
+        data.imageUrl = uploaded.url;
+        data.imageThumbUrl = uploaded.thumbUrl;
+        if (!isDefaultFocalPoint(imageFocalPoint)) {
+          data.imageFocalPoint = imageFocalPoint;
+        }
+        if (imageZoom > MIN_IMAGE_ZOOM) {
+          data.imageZoom = imageZoom;
+        }
+        if (instagramSource === COVER_SOURCE) {
+          data.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
+            coverUrl: uploaded.url,
+          });
+        }
+      }
+
+      if (event) {
+        await updateEvent(event.id, data);
+        docRef = { id: event.id };
+      } else if (docRef) {
+        await updateEvent(docRef.id, data);
+      } else {
+        docRef = await addEvent(data, data.status || 'pending', eventId);
+        createdEventRef.current = docRef;
+      }
+
       if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
         const instagramUploadUrl = await uploadImage(instagramFile, { eventId: docRef.id });
         await updateEvent(docRef.id, {
@@ -1002,20 +1034,6 @@ export default function EventForm({ event }) {
       }
 
       if (imageFile) {
-        const { url: newImageUrl, thumbUrl: newThumbUrl } = await handleImageUpload(docRef.id);
-        const patch = { imageUrl: newImageUrl, imageThumbUrl: newThumbUrl };
-        if (!isDefaultFocalPoint(imageFocalPoint)) {
-          patch.imageFocalPoint = imageFocalPoint;
-        }
-        if (imageZoom > MIN_IMAGE_ZOOM) {
-          patch.imageZoom = imageZoom;
-        }
-        if (instagramSource === COVER_SOURCE) {
-          patch.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
-            coverUrl: newImageUrl,
-          });
-        }
-        await updateEvent(docRef.id, patch);
         if (originalImageUrl && originalImageUrl !== newImageUrl) {
           await deleteImageByUrl(originalImageUrl);
           await deleteImageByUrl(originalImageThumbUrl);
