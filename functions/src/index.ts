@@ -216,6 +216,7 @@ export {
   adminPostDailyStory,
 } from './instagramAdmin';
 export { purgeExpiredEvents } from './purgeExpiredEvents';
+export { preEntryAdmin, preEntryOrganizer, preEntriesDaily } from './preEntries';
 export { onEventCancelledNotifyFavorites } from './eventCancellationNotify';
 export { getEventFavoriteCount } from './eventFavoriteCount';
 export { submitEventRegistration } from './eventRegistration';

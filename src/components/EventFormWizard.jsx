@@ -116,6 +116,17 @@ import {
   normalizeMessengerSelection,
 } from '../utils/contactFormat';
 import ContactMessengerChoice from './ContactMessengerChoice';
+import { PreEntryContactFields } from './PreEntryContactFields';
+import { preEntryAdmin, usePreEntryAccess } from '../hooks/usePreEntries';
+import { copyToClipboard } from '../utils/copyToClipboard';
+import {
+  EMPTY_CONTACT,
+  NOTE_MAX,
+  PRE_ENTRY_LIMITS,
+  formatDayDe,
+  preEntryErrorMessage,
+  validateContact,
+} from '../utils/preEntries';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -280,6 +291,16 @@ export default function EventFormWizard() {
   const requestedRegion = isRegionSlug(searchParams.get('region'))
     ? searchParams.get('region')
     : '';
+  // `?vorab=1` from Verwaltung -> "Vorab eingetragene Events" (Trello 6afb1116): a staff
+  // member prepares an existing event for its organizer. Only while the flag allows it.
+  const { available: preEntryAvailable, settings: preEntrySettings } = usePreEntryAccess();
+  const preEntryMode = searchParams.get('vorab') === '1' && preEntryAvailable;
+  // Contact data of the organizer: never part of the event, never in the local draft.
+  const [preEntryContact, setPreEntryContact] = useState(() => ({ ...EMPTY_CONTACT }));
+  const [preEntryNote, setPreEntryNote] = useState('');
+  const [preEntryValidDays, setPreEntryValidDays] = useState(null);
+  const [preEntryResult, setPreEntryResult] = useState(null);
+  const [preEntryLinkCopied, setPreEntryLinkCopied] = useState(false);
 
   const [formData, setFormData] = useState(() => {
     if (restoredDraft && restoredDraft.formData) {
@@ -573,6 +594,13 @@ export default function EventFormWizard() {
 
   const isAdmin = role === 'Admin';
 
+  // Pre-entries never go to Instagram on their own (consent of the organizer is missing).
+  useEffect(() => {
+    if (!preEntryMode) return;
+    instagramConsentTouched.current = true;
+    setInstagramConsent(false);
+  }, [preEntryMode]);
+
   // Admins get the mandatory fields pre-filled for testing (new events only;
   // a restored draft is left untouched). The role may arrive after first render.
   const adminPrefillDone = useRef(false);
@@ -644,8 +672,14 @@ export default function EventFormWizard() {
         newErrors['organizer.name'] = 'Veranstalter ist erforderlich';
       }
       // The organizer e-mail has no field: it is the account e-mail, so a guest
-      // gets it only after signing in.
-      if (user) {
+      // gets it only after signing in. A pre-entry has none (the event belongs to
+      // "Dein Tribe"); its organizer is reached through the contact section.
+      if (preEntryMode) {
+        const contactErrors = validateContact(preEntryContact);
+        for (const [key, message] of Object.entries(contactErrors)) {
+          newErrors[`preEntry.${key}`] = message;
+        }
+      } else if (user) {
         if (!formData.organizer.email.trim()) {
           newErrors['organizer.email'] = 'E-Mail ist erforderlich';
         } else if (!isValidEmail(formData.organizer.email)) {
@@ -1118,12 +1152,19 @@ export default function EventFormWizard() {
     city: formData.isOnline ? '' : canonicalCity(formData.city),
     isOnline: Boolean(formData.isOnline),
     regionId: eventRegionId,
-    organizer: {
-      firstName: splitOrganizerName(formData.organizer.name).firstName,
-      lastName: splitOrganizerName(formData.organizer.name).lastName,
-      email: formData.organizer.email.trim(),
-      photoURL: profile?.photoURL || null,
-    },
+    organizer: preEntryMode
+      ? {
+          name: formData.organizer.name.trim(),
+          firstName: splitOrganizerName(formData.organizer.name).firstName,
+          lastName: splitOrganizerName(formData.organizer.name).lastName,
+          email: '',
+        }
+      : {
+          firstName: splitOrganizerName(formData.organizer.name).firstName,
+          lastName: splitOrganizerName(formData.organizer.name).lastName,
+          email: formData.organizer.email.trim(),
+          photoURL: profile?.photoURL || null,
+        },
     kontakt: formData.kontakt.trim(),
     // Only with a phone number in the contact; otherwise the choice is dropped.
     kontaktMessenger: contactPhone(formData.kontakt)
@@ -1195,6 +1236,10 @@ export default function EventFormWizard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (currentStep < 4) {
+      return;
+    }
+    if (preEntryMode) {
+      await handlePreEntrySubmit();
       return;
     }
     if (!canCreateEvents) return;
@@ -1271,6 +1316,22 @@ export default function EventFormWizard() {
         await updateEvent(docRef.id, patch);
       }
 
+      if (preEntryMode) {
+        // Hands the saved draft (photos uploaded) to "Dein Tribe"; contact data goes
+        // into the server-only pre_entries doc.
+        const result = await preEntryAdmin('create', {
+          eventId: docRef.id,
+          contact: { ...preEntryContact, name: formData.organizer.name.trim() },
+          note: preEntryNote,
+          ...(preEntryValidDays ? { validDays: preEntryValidDays } : {}),
+        });
+        draftDoneRef.current = true;
+        clearWizardDraft(draftOwner);
+        clearWizardDraftFiles(draftOwner);
+        setPreEntryResult(result);
+        return;
+      }
+
       draftDoneRef.current = true;
       clearWizardDraft(draftOwner);
       clearWizardDraftFiles(draftOwner);
@@ -1289,10 +1350,25 @@ export default function EventFormWizard() {
       setSubmitError(
         err instanceof CoverUploadError
           ? COVER_UPLOAD_ERROR
-          : 'Event konnte nicht gespeichert werden. Bitte versuche es erneut.'
+          : preEntryMode && String(err?.code || '').startsWith('functions/')
+            ? `${preEntryErrorMessage(err)} Das Event liegt als Entwurf in deiner Verwaltung.`
+            : 'Event konnte nicht gespeichert werden. Bitte versuche es erneut.'
       );
       setLoading(false);
     }
+  };
+
+  const handlePreEntrySubmit = async () => {
+    if (!canCreateEvents) return;
+    const step1Errors = validateStep(1);
+    if (Object.keys(step1Errors).length > 0) {
+      setErrors(step1Errors);
+      setCurrentStep(1);
+      setValidationError('Bitte prüfe die Kontaktdaten der Veranstalter:in.');
+      return;
+    }
+    if (!validateBeforeSave('submit')) return;
+    await saveEvent(buildEventData('draft'));
   };
 
   const handleSuccessConfirm = () => {
@@ -1394,6 +1470,60 @@ export default function EventFormWizard() {
           placeholder="z.B. Buchungslink, Telefonnummer oder E-Mail"
         />
       </div>
+
+      {preEntryMode && (
+        <section className="wizard-pre-entry" data-testid="wizard-pre-entry-contact">
+          <div className="form-section-header">
+            <h3 className="form-section-title">Veranstalter-Kontakt (nur intern)</h3>
+            <p className="form-section-hint">
+              Damit erreichst du die Veranstalter:in mit dem Vorschau-Link. Diese Angaben sind nie
+              öffentlich und werden gelöscht, sobald sie nicht mehr gebraucht werden.
+            </p>
+          </div>
+          <PreEntryContactFields
+            contact={preEntryContact}
+            onChange={(key) => (e) => {
+              const value = e.target.value;
+              setPreEntryContact((prev) => ({ ...prev, [key]: value }));
+            }}
+            errors={Object.fromEntries(
+              Object.entries(errors)
+                .filter(([k, v]) => k.startsWith('preEntry.') && v)
+                .map(([k, v]) => [k.slice('preEntry.'.length), v])
+            )}
+          />
+          <div className="form-group">
+            <label htmlFor="pre-entry-note">Interne Notiz (optional)</label>
+            <textarea
+              id="pre-entry-note"
+              rows={3}
+              maxLength={NOTE_MAX}
+              value={preEntryNote}
+              onChange={(e) => setPreEntryNote(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="pre-entry-valid-days">Vorschau-Link gültig (Tage)</label>
+            <input
+              id="pre-entry-valid-days"
+              type="number"
+              min={PRE_ENTRY_LIMITS.validDays[0]}
+              max={PRE_ENTRY_LIMITS.validDays[1]}
+              value={preEntryValidDays ?? preEntrySettings.validDays}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                setPreEntryValidDays(
+                  Number.isInteger(n) &&
+                    n >= PRE_ENTRY_LIMITS.validDays[0] &&
+                    n <= PRE_ENTRY_LIMITS.validDays[1]
+                    ? n
+                    : null
+                );
+              }}
+            />
+          </div>
+        </section>
+      )}
     </div>
   );
 
@@ -2189,21 +2319,23 @@ export default function EventFormWizard() {
         )}
       </div>
 
-      <InstagramConsentField
-        checked={instagramConsent}
-        onChange={(value) => {
-          instagramConsentTouched.current = true;
-          setInstagramConsent(value);
-        }}
-        instagramHandle={profile?.socialMedia?.instagram}
-        handleOverride={instagramHandleOverride}
-        onHandleOverrideChange={setInstagramHandleOverride}
-        extraHandles={instagramExtraHandles}
-        onExtraHandlesChange={setInstagramExtraHandles}
-        regionId={eventRegionId}
-      />
+      {!preEntryMode && (
+        <InstagramConsentField
+          checked={instagramConsent}
+          onChange={(value) => {
+            instagramConsentTouched.current = true;
+            setInstagramConsent(value);
+          }}
+          instagramHandle={profile?.socialMedia?.instagram}
+          handleOverride={instagramHandleOverride}
+          onHandleOverrideChange={setInstagramHandleOverride}
+          extraHandles={instagramExtraHandles}
+          onExtraHandlesChange={setInstagramExtraHandles}
+          regionId={eventRegionId}
+        />
+      )}
 
-      {instagramConsent && (
+      {instagramConsent && !preEntryMode && (
         <details className="instagram-image-accordion" open data-testid="instagram-image-accordion">
           <summary>Foto und Bildausschnitt für Instagram wählen</summary>
           {errors.instagramImage && (
@@ -2257,7 +2389,13 @@ export default function EventFormWizard() {
               <span>Zurück zum Kalender</span>
             </button>
           )}
-          <h1>{isAdmin ? 'Neues Event erstellen' : 'Event zur Genehmigung einreichen'}</h1>
+          <h1>
+            {preEntryMode
+              ? 'Event vorab eintragen'
+              : isAdmin
+                ? 'Neues Event erstellen'
+                : 'Event zur Genehmigung einreichen'}
+          </h1>
         </div>
 
         {cameFromVerification && !restoredDraft && (
@@ -2295,7 +2433,7 @@ export default function EventFormWizard() {
                 <span>Zurück</span>
               </button>
             )}
-            {currentStep === 4 && canCreateEvents && (
+            {currentStep === 4 && canCreateEvents && !preEntryMode && (
               <button
                 type="button"
                 onClick={handleSaveAsDraft}
@@ -2335,6 +2473,26 @@ export default function EventFormWizard() {
               >
                 <span>Weiter</span>
                 <ArrowRight size={18} />
+              </button>
+            ) : canCreateEvents && preEntryMode ? (
+              <button
+                type="button"
+                onClick={handlePreEntrySubmit}
+                className={`btn btn-primary ${!rightsConfirmed ? 'btn-greyed-out' : ''} ${
+                  wobblingAction === 'submit' ? 'btn-wobble' : ''
+                }`}
+                disabled={loading || imageUploading}
+                aria-disabled={!rightsConfirmed}
+                data-testid="pre-entry-submit"
+              >
+                <Save size={22} />
+                <span>
+                  {imageUploading
+                    ? `Wird hochgeladen… (${imageProgress}%)`
+                    : loading
+                      ? 'Speichern...'
+                      : 'Vorab eintragen'}
+                </span>
               </button>
             ) : canCreateEvents ? (
               <button
@@ -2443,6 +2601,38 @@ export default function EventFormWizard() {
           setCurrentStep(4);
         }}
         onCancel={() => setShowMultiDayRecurrenceConfirm(false)}
+      />
+
+      <SuccessDialog
+        isOpen={preEntryResult !== null}
+        title="Vorab eingetragen"
+        message={
+          preEntryResult
+            ? `„${formData.title.trim()}“ gehört jetzt „Dein Tribe“ und ist nicht öffentlich. Der Vorschau-Link ist bis ${formatDayDe(preEntryResult.expiresAtMs)} gültig.`
+            : ''
+        }
+        details={
+          preEntryResult
+            ? `Vorschau-Link: ${preEntryResult.previewUrl}\nDu kannst ihn jetzt kopieren oder später in der Übersicht beim Kontaktieren mit einer Nachrichtenvorlage verschicken.`
+            : ''
+        }
+        cta={
+          preEntryResult
+            ? {
+                text: 'Link für die Veranstalter:in:',
+                label: preEntryLinkCopied ? 'Kopiert' : 'Link kopieren',
+                onClick: async () => {
+                  setPreEntryLinkCopied(await copyToClipboard(preEntryResult.previewUrl));
+                },
+              }
+            : null
+        }
+        confirmLabel="Zur Übersicht"
+        onConfirm={() => {
+          setPreEntryResult(null);
+          setLoading(false);
+          navigate('/admin?tab=vorab');
+        }}
       />
 
       <SuccessDialog

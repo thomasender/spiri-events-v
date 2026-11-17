@@ -185,7 +185,8 @@ type FooterKind =
   | 'directMessage'
   | 'eventChat'
   | 'eventRegistration'
-  | 'eventRegistrationConfirm';
+  | 'eventRegistrationConfirm'
+  | 'preEntry';
 
 /** Why the person gets the mail; the settings link doubles as the way to switch it off. */
 const FOOTER_REASON: Partial<Record<FooterKind, string>> = {
@@ -203,6 +204,8 @@ const FOOTER_REASON_NO_SETTINGS: Partial<Record<FooterKind, string>> = {
     'Du erhältst diese E-Mail, weil sich jemand über Tribe zu einer Veranstaltung angemeldet hat, die du erstellt hast oder bei der du als Kontakt angegeben bist.',
   eventRegistrationConfirm:
     'Du erhältst diese E-Mail, weil du dich über Tribe zu diesem Event angemeldet hast. Pro Event schicken wir dir nur eine Bestätigung.',
+  preEntry:
+    'Du erhältst diese E-Mail, weil wir dein Event für unseren Kalender vorbereitet haben. Wir nutzen deine Kontaktdaten nur für diese Anfrage. Mehr dazu in unserer Datenschutzerklärung: https://www.thetribe.at/datenschutz#vorab-eintraege',
 };
 
 function footerHtml(kind: FooterKind = 'notification'): string {
@@ -1302,6 +1305,103 @@ export function buildClubMemberInvitePayload({
   return {
     to: recipient,
     subject,
+    html: wrapHtml(htmlBody, 'auth'),
+    text: textBody + footerText('auth'),
+  };
+}
+
+// ── Pre-entries ("Events vorab eintragen", Trello 6afb1116) ──────────────
+
+/** Escapes a plain text and turns http(s) links into anchors (for moderator-written mails). */
+function linkifyPlainText(text: string): string {
+  return escapeHtml(text).replace(
+    /https?:\/\/[^\s<]+/g,
+    (url) => `<a href="${url}" style="color:${COLOR_TEXT};text-decoration:underline;">${url}</a>`
+  );
+}
+
+export interface PreEntryOrganizerMessageInput {
+  recipient: string;
+  subject: string;
+  /** Plain text, already filled in and edited by the moderator. */
+  text: string;
+}
+
+/** The moderator's message to the organizer (first request, reminder, ...). */
+export function buildPreEntryOrganizerMessagePayload({
+  recipient,
+  subject,
+  text,
+}: PreEntryOrganizerMessageInput): EmailPayload {
+  const htmlBody = `
+    <div style="${paragraphStyle()}white-space:pre-wrap;">${linkifyPlainText(text)}</div>`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'preEntry'),
+    text: text + footerText('preEntry'),
+  };
+}
+
+export type PreEntryNoticeKind = 'viewed' | 'published' | 'rejected' | 'claimed';
+
+const PRE_ENTRY_NOTICE_TEXT: Record<PreEntryNoticeKind, { subject: string; line: string }> = {
+  viewed: {
+    subject: 'Vorschau geöffnet',
+    line: 'Die Veranstalter:in hat die Vorschau zum ersten Mal geöffnet.',
+  },
+  published: {
+    subject: 'Veröffentlicht',
+    line: 'Die Veranstalter:in hat das Event ohne Profil veröffentlicht. Es steht jetzt unter „Dein Tribe“ im Kalender.',
+  },
+  rejected: {
+    subject: 'Abgelehnt',
+    line: 'Die Veranstalter:in möchte das Event nicht im Kalender haben.',
+  },
+  claimed: {
+    subject: 'Übernommen',
+    line: 'Die Veranstalter:in hat sich angemeldet und das Event in das eigene Profil übernommen.',
+  },
+};
+
+export interface PreEntryModeratorNoticeInput {
+  recipient: string;
+  kind: PreEntryNoticeKind;
+  eventTitle: string;
+  comment?: string | null;
+  /** Link to the tab "Vorab eingetragene Events". */
+  adminUrl: string;
+}
+
+/** Tells the moderator who pre-entered the event what the organizer did. */
+export function buildPreEntryModeratorNoticePayload({
+  recipient,
+  kind,
+  eventTitle,
+  comment,
+  adminUrl,
+}: PreEntryModeratorNoticeInput): EmailPayload {
+  const { subject, line } = PRE_ENTRY_NOTICE_TEXT[kind];
+  const title = eventTitle.trim() || 'Event';
+  const commentText = (comment ?? '').trim();
+  const commentHtml = commentText
+    ? `<blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};white-space:pre-wrap;">${escapeHtml(commentText)}</blockquote>`
+    : '';
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">${escapeHtml(subject)}: ${escapeHtml(title)}</h1>
+    <p style="${paragraphStyle()}">Hallo,</p>
+    <p style="${paragraphStyle()}">${escapeHtml(line)}</p>
+    ${commentHtml}
+    <p style="margin:8px 0 24px 0;">
+      <a href="${escapeHtml(adminUrl)}" style="${brandButtonStyle()}">Vorab eingetragene Events ansehen</a>
+    </p>`;
+  const textBody =
+    `Hallo,\n\n${line}\n\nEvent: ${title}\n` +
+    (commentText ? `\nKommentar:\n${commentText}\n` : '') +
+    `\nVorab eingetragene Events ansehen: ${adminUrl}`;
+  return {
+    to: recipient,
+    subject: `Vorab-Eintrag ${subject.toLowerCase()}: ${title}`,
     html: wrapHtml(htmlBody, 'auth'),
     text: textBody + footerText('auth'),
   };

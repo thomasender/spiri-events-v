@@ -26,6 +26,7 @@ import {
   HelpCircle,
   ScrollText,
   Sparkles,
+  CalendarPlus,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -51,6 +52,7 @@ import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
 import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
+import PreEntriesTab from '../components/PreEntriesTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
@@ -59,6 +61,7 @@ import { useReviewNotifications } from '../hooks/useReviewNotifications';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
+import { usePreEntryAccess } from '../hooks/usePreEntries';
 import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
 import './AdminPage.css';
 
@@ -72,6 +75,7 @@ const TAB_GROUPS = [
       { id: 'events', label: 'Meine Events', Icon: CalendarDays },
       { id: 'drafts', label: 'Entwürfe', Icon: FileText },
       { id: 'review', label: 'Review', Icon: ClipboardCheck },
+      { id: 'vorab', label: 'Vorab eingetragene Events', Icon: CalendarPlus },
       { id: 'protokoll', label: 'Protokoll', Icon: ScrollText },
       { id: 'feedback', label: 'Feedback', Icon: MessageSquare },
     ],
@@ -143,6 +147,7 @@ const PANELS = {
   mailgun: MailgunTab,
   ledger: LedgerTab,
   faq: FaqTab,
+  vorab: PreEntriesTab,
   moderation: ModerationTab,
   regions: RegionsTab,
   about: RegionAboutTab,
@@ -171,6 +176,9 @@ export default function AdminPage() {
   const { hasFeedback } = useHasFeedback(isAdmin);
   const { count: trashedCount } = useTrashedEventsCount();
   const { events } = useEvents(user);
+  // Pre-entries (Trello 6afb1116): Super-Admins always (to switch the flag on),
+  // moderators while the flag allows them.
+  const { available: preEntriesAvailable } = usePreEntryAccess();
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
   const hashEventId = useMemo(() => {
@@ -209,8 +217,18 @@ export default function AdminPage() {
       mailgun: isAdmin,
       ledger: isAdmin,
       faq: isAdmin,
+      vorab: isAdmin || (allowedTabs.has('vorab') && preEntriesAvailable),
     };
-  }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
+  }, [
+    draftCount,
+    hasMessages,
+    isAdmin,
+    canReview,
+    allowedTabs,
+    hasFeedback,
+    trashedCount,
+    preEntriesAvailable,
+  ]);
 
   const rawTab = searchParams.get('tab');
   // A known tab this role may not open: wait for the role, then say so.

@@ -40,6 +40,8 @@ export default function SeoMeta({
   imageUrl,
   type = 'website',
   noindex = false,
+  // Overrides the robots content, e.g. 'noindex, nofollow, noarchive' (preview links).
+  robots,
   event,
   exactTitle = false,
 }) {
@@ -56,7 +58,7 @@ export default function SeoMeta({
       <title>{finalTitle}</title>
       <meta name="description" content={finalDescription} />
       <link rel="canonical" href={url} />
-      <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+      <meta name="robots" content={robots || (noindex ? 'noindex, nofollow' : 'index, follow')} />
 
       <meta property="og:site_name" content={texts.siteName} />
       <meta property="og:type" content={type} />

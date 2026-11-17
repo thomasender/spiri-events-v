@@ -6,3 +6,24 @@ Sitemap: https://www.thetribe.at/sitemap.xml
 # Block admin pages from indexing
 Disallow: /admin/
 Disallow: /login/
+# Secret preview links of pre-entered events (docs/pre-entries.md)
+Disallow: /vorschau/
+
+# AI crawlers: the same rules, named explicitly (a named group replaces the * group
+# for that bot, so every Disallow is repeated here).
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Bytespider
+User-agent: Applebot-Extended
+User-agent: Meta-ExternalAgent
+Disallow: /admin/
+Disallow: /login/
+Disallow: /vorschau/

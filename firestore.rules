@@ -1638,6 +1638,58 @@ service cloud.firestore {
       allow delete: if isChatStaff();
     }
 
+    // ---- Vorab eingetragene Events (Trello 6afb1116, docs/pre-entries.md) ----
+    // Feature flag + defaults app_settings/preEntries { mode, validDays,
+    // reminderDays, autoDeleteDays, templates }. A missing doc means off. Public
+    // read via the app_settings match above (the texts hold no personal data);
+    // Super-Admins write. The functions (functions/src/preEntries.ts) read it too.
+    function isValidPreEntryTemplate(t) {
+      return t is map
+        && t.keys().hasOnly(['subject', 'text'])
+        && (!('subject' in t) || (t.subject is string && t.subject.size() <= 200))
+        && (!('text' in t) || (t.text is string && t.text.size() <= 5000));
+    }
+
+    function isValidPreEntrySettings(d) {
+      return d.get('mode', 'off') in ['off', 'admins', 'all']
+        && (!('validDays' in d) || (d.validDays is int && d.validDays >= 1 && d.validDays <= 60))
+        && (!('reminderDays' in d)
+            || (d.reminderDays is int && d.reminderDays >= 1 && d.reminderDays <= 30))
+        && (!('autoDeleteDays' in d)
+            || (d.autoDeleteDays is int && d.autoDeleteDays >= 0 && d.autoDeleteDays <= 365))
+        && (!('templates' in d)
+            || (d.templates is map
+                && d.templates.keys().hasOnly(['initial', 'reminder', 'expiring', 'published'])
+                && (!('initial' in d.templates) || isValidPreEntryTemplate(d.templates.initial))
+                && (!('reminder' in d.templates) || isValidPreEntryTemplate(d.templates.reminder))
+                && (!('expiring' in d.templates) || isValidPreEntryTemplate(d.templates.expiring))
+                && (!('published' in d.templates)
+                    || isValidPreEntryTemplate(d.templates.published))));
+    }
+
+    match /app_settings/preEntries {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['mode', 'validDays', 'reminderDays',
+                        'autoDeleteDays', 'templates', 'updatedAt', 'updatedBy'])
+                    && isValidPreEntrySettings(request.resource.data);
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['mode', 'validDays', 'reminderDays', 'autoDeleteDays',
+                                  'templates', 'updatedAt', 'updatedBy'])
+                    && isValidPreEntrySettings(request.resource.data);
+      allow delete: if isChatStaff();
+    }
+
+    // Contact data of third parties, link token hashes, contact log and audit
+    // log: only the Cloud Functions read and write them (Admin SDK).
+    match /pre_entries/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /pre_entry_tokens/{tokenId} {
+      allow read, write: if false;
+    }
+
     // club_memberships/{uid}: amount, Mollie ids, status, Statuten consent. The
     // member and the Super-Admins read; every write goes through the Cloud
     // Functions (functions/src/clubMembership.ts, mollieWebhookLogic.ts).

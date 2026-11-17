@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 // Regions exist only in code: ids come from the static list in firestore.rules and the
@@ -153,5 +153,90 @@ describe('regions/{id} writes', () => {
     await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { aboutText: 'Hallo', updatedAt: 2 }));
     await assertFails(updateDoc(doc(db, 'regions/tirol'), { active: true }));
     await assertFails(updateDoc(doc(db, 'regions/tirol'), { bezirke: [] }));
+  });
+});
+
+// Pre-entered events (Trello 6afb1116, docs/pre-entries.md): contact data and token
+// hashes are server-only; the pre-entered event belongs to the system account and a
+// Regions-Moderator:in changes it only through the functions (check-out / check-in).
+describe('pre-entries', () => {
+  const SYSTEM_UID = 'system-dein-tribe';
+  const preEntryEvent = {
+    title: 'Klangreise',
+    description: '<p>x</p>',
+    status: 'draft',
+    createdBy: SYSTEM_UID,
+    preEntry: true,
+    regionId: 'tirol',
+    organizer: { name: 'Studio Klang', email: '' },
+  };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'events/pre1'), preEntryEvent);
+      await setDoc(doc(db, 'pre_entries/pre1'), {
+        status: 'draft',
+        regionId: 'tirol',
+        contact: { email: 'studio@example.test' },
+      });
+      await setDoc(doc(db, 'pre_entry_tokens/abc'), { eventId: 'pre1', kind: 'preview' });
+    });
+  });
+
+  it('pre_entries and pre_entry_tokens are closed to every client, Super-Admins included', async () => {
+    for (const ctx of [
+      env.authenticatedContext('admin'),
+      env.authenticatedContext('mod', { email_verified: true }),
+      member(),
+      env.unauthenticatedContext(),
+    ]) {
+      const db = ctx.firestore();
+      await assertFails(getDoc(doc(db, 'pre_entries/pre1')));
+      await assertFails(getDoc(doc(db, 'pre_entry_tokens/abc')));
+      await assertFails(setDoc(doc(db, 'pre_entries/new'), { status: 'draft' }));
+      await assertFails(updateDoc(doc(db, 'pre_entries/pre1'), { status: 'published' }));
+      await assertFails(deleteDoc(doc(db, 'pre_entry_tokens/abc')));
+    }
+  });
+
+  it('a moderator neither reads nor changes the system draft directly, even in her region', async () => {
+    const db = env.authenticatedContext('mod', { email_verified: true }).firestore();
+    await assertFails(getDoc(doc(db, 'events/pre1')));
+    await assertFails(updateDoc(doc(db, 'events/pre1'), { title: 'Anders' }));
+    await assertFails(updateDoc(doc(db, 'events/pre1'), { status: 'approved' }));
+    await assertFails(updateDoc(doc(db, 'events/pre1'), { createdBy: 'mod' }));
+  });
+
+  it('nobody but the system account can create an event in its name', async () => {
+    const db = member().firestore();
+    await assertFails(setDoc(doc(db, 'events/fake'), { ...preEntryEvent, createdBy: SYSTEM_UID }));
+  });
+
+  it('only a Super-Admin writes the flag and the defaults, and only valid values', async () => {
+    const admin = env.authenticatedContext('admin').firestore();
+    const mod = env.authenticatedContext('mod', { email_verified: true }).firestore();
+    const ok = {
+      mode: 'admins',
+      validDays: 14,
+      reminderDays: 4,
+      autoDeleteDays: 30,
+      templates: { initial: { subject: 'Hallo', text: 'Hallo {ansprechperson}' } },
+    };
+    await assertFails(setDoc(doc(mod, 'app_settings/preEntries'), ok));
+    await assertFails(setDoc(doc(member().firestore(), 'app_settings/preEntries'), ok));
+    await assertSucceeds(setDoc(doc(admin, 'app_settings/preEntries'), ok));
+    await assertSucceeds(updateDoc(doc(admin, 'app_settings/preEntries'), { mode: 'all' }));
+    await assertFails(updateDoc(doc(admin, 'app_settings/preEntries'), { mode: 'everyone' }));
+    await assertFails(updateDoc(doc(admin, 'app_settings/preEntries'), { validDays: 0 }));
+    await assertFails(updateDoc(doc(admin, 'app_settings/preEntries'), { autoDeleteDays: 400 }));
+    await assertFails(
+      updateDoc(doc(admin, 'app_settings/preEntries'), { templates: { andere: { text: 'x' } } })
+    );
+    await assertFails(updateDoc(doc(admin, 'app_settings/preEntries'), { secret: true }));
+    // Public read: the preview page and the wizard need the flag.
+    await assertSucceeds(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'app_settings/preEntries'))
+    );
   });
 });

@@ -738,3 +738,25 @@ textarea {
     justify-content: flex-start;
   }
 }
+
+/* "Veranstalter-Kontakt (nur intern)" of a pre-entry (Trello 6afb1116). */
+.wizard-pre-entry {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.wizard-pre-entry .pre-entry-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.wizard-pre-entry .pre-entry-contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}

@@ -1,4 +1,5 @@
 import { DEFAULT_REGION_ID, LEGACY_REGION_ALIASES, isRegionId } from './regions';
+import { SYSTEM_UID } from './systemAccount';
 
 /**
  * Synced copy of the pure part of src/utils/onlineEventEligibility.js (Trello
@@ -80,7 +81,16 @@ export function annotateOnlineRegionIds<T extends OnlineEventLike>(
   const staff = new Set(staffUids);
   return events.map((event) => {
     const uid = event?.createdBy;
-    if (!isOnline(event) || typeof uid !== 'string' || !uid || staff.has(uid)) return event;
+    // The system account "Dein Tribe" counts as staff (pre-entered events).
+    if (
+      !isOnline(event) ||
+      typeof uid !== 'string' ||
+      !uid ||
+      staff.has(uid) ||
+      uid === SYSTEM_UID
+    ) {
+      return event;
+    }
     return { ...event, onlineRegionIds: onlineRegionIdsFor(listings[uid] ?? null, regions) };
   });
 }

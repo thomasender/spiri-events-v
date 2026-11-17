@@ -109,6 +109,8 @@ export const MIRROR_POLICY = {
   member_lists: drop('member lists (names, e-mail addresses)'),
   donors: drop('donor records incl. payment/mollie ids'),
   club_memberships: drop('Vereinsmitgliedschaften incl. names, e-mails, amounts, mollie ids'),
+  pre_entries: drop('contact data of third parties (pre-entered events) and their contact log'),
+  pre_entry_tokens: drop('hashes of secret preview / takeover links'),
   'events/{}/messages': drop('private organizer <-> admin conversations (free text, names)'),
 
   // --- copied (sanitized) ---

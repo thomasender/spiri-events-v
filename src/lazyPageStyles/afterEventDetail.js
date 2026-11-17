@@ -63,3 +63,7 @@ import '../pages/ModeratorOnboardingPage.css';
 // PioniereOnboardingPage, AdminPage: MembersTab (PioniereAdminSection)
 import '../pages/PioniereOnboardingPage.css';
 import '../components/PioniereAdminSection.css';
+
+// AdminPage: PreEntriesTab (also used by EventFormPage's wizard), PreEntryPreviewPage
+import '../components/PreEntriesTab.css';
+import '../pages/PreEntryPreviewPage.css';

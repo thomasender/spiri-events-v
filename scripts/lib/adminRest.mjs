@@ -251,6 +251,53 @@ export async function createAdminRestClient({
     );
   }
 
+  /** { uid, disabled, displayName } of the Auth user with this uid, or null. */
+  async function lookupUid(uid) {
+    const payload = await ok(
+      await request(`${authBase}/v1/projects/${projectId}/accounts:lookup`, {
+        scopes: authScopes,
+        body: { localId: [uid] },
+      }),
+      'Auth lookup'
+    );
+    const user = (payload.users || [])[0];
+    return user
+      ? { uid: user.localId, disabled: Boolean(user.disabled), displayName: user.displayName }
+      : null;
+  }
+
+  /** Creates an Auth user with a fixed uid and no e-mail / password, disabled (system accounts). */
+  async function createDisabledUser({ uid, displayName }) {
+    const payload = await ok(
+      await request(`${authBase}/v1/projects/${projectId}/accounts`, {
+        scopes: authScopes,
+        body: { localId: uid, displayName, disabled: true },
+      }),
+      'Auth create system user'
+    );
+    return payload.localId;
+  }
+
+  async function disableUser(uid, displayName) {
+    await ok(
+      await request(`${authBase}/v1/projects/${projectId}/accounts:update`, {
+        scopes: authScopes,
+        body: { localId: uid, disableUser: true, ...(displayName ? { displayName } : {}) },
+      }),
+      'Auth disable user'
+    );
+  }
+
+  /** Raw REST read of one document (null when missing). */
+  async function readDoc(path) {
+    const response = await request(`${firestoreBase}/${path}`, {
+      method: 'GET',
+      scopes: firestoreScopes,
+    });
+    if (response.status === 404) return null;
+    return ok(response, 'Firestore read');
+  }
+
   async function setCustomClaim(uid, claims) {
     await updateUser(uid, { claims });
   }
@@ -351,7 +398,11 @@ export async function createAdminRestClient({
     target,
     projectId,
     lookupUser,
+    lookupUid,
     createUser,
+    createDisabledUser,
+    disableUser,
+    readDoc,
     updateUser,
     setCustomClaim,
     readAdminDoc,
