@@ -12,6 +12,8 @@ import {
   sendEventRegistration,
   validateRegistrationForm,
 } from '../lib/eventRegistration';
+import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
+import { describeOccurrence } from '../utils/occurrenceDescription';
 import './EventRegistrationModal.css';
 
 function initialValues(user) {
@@ -63,6 +65,10 @@ export default function EventRegistrationModal({ open, onClose, event, user, occ
 
   if (!open || !event) return null;
 
+  // The date the guest looked at; a list link carries none, so a series falls back to its next date.
+  const chosenDate = occurrenceDate || getNextUpcomingOccurrence(event) || event.date;
+  const when = describeOccurrence(chosenDate, event.time);
+
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const handleSubmit = async (e) => {
@@ -77,7 +83,7 @@ export default function EventRegistrationModal({ open, onClose, event, user, occ
         eventId: event.id,
         name: form.name,
         contact: form.contact,
-        occurrenceDate,
+        occurrenceDate: chosenDate,
         website: form.website,
       });
       const type = contactType(form.contact);
@@ -198,8 +204,9 @@ export default function EventRegistrationModal({ open, onClose, event, user, occ
               <h2 id="event-registration-title">Zum Event anmelden</h2>
             </header>
             <p className="event-registration-intro">
-              Für <strong>{event.title}</strong>. Wir schicken deinen Namen und deine Kontaktangabe
-              an die Veranstaltenden. Das ist eine Benachrichtigung, keine Platzreservierung.
+              Du meldest dich an für: <strong>{event.title}</strong>
+              {when ? `, ${when}` : ''}. Wir schicken deinen Namen und deine Kontaktangabe an die
+              Veranstaltenden. Das ist eine Benachrichtigung, keine Platzreservierung.
             </p>
 
             <div className="form-group">

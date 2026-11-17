@@ -26,6 +26,19 @@ e-mail or phone number (prefilled from the account, editable).
      modal tells the guest to use the event's contact data. Reply-To = the guest's e-mail;
   5. e-mail contact only: one confirmation per event and address, guarded by the marker
      `events/{id}/registration_mails/{sha256(email)}` (`create()` fails when it exists).
+- The date is written colloquially, in the form ("Du meldest dich an für: ...") and in both mails:
+  "heute Dienstagabend um 19:30 Uhr", "morgen Mittwochvormittag um 10:00 Uhr", "diese Woche am
+  Freitagmorgen um 8:00 Uhr" (until Sunday of the current week), otherwise "am Dienstag, 24. November,
+  abends um 19:30 Uhr" (year only when not the current one); without a time only the day. Parts of
+  the day: morgens 5-10, vormittags 10-12, mittags 12-14, nachmittags 14-18, abends 18-22, nachts
+  22-5. "Today" is the day in Europe/Vienna. Pure function `describeOccurrence(date, time, now)` in
+  `functions/src/occurrenceDescription.ts` with an identical client twin
+  `src/utils/occurrenceDescription.js` (change both, `tests/components/occurrenceDescription.spec.ts`
+  runs the same cases against both).
+- Series: the chosen date (`occurrenceDate`) comes from `?occurrenceDate=` on the detail page. List
+  links carry none by design, so `EventRegistrationModal` falls back to
+  `getNextUpcomingOccurrence(event)`, then `event.date`, and sends that date. The callable itself
+  falls back to `event.date` only for single events, never for a series.
 - Templates: `buildEventRegistrationOrganizerPayload` / `buildEventRegistrationConfirmationPayload`
   in `emailTemplates.ts`.
 
