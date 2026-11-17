@@ -20,6 +20,11 @@ export const FAQ_INTRO =
   'zugänglich sind, unabhängig davon, wer die Frage ursprünglich gestellt hat. Denn oft ' +
   'beschäftigen dieselben Fragen mehr Menschen, als man denkt.';
 
+// FAQ entry the event wizard links to ("Welche Events passen in unseren Kalender?").
+// The anchor is derived from the question, so the entry must exist with exactly this
+// wording; otherwise the link only opens /faq at the top.
+export const FAQ_EVENT_GUIDE_QUESTION = 'Welche Events passen in unseren Kalender?';
+
 const UMLAUTS = { ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' };
 
 /** URL-safe piece for anchors (`#frage-…`, `#thema-…`): lower case, umlauts spelled out. */
@@ -35,6 +40,9 @@ export function faqSlug(text, max = 80) {
     .replace(/-+$/g, '');
   return slug || 'eintrag';
 }
+
+/** Link to the FAQ entry for the event guide (`/faq#frage-…`). */
+export const FAQ_EVENT_GUIDE_PATH = `/faq#frage-${faqSlug(FAQ_EVENT_GUIDE_QUESTION)}`;
 
 /** Topic a FAQ is shown under; an empty topic counts as "Allgemein". */
 export function faqTopicLabel(faq) {

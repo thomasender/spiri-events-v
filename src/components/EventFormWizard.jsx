@@ -45,6 +45,7 @@ import FocalPointPicker from './FocalPointPicker';
 import EventCard from './EventCard';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
+import { FAQ_EVENT_GUIDE_PATH } from '../utils/faqs';
 import {
   DEFAULT_FOCAL_POINT,
   MAX_IMAGE_ZOOM,
@@ -184,6 +185,21 @@ function splitOrganizerName(name) {
   const parts = trimmed.split(/\s+/);
   if (parts.length === 1) return { firstName: parts[0], lastName: '' };
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
+
+// Opens the FAQ guide ("Welche Events passen in unseren Kalender?") in a new tab so the draft stays open.
+function EventGuideLink({ children, testId }) {
+  return (
+    <a
+      className="wizard-guide-link"
+      href={FAQ_EVENT_GUIDE_PATH}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-testid={testId}
+    >
+      {children}
+    </a>
+  );
 }
 
 const isValidLink = (link) => {
@@ -1683,7 +1699,15 @@ export default function EventFormWizard() {
       )}
 
       <div className="form-group">
-        <label htmlFor="category">Kategorie *</label>
+        <div className="input-label-row">
+          <label htmlFor="category">Kategorie *</label>
+          <span className="input-info">
+            <Info size={14} />
+            <EventGuideLink testId="faq-guide-link-category">
+              Welche Events passen in unseren Kalender?
+            </EventGuideLink>
+          </span>
+        </div>
         <CreatableSelect
           id="category"
           options={kategorieOptions}
@@ -2341,6 +2365,14 @@ export default function EventFormWizard() {
               </button>
             ) : null}
           </div>
+
+          {(currentStep === 1 || currentStep === 4) && (
+            <p className="wizard-guide-hint">
+              <EventGuideLink testId="faq-guide-link-step">
+                Welche Events passen in unseren Kalender?
+              </EventGuideLink>
+            </p>
+          )}
 
           {currentStep === 4 && !user && (
             <div
