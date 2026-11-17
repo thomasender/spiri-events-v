@@ -61,3 +61,10 @@ export function computeFacetCounts({
 
   return { category, ort, date };
 }
+
+// Category chips: most events first, fewest last. Ties keep their incoming
+// order (Array.prototype.sort is stable), so the registry order stays the
+// tie-breaker.
+export function sortCategoriesByCount(categories, categoryCounts) {
+  return [...categories].sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0));
+}
