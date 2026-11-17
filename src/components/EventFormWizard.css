@@ -328,6 +328,22 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
+.wizard-guide-hint {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-80);
+  text-align: center;
+}
+
+.wizard-guide-link {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.wizard-guide-link:hover,
+.wizard-guide-link:focus-visible {
+  color: var(--text-primary);
+}
+
 .wizard-actions .btn-wobble,
 .wizard-auth-gate .btn-wobble {
   animation: wizard-btn-wobble 0.8s ease-in-out;
