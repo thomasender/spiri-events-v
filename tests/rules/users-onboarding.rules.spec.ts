@@ -307,3 +307,68 @@ describe('users/{uid}.siteOrigin', () => {
     );
   });
 });
+
+// Consent to the Nutzungsbedingungen: written with the profile doc at registration.
+describe('users/{uid}.termsAcceptedAt / termsVersion', () => {
+  const terms = () => ({ termsAcceptedAt: serverTimestamp(), termsVersion: '2026-11' });
+
+  it('the owner stores the consent when the doc is created', async () => {
+    const db = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(setDoc(doc(db, 'users/carol'), { ...base, ...terms() }));
+  });
+
+  it('accounts without consent still work (existing members are not asked again)', async () => {
+    const carol = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(setDoc(doc(carol, 'users/carol'), { ...base }));
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(updateDoc(doc(alice, 'users/alice'), { bio: 'Hallo' }));
+  });
+
+  it('the owner can record a (new) consent later, with server time', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users/alice'), terms()));
+  });
+
+  it('rejects a back-dated or wrongly typed consent, or only one of the two fields', async () => {
+    const carol = env.authenticatedContext('carol').firestore();
+    await assertFails(
+      setDoc(doc(carol, 'users/carol'), {
+        ...base,
+        termsAcceptedAt: new Date(0),
+        termsVersion: '2026-11',
+      })
+    );
+    await assertFails(setDoc(doc(carol, 'users/carol'), { ...base, ...terms(), termsVersion: 5 }));
+    await assertFails(
+      setDoc(doc(carol, 'users/carol'), { ...base, ...terms(), termsVersion: 'x'.repeat(21) })
+    );
+    await assertFails(setDoc(doc(carol, 'users/carol'), { ...base, termsVersion: '2026-11' }));
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(alice, 'users/alice'), { termsAcceptedAt: serverTimestamp() }));
+  });
+
+  it('the consent cannot be removed or silently changed afterwards', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'users/alice'), {
+        termsAcceptedAt: new Date(),
+        termsVersion: '2026-11',
+      });
+    });
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users/alice'), {
+        termsAcceptedAt: deleteField(),
+        termsVersion: deleteField(),
+      })
+    );
+    await assertFails(updateDoc(doc(db, 'users/alice'), { termsVersion: '2099-01' }));
+    // A normal profile save (merge, without the fields) keeps them.
+    await assertSucceeds(setDoc(doc(db, 'users/alice'), { ...base, bio: 'Neu' }, { merge: true }));
+  });
+
+  it('nobody else can set it on someone elses doc', async () => {
+    const db = env.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(db, 'users/alice'), terms()));
+    await assertFails(setDoc(doc(db, 'users/dave'), { ...base, ...terms() }));
+  });
+});

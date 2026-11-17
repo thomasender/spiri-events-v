@@ -505,6 +505,7 @@ const OTHER_INTERNAL = new Set([
   'einladung',
   'datenschutz',
   'impressum',
+  'nutzungsbedingungen',
 ]);
 
 /** Readable name for the page a visitor came from (GA `pageReferrer`). */

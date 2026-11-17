@@ -5,6 +5,7 @@ import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
 import { useRegion } from '../hooks/useRegion';
 import { homePathFor } from '../utils/regionRouting';
 import { DEFAULT_INSTAGRAM_HANDLE, instagramChannels, instagramProfileUrl } from '../utils/regions';
+import { TERMS_LAST_UPDATED } from '../utils/terms';
 
 // Dark launch: the per-region wording and the channel list only appear once at
 // least two Instagram channels exist; with one channel the text stays as it was.
@@ -69,6 +70,7 @@ Tel: +43 68181828713`,
 *Bei der Registrierung:*
 - E-Mail-Adresse (für die Authentifizierung)
 - Passwort (verschlüsselt gespeichert, Firebase Authentication)
+- Zeitpunkt und Fassung Ihrer Zustimmung zu den [Nutzungsbedingungen](/nutzungsbedingungen) (als Nachweis; bei Konten, die vor Einführung der Nutzungsbedingungen angelegt wurden, nicht vorhanden)
 
 *Bei der Erstellung von Events:*
 - Titel, Datum, Uhrzeit, Ort
@@ -445,7 +447,120 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
       },
       {
         heading: '20. Änderungen dieser Datenschutzerklärung',
-        text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
+        text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.
+
+Die Regeln für die Nutzung der Website finden Sie in unseren [Nutzungsbedingungen](/nutzungsbedingungen).`,
+      },
+    ],
+  },
+  nutzungsbedingungen: {
+    title: 'Nutzungsbedingungen',
+    description:
+      'Nutzungsbedingungen von tribe Vorarlberg: wie unser gemeinnütziger Verein die Plattform betreibt, wofür wir keine Verantwortung übernehmen und welche Regeln für alle gelten.',
+    lastUpdated: TERMS_LAST_UPDATED,
+    sections: [
+      {
+        heading: '1. Worum es geht',
+        text: `Diese Nutzungsbedingungen gelten für die Nutzung dieser Website und aller ihrer Funktionen (zum Beispiel Veranstaltungskalender, Verzeichnis, Profile, Chat, Privatnachrichten und Anmeldung zu Events), mit oder ohne Konto.
+
+Wenn du ein Konto erstellst, stimmst du diesen Nutzungsbedingungen und unserer [Datenschutzerklärung](/datenschutz) zu. Für die Nutzung ohne Konto gelten sie sinngemäß.
+
+Betreiber ist der Verein Tribe Vorarlberg (Angaben im [Impressum](/impressum)). Wenn hier „wir“ steht, ist der Verein gemeint; „du“ bist du als Nutzer:in.`,
+      },
+      {
+        heading: '2. Ein Verein, kein Geschäft',
+        text: `Tribe ist ein ehrenamtliches Projekt des gemeinnützigen Vereins Tribe Vorarlberg. Wir möchten Menschen, Veranstaltungen und Angebote rund um eine ganzheitliche, bewusste Lebensweise sichtbar machen und miteinander verbinden.
+
+- Die Nutzung der Website ist für dich kostenlos. Durch die Nutzung oder die Registrierung entsteht kein entgeltlicher Vertrag mit uns
+- Wir sind nicht Veranstalter, Anbieter, Vermittler oder Vertragspartner der gezeigten Veranstaltungen und Angebote, sofern nicht ausdrücklich etwas anderes angegeben ist. Verträge (zum Beispiel über die Teilnahme an einem Event) kommen ausschließlich zwischen dir und den jeweiligen Anbieter:innen zustande
+- Freiwillige Spenden und Vereinsmitgliedschaften unterstützen den Verein. Sie begründen keinen Anspruch auf bestimmte Leistungen, Funktionen oder Veröffentlichungen`,
+      },
+      {
+        heading: '3. Keine Verpflichtung zum Betrieb',
+        text: `Wir betreiben die Website ehrenamtlich und nach unseren Möglichkeiten. Daraus ergibt sich keine Verpflichtung, sie in einer bestimmten Form oder überhaupt zu betreiben.
+
+- Es besteht kein Anspruch darauf, dass die Website oder einzelne Funktionen jederzeit erreichbar, fehlerfrei oder vollständig sind
+- Wir dürfen Funktionen jederzeit ändern, einschränken, einstellen oder neu hinzufügen und die Website ganz oder teilweise vorübergehend oder dauerhaft einstellen
+- Es besteht kein Anspruch auf die Veröffentlichung von Events, Profilen, Einträgen im Verzeichnis oder Beiträgen in unseren Kanälen (zum Beispiel auf Instagram). Ob und wie lange wir etwas veröffentlichen, entscheiden wir nach eigenem Ermessen
+- Bitte bewahre wichtige Inhalte (Texte, Bilder) selbst auf. Wir schulden keine Datensicherung für dich`,
+      },
+      {
+        heading: '4. Inhalte von anderen und keine Empfehlung',
+        text: `Die meisten Inhalte auf dieser Website stammen nicht von uns, sondern von Veranstalter:innen und anderen Nutzer:innen: Events, Beschreibungen, Bilder, Preise, Profile, Links, Chat-Beiträge und Nachrichten.
+
+- *Keine Empfehlung:* Dass ein Mensch, ein Event oder ein Angebot auf der Website gezeigt wird, ist keine Empfehlung, Gutheißung, Bewertung oder Qualitätsaussage von uns. Das gilt auch für Hervorhebungen, die Reihenfolge der Anzeige, Abzeichen (zum Beispiel für Vereinsmitglieder) und Beiträge in unseren Kanälen
+- *Keine Prüfung:* Wir prüfen fremde Inhalte nicht laufend und sind dazu auch nicht verpflichtet. Auch wenn wir Events vor der Veröffentlichung ansehen, übernehmen wir keine Gewähr für ihre Richtigkeit, Vollständigkeit, Aktualität, Qualität oder Rechtmäßigkeit
+- *Verantwortung der Anbieter:innen:* Für ihre Inhalte, Angebote und Veranstaltungen (Durchführung, Absage, Preise, Sicherheit, Qualifikation) sind ausschließlich die jeweiligen Anbieter:innen verantwortlich
+- *Links:* Für Inhalte, Angebote, Preise und Datenschutz auf verlinkten Websites anderer sind ausschließlich deren Betreiber verantwortlich. Wir machen uns diese Inhalte nicht zu eigen
+- *Teilnahme auf eigene Verantwortung:* Die Teilnahme an Veranstaltungen und die Inanspruchnahme von Angeboten erfolgen auf deine eigene Verantwortung. Angebote auf dieser Website ersetzen keine ärztliche, psychotherapeutische oder sonstige fachliche Beratung oder Behandlung. Bitte prüfe selbst, ob ein Angebot für dich passt
+
+Wenn dir ein rechtswidriger oder problematischer Inhalt auffällt, schreib uns bitte an [admin@thetribe.at](mailto:admin@thetribe.at) oder nutze die Melde-Funktion. Wir sehen ihn uns an und entfernen ihn gegebenenfalls.`,
+      },
+      {
+        heading: '5. Deine Inhalte und deine Verantwortung',
+        text: `Du bist für alles verantwortlich, was du auf der Website veröffentlichst oder verschickst (Events, Texte, Bilder, Links, Profilangaben, Chat-Beiträge und Nachrichten).
+
+- Deine Angaben müssen wahr und dürfen nicht irreführend sein. Halte deine Events aktuell und sage abgesagte Termine ab
+- Du darfst nur Inhalte hochladen, an denen du die nötigen Rechte hast (zum Beispiel Urheberrechte an Texten und Fotos). Wer auf Fotos erkennbar ist, muss mit der Veröffentlichung einverstanden sein
+- Deine Inhalte dürfen nicht gegen Gesetze oder Rechte anderer verstoßen
+- Wenn andere wegen deiner Inhalte Ansprüche gegen uns erheben, weil du gegen diese Bedingungen oder gegen Gesetze verstoßen hast, unterstützt du uns bei der Klärung und hältst uns, soweit gesetzlich zulässig, schad- und klaglos
+
+*Rechte an deinen Inhalten:* Die Rechte an deinen Inhalten bleiben bei dir. Du erlaubst uns, sie unentgeltlich und nicht ausschließlich zu speichern, auf dieser Website, in Kalenderdateien und im Kalender-Abo zu zeigen und technisch anzupassen (zum Beispiel Bildgröße, Zuschnitt, Kürzung für Vorschauen), soweit das für den Betrieb und die Bewerbung der Plattform nötig ist. Auf Instagram veröffentlichen wir deine Events nur, wenn du dem beim jeweiligen Event zustimmst. Die Erlaubnis endet, wenn du einen Inhalt oder dein Konto löschst; bereits verschickte E-Mails, heruntergeladene Kalenderdateien und veröffentlichte Beiträge in unseren Kanälen können wir nicht in jedem Fall zurückholen.
+
+Die Nutzung von Inhalten dieser Website durch andere (zum Beispiel Kopieren für kommerzielle Zwecke oder automatisiertes Auslesen) ist im [Impressum](/impressum) unter „Nutzung der Inhalte und Datenbank“ geregelt.`,
+      },
+      {
+        heading: '6. Respektvolles Miteinander',
+        text: `Tribe lebt von einem wertschätzenden Miteinander. Bitte
+
+- begegne anderen respektvoll, auch bei unterschiedlichen Meinungen und Wegen
+- verzichte auf Beleidigungen, Bedrohungen, Belästigung, Hetze, Diskriminierung und das Bloßstellen anderer
+- verschicke keine Werbung, Kettenbriefe oder Spam, insbesondere nicht über Chat und Privatnachrichten, und nutze Kontaktdaten anderer nicht für Werbung
+- veröffentliche nur Events und Angebote, die zum Thema der Plattform passen, und keine Inhalte, die gefährlich, pornografisch, gewaltverherrlichend oder sonst rechtswidrig sind
+- verbreite keine Heilversprechen oder Aussagen, die Menschen von notwendiger ärztlicher Behandlung abhalten könnten
+- gib dich nicht als jemand anderes aus, lege keine Konten für andere ohne deren Einverständnis an und gib deine Zugangsdaten nicht weiter
+- störe die Website nicht technisch und versuche nicht, Schutzmechanismen zu umgehen
+
+Für den Chat gelten zusätzlich die Chat-Regeln, die beim ersten Betreten angezeigt werden.`,
+      },
+      {
+        heading: '7. Moderation, Sperre und Ausschluss',
+        text: `Damit Tribe ein guter Ort bleibt, dürfen wir nach eigenem Ermessen
+
+- Inhalte (Events, Profile, Einträge, Bilder, Nachrichten) ablehnen, ändern lassen, ausblenden oder löschen
+- Nutzer:innen vorübergehend oder dauerhaft von einzelnen Funktionen (zum Beispiel dem Chat) oder von der ganzen Website ausschließen und ihr Konto sperren oder löschen
+
+Das gilt insbesondere bei Verstößen gegen diese Nutzungsbedingungen, kann aber auch aus anderen Gründen geschehen. Wir sind nicht verpflichtet, unsere Entscheidung zu begründen oder vorher anzukündigen. Ein Anspruch auf Nutzung, auf Wiederherstellung oder auf Veröffentlichung besteht nicht.
+
+Du kannst dein Konto jederzeit selbst in deinem Profil löschen. Was dabei mit deinen Daten passiert, steht in der [Datenschutzerklärung](/datenschutz).`,
+      },
+      {
+        heading: '8. Haftung',
+        text: `Wir stellen die Website unentgeltlich und ehrenamtlich zur Verfügung. Deshalb ist unsere Haftung so weit beschränkt, wie es das Gesetz erlaubt:
+
+- Wir haften nur für Schäden, die wir vorsätzlich oder grob fahrlässig verursacht haben
+- Für Inhalte, Angebote und Veranstaltungen anderer (siehe Abschnitt 4) sowie für verlinkte Websites haften wir nicht. Erfahren wir von einem rechtswidrigen Inhalt, entfernen wir ihn oder sperren den Zugang dazu
+- Für Schäden durch Unterbrechungen, Fehler, Datenverlust oder die Einstellung der Website haften wir nur bei Vorsatz oder grober Fahrlässigkeit
+
+Diese Einschränkungen gelten nicht für Schäden aus der Verletzung von Leben, Körper oder Gesundheit und nicht, soweit zwingende gesetzliche Bestimmungen (insbesondere des Konsumentenschutzgesetzes) eine weitergehende Haftung vorsehen. Sie gelten auch zugunsten der Mitglieder, Organe und ehrenamtlichen Helfer:innen des Vereins.`,
+      },
+      {
+        heading: '9. Datenschutz',
+        text: `Wie wir mit deinen personenbezogenen Daten umgehen, erklären wir in unserer [Datenschutzerklärung](/datenschutz). Bei der Registrierung speichern wir zusätzlich, wann du welcher Fassung dieser Nutzungsbedingungen zugestimmt hast.`,
+      },
+      {
+        heading: '10. Änderungen dieser Nutzungsbedingungen',
+        text: `Wir können diese Nutzungsbedingungen ändern, zum Beispiel wenn sich die Website, ihre Funktionen oder die Rechtslage ändern. Die jeweils aktuelle Fassung steht immer auf dieser Seite, mit dem Datum oben.
+
+Über wesentliche Änderungen informieren wir registrierte Nutzer:innen rechtzeitig vorher, zum Beispiel per E-Mail oder auf der Website, und bitten wenn nötig erneut um Zustimmung. Wenn du mit einer Änderung nicht einverstanden bist, kannst du dein Konto jederzeit löschen.`,
+      },
+      {
+        heading: '11. Anwendbares Recht und Schlussbestimmungen',
+        text: `Es gilt österreichisches Recht unter Ausschluss der Verweisungsnormen des internationalen Privatrechts. Wenn du Verbraucher:in bist, bleiben die zwingenden Verbraucherschutzbestimmungen des Staates, in dem du deinen gewöhnlichen Aufenthalt hast, unberührt.
+
+Sollte eine Bestimmung dieser Nutzungsbedingungen unwirksam sein, bleiben die übrigen Bestimmungen gültig.
+
+Fragen zu diesen Nutzungsbedingungen beantworten wir gerne unter [admin@thetribe.at](mailto:admin@thetribe.at).`,
       },
     ],
   },
@@ -505,7 +620,9 @@ Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
       },
       {
         heading: 'Haftungsausschluss',
-        text: `### 1. Inhalte und Veranstaltungen
+        text: `Für die Nutzung der Website gelten außerdem unsere [Nutzungsbedingungen](/nutzungsbedingungen).
+
+### 1. Inhalte und Veranstaltungen
 
 Dein Tribe dient als Plattform zur Veröffentlichung und Auffindbarkeit von Veranstaltungen, Angeboten und Informationen Dritter. Die auf der Website veröffentlichten Inhalte, insbesondere Texte, Bilder, Termine, Preise, Beschreibungen und sonstige Angaben, werden teilweise von externen Veranstalter:innen und Nutzer:innen bereitgestellt.
 
@@ -596,6 +713,16 @@ function renderInline(text, keyPrefix) {
       const linkMatch = /\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/.exec(token);
       const linkText = linkMatch[1];
       const url = linkMatch[2];
+      // Own pages (`/nutzungsbedingungen`, ...) stay in the tab, via the router.
+      if (url.startsWith('/')) {
+        parts.push(
+          <Link key={`${keyPrefix}-link-${i++}`} to={url} className="legal-link">
+            {linkText}
+          </Link>
+        );
+        lastIndex = regex.lastIndex;
+        continue;
+      }
       const isMailto = url.startsWith('mailto:');
       const linkProps = { key: `${keyPrefix}-link-${i++}`, href: url, className: 'legal-link' };
       if (!isMailto) {
