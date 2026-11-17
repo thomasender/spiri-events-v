@@ -5,6 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import { useReviewNotifications } from '../hooks/useReviewNotifications';
+import { useStaffNotifications } from '../hooks/useStaffNotifications';
 import { getStaffAccess } from '../utils/staffRoles';
 import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import { useThreads } from '../hooks/useMessenger';
@@ -94,6 +95,8 @@ export default function Header() {
     user?.uid,
     isStaff
   );
+  // Staff: unread team notes (moderator applications, new moderators; Trello 6afc59ed).
+  const { unreadCount: teamUnreadCount } = useStaffNotifications(user?.uid, isStaff);
   // Guests see the link too (mode 'all') and read along without writing (Trello 6af1955f).
   const { available: chatAvailable, readable: chatReadable } = useChatAccess();
   // Only the person's own Lagerfeuer counts (one per region; `lagerfeuer` with one region).
@@ -264,7 +267,7 @@ export default function Header() {
 
   // One sum for every level (avatar -> Verwaltung -> tab), so a dot always
   // leads to the place that has one.
-  const unreadCount = unreadMessageCount + unreadFeedbackCount + newReviewCount;
+  const unreadCount = unreadMessageCount + unreadFeedbackCount + newReviewCount + teamUnreadCount;
   const hasUnread = unreadCount > 0;
 
   const profilePhotoURL = profile?.photoURL || user?.photoURL;

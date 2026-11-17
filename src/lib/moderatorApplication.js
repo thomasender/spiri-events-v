@@ -37,9 +37,9 @@ function blobToBase64(blob) {
 }
 
 /**
- * Sends the application to the admins (callable `submitModeratorApplication`
- * -> mail to admin@thetribe.at). The photo is optional and shrunk in the browser
- * first.
+ * Sends the application (callable `submitModeratorApplication`: stored, a note
+ * for the region's moderators and the Super-Admins, mail to the Super-Admins).
+ * The photo is optional and shrunk in the browser first.
  */
 export async function sendModeratorApplication({ name, email, message, regionId, photo, website }) {
   const photoBase64 = photo ? await blobToBase64(await compressImage(photo)) : '';

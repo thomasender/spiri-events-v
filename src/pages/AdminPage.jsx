@@ -26,6 +26,7 @@ import {
   HelpCircle,
   ScrollText,
   Sparkles,
+  Bell,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -51,6 +52,7 @@ import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
 import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
+import StaffNotificationsTab from '../components/StaffNotificationsTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
@@ -59,6 +61,7 @@ import { useReviewNotifications } from '../hooks/useReviewNotifications';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
+import { useStaffNotifications } from '../hooks/useStaffNotifications';
 import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
 import './AdminPage.css';
 
@@ -116,6 +119,7 @@ const TAB_GROUPS = [
     label: 'Regionen',
     Icon: MapPin,
     tabs: [
+      { id: 'team', label: 'Team-Hinweise', Icon: Bell },
       { id: 'moderation', label: 'Moderation', Icon: ShieldCheck },
       { id: 'regions', label: 'Regionen', Icon: MapPin },
       { id: 'about', label: 'Über uns', Icon: Info },
@@ -143,6 +147,7 @@ const PANELS = {
   mailgun: MailgunTab,
   ledger: LedgerTab,
   faq: FaqTab,
+  team: StaffNotificationsTab,
   moderation: ModerationTab,
   regions: RegionsTab,
   about: RegionAboutTab,
@@ -170,6 +175,11 @@ export default function AdminPage() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { hasFeedback } = useHasFeedback(isAdmin);
   const { count: trashedCount } = useTrashedEventsCount();
+  // Team notes (moderator applications, new moderators): staff only (Trello 6afc59ed).
+  const { unreadCount: teamUnreadCount } = useStaffNotifications(
+    user?.uid,
+    allowedTabs.has('team')
+  );
   const { events } = useEvents(user);
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
@@ -203,6 +213,7 @@ export default function AdminPage() {
       instagram: isAdmin,
       analytics: isAdmin,
       funfacts: isAdmin,
+      team: allowedTabs.has('team'),
       moderation: isAdmin,
       regions: isAdmin,
       about: allowedTabs.has('about'),
@@ -274,6 +285,7 @@ export default function AdminPage() {
       count: isAdmin ? unreadFeedbackCount : 0,
       label: `${unreadFeedbackCount} ungelesenes Feedback`,
     },
+    team: { count: teamUnreadCount, label: `${teamUnreadCount} neue Team-Hinweise` },
   };
   const formatCount = (n) => (n > 9 ? '9+' : n);
 

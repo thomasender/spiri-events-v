@@ -173,7 +173,10 @@ export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { adminSendBroadcastDm } from './adminBroadcast';
-export { submitModeratorApplication } from './moderatorApplication';
+export {
+  submitModeratorApplication,
+  remindOpenModeratorApplications,
+} from './moderatorApplication';
 export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
 export {
   adminCreateModeratorInvite,
@@ -181,6 +184,7 @@ export {
   adminRevokeModeratorInvite,
   getModeratorInvite,
   acceptModeratorInvite,
+  inviteModeratorApplicant,
 } from './moderatorInvites';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
 export { adminAnalyticsReport } from './adminAnalytics';

@@ -2,11 +2,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   MESSAGE_MAX,
-  MODERATOR_APPLICATION_INBOX,
   PHOTO_MAX_BYTES,
   buildModeratorApplicationEmail,
   sniffImageType,
+  storeModeratorApplication,
   validateModeratorApplication,
+  type ApplicationDeps,
 } from '../../functions/src/moderatorApplication';
 import { sendMailgunMessage } from '../../functions/src/mailgun';
 
@@ -105,8 +106,7 @@ describe('validateModeratorApplication', () => {
 });
 
 describe('buildModeratorApplicationEmail', () => {
-  it('goes to the admin inbox and names person, region and photo', () => {
-    expect(MODERATOR_APPLICATION_INBOX).toBe('admin@thetribe.at');
+  it('names person, region and photo', () => {
     const app = validateModeratorApplication({
       ...valid,
       regionId: 'innerschweiz',
@@ -138,6 +138,63 @@ describe('buildModeratorApplicationEmail', () => {
     expect(subject).toContain('keine bestimmte Region');
     expect(text).toContain('Foto: keines');
     expect(html).not.toContain('cid:');
+  });
+});
+
+describe('storeModeratorApplication (6afc59ed)', () => {
+  function world({ mailFails = false } = {}) {
+    const saved: Array<{ id: string; app: unknown; notes: Array<{ recipientUid: string }> }> = [];
+    const mails: Array<{ to: string; replyTo: string; inlineImages: unknown[] }> = [];
+    const deps: ApplicationDeps = {
+      loadStaffDocs: async () => [
+        { uid: 'boss', data: { role: 'Admin' } },
+        { uid: 'tiMod', data: { role: 'RegionModerator', regionIds: ['tirol'] } },
+        { uid: 'vbgMod', data: { role: 'RegionModerator', regionIds: ['vorarlberg'] } },
+      ],
+      newApplicationId: () => 'app1',
+      saveApplication: async (id, app, notes) => {
+        saved.push({ id, app, notes });
+      },
+      getSuperAdminEmails: async () => ['boss@tribe.at'],
+      sendMail: async (mail) => {
+        if (mailFails) throw new Error('mailgun down');
+        mails.push(mail);
+      },
+    };
+    return { deps, saved, mails };
+  }
+
+  it('stores the application, notes the region team and mails only the Super-Admins', async () => {
+    const w = world();
+    const app = validateModeratorApplication({
+      ...valid,
+      regionId: 'tirol',
+      photoBase64: JPEG.toString('base64'),
+    });
+    expect(await storeModeratorApplication(app, w.deps)).toEqual({
+      applicationId: 'app1',
+      mailed: 1,
+    });
+    expect(w.saved[0].app).toEqual({
+      name: 'Maria Muster',
+      email: 'maria@example.at',
+      message: valid.message,
+      regionId: 'tirol',
+      hasPhoto: true,
+    });
+    expect(w.saved[0].notes.map((n) => n.recipientUid)).toEqual(['boss', 'tiMod']);
+    // admin@thetribe.at is no longer a recipient; the photo stays a mail attachment.
+    expect(w.mails.map((m) => m.to)).toEqual(['boss@tribe.at']);
+    expect(w.mails[0].replyTo).toBe('maria@example.at');
+    expect(w.mails[0].inlineImages).toHaveLength(1);
+  });
+
+  it('keeps the application when the mail fails', async () => {
+    const w = world({ mailFails: true });
+    const result = await storeModeratorApplication(validateModeratorApplication(valid), w.deps);
+    expect(result.mailed).toBe(0);
+    expect(w.saved).toHaveLength(1);
+    expect(w.saved[0].notes.map((n) => n.recipientUid)).toEqual(['boss']);
   });
 });
 
