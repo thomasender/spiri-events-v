@@ -365,21 +365,14 @@ describe('EventFormWizard Instagram image crop', () => {
     mockProfile.value = profileWith({ instagramConsentDefault: true });
     seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}">`);
     const { unmount } = renderWizard();
-    // The first photo is the Titelbild: its URL is known only after the upload.
+    // The first photo is the Titelbild: it is uploaded before the event is
+    // written, so the event is saved with its URL right away.
     const saved = await submitAndGetSavedEvent();
-    expect(saved).not.toHaveProperty('instagramImage');
-    await waitFor(() =>
-      expect(mockEvents.updateEvent).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          instagramImage: {
-            url: 'https://example.com/test.jpg',
-            focalPoint: { x: 0.5, y: 0.5 },
-            zoom: 1,
-          },
-        })
-      )
-    );
+    expect(saved.instagramImage).toEqual({
+      url: 'https://example.com/test.jpg',
+      focalPoint: { x: 0.5, y: 0.5 },
+      zoom: 1,
+    });
     unmount();
 
     mockEvents.addEvent.mockClear();

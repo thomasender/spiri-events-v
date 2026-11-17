@@ -177,14 +177,9 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
     expect(payload.imageFocalPoint).toBeNull();
   });
 
-  it('clears imageFocalPoint when the user replaces the picture (regression: 6abf85a2)', async () => {
-    // When the owner replaces the cover image on a pending/draft event, the
-    // form sends `imageFocalPoint: null` on the first updateEvent (to wipe
-    // the old focal point) before uploading the new file and patching it on a
-    // second updateEvent. Firestore rules used to reject the first update
-    // because isValidFocalPoint called `.keys()` on a null value, surfacing
-    // as "Missing or insufficient permissions" to the user. The form still
-    // sends null; the rule was loosened to accept it.
+  it('saves a replaced picture in one write with the new URL and a cleared focal point (6abf85a2, 7iDvAj4U)', async () => {
+    // The new cover is uploaded before the event is written, so there is no
+    // intermediate write with `imageUrl: null` any more.
     render(
       <MemoryRouter>
         <EventForm event={baseEvent} />
@@ -209,8 +204,9 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
       expect(mockEvents.updateEvent).toHaveBeenCalled();
     });
 
+    expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1);
     const firstPayload = mockEvents.updateEvent.mock.calls[0][1];
-    expect(firstPayload.imageUrl).toBeNull();
+    expect(firstPayload.imageUrl).toBe('https://example.com/brand-new-image.jpg');
     expect(firstPayload.imageFocalPoint).toBeNull();
   });
 
@@ -233,6 +229,22 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
     fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
 
     expect(await screen.findByText(/Titelbild konnte nicht hochgeladen werden/)).toBeTruthy();
+    // Nothing was written: the event keeps its old photo (7iDvAj4U).
+    expect(mockEvents.updateEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not save an event whose Titelbild was removed without a new one (7iDvAj4U)', async () => {
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('title-image-focal-picker-remove'));
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+
+    expect(await screen.findByText('Bitte lade ein Titelbild hoch')).toBeTruthy();
+    expect(mockEvents.updateEvent).not.toHaveBeenCalled();
   });
 
   it('shows the focal point picker when an image is loaded, seeded with the saved point', () => {

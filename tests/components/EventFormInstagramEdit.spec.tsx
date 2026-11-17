@@ -395,14 +395,20 @@ describe('EventForm — editing an approved event', () => {
         }),
     ],
     [
-      'cover photo removed',
-      () => fireEvent.click(screen.getByTestId('title-image-focal-picker-remove')),
+      // Removing it without a new one is refused (the Titelbild is required).
+      'cover photo replaced',
+      () =>
+        fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
+          target: { files: [new File(['x'], 'neu.jpg', { type: 'image/jpeg' })] },
+        }),
     ],
   ])('%s change: asks for re-approval and saves as pending', async (_name, change) => {
     renderForm(oldApprovedEvent);
 
     change();
-    expect(screen.getByTestId('submit-event-button').textContent).toContain('Erneut einreichen');
+    await waitFor(() =>
+      expect(screen.getByTestId('submit-event-button').textContent).toContain('Erneut einreichen')
+    );
     submitForm();
 
     expect(await screen.findByText('Event erneut einreichen')).toBeTruthy();
