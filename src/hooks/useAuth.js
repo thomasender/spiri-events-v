@@ -36,9 +36,12 @@ import { REACTION_EMOJIS } from '../utils/reactions';
 import { chatRoomIdsToClean } from '../utils/chat';
 import { knownActiveRegionIds } from './useRegions';
 import { splitProfileData } from '../utils/profile';
+import { termsAcceptanceFields } from '../utils/terms';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
 import { auth, db, callable, getStorageInstance } from '../lib/firebase';
+import { readPendingRegistration } from '../lib/eventRegistration';
+import { hasGuestWizardDraft } from '../utils/wizardDraftStorage';
 import {
   checkRateLimit,
   recordRateLimitAttempt,
@@ -149,7 +152,12 @@ async function seedProfileDoc(
   user,
   displayName,
   photoURL,
-  { notifyNewsletter = false, isNewAccount = false, recordSiteOrigin = isNewAccount } = {}
+  {
+    notifyNewsletter = false,
+    isNewAccount = false,
+    recordSiteOrigin = isNewAccount,
+    acceptedTerms = false,
+  } = {}
 ) {
   try {
     const profileRef = doc(db, 'users', user.uid);
@@ -173,6 +181,9 @@ async function seedProfileDoc(
       // Domain the account was created on (thetribe.at, deintribe.de, ...): the
       // links in all mails to this user point to it. Never changed afterwards.
       ...(recordSiteOrigin ? { siteOrigin: window.location.origin } : {}),
+      // Consent to the Nutzungsbedingungen, only when the account is created
+      // (checkbox / Google hint). Existing accounts are not asked again.
+      ...(acceptedTerms ? termsAcceptanceFields(now) : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -308,6 +319,11 @@ export function useAuth() {
       throw err;
     }
     recordRateLimitAttempt({ bucket, ...preset });
+    // Read before the account exists: once signed in, the favorites store consumes it.
+    const pendingEventId = readPendingRegistration()?.eventId ?? null;
+    // A guest filled in "Event erstellen" first: the confirmation link leads back
+    // to the wizard's last page (docs/guest-event-draft.md).
+    const afterVerify = hasGuestWizardDraft() ? 'createEvent' : null;
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
       await updateProfile(credential.user, { displayName });
@@ -315,9 +331,11 @@ export function useAuth() {
     await seedProfileDoc(credential.user, displayName, null, {
       notifyNewsletter: Boolean(subscribeNewsletter),
       isNewAccount: true,
+      // AuthForm only calls register() with the terms checkbox ticked.
+      acceptedTerms: true,
     });
     try {
-      await requestVerificationEmail(credential.user);
+      await requestVerificationEmail(credential.user, pendingEventId, afterVerify);
     } catch (err) {
       console.warn('Failed to send initial verification email:', err);
     }
@@ -325,16 +343,27 @@ export function useAuth() {
     return credential;
   };
 
-  const requestVerificationEmail = async (targetUser = auth.currentUser) => {
+  // `pendingEventId`: a guest registered for this event before creating the
+  // account ("Zum Event anmelden"); the mail then names the event.
+  // `afterVerify`: 'createEvent' makes the link lead back to the event wizard.
+  const requestVerificationEmail = async (
+    targetUser = auth.currentUser,
+    pendingEventId = null,
+    afterVerify = null
+  ) => {
     if (!targetUser) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
     const fn = callable('sendVerificationEmail');
-    await fn({ userId: targetUser.uid });
+    await fn({
+      userId: targetUser.uid,
+      ...(pendingEventId && { pendingEventId }),
+      ...(afterVerify && { afterVerify }),
+    });
   };
 
-  const resendVerificationEmail = async () => {
-    await requestVerificationEmail();
+  const resendVerificationEmail = async ({ afterVerify = null } = {}) => {
+    await requestVerificationEmail(auth.currentUser, null, afterVerify);
   };
 
   const login = async (email, password) => {
@@ -355,8 +384,11 @@ export function useAuth() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     const credential = await signInWithPopup(auth, provider);
+    // A new Google account agrees through the hint under the Google button.
+    const isNewUser = getAdditionalUserInfo(credential)?.isNewUser === true;
     await seedProfileDoc(credential.user, credential.user.displayName, credential.user.photoURL, {
-      recordSiteOrigin: getAdditionalUserInfo(credential)?.isNewUser === true,
+      recordSiteOrigin: isNewUser,
+      acceptedTerms: isNewUser,
     });
     return credential;
   };

@@ -75,6 +75,7 @@ import {
 import {
   REGISTRATION_MAX_LENGTH,
   KONTAKT_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   contactPhone,
   normalizeMessengerSelection,
 } from '../utils/contactFormat';
@@ -1190,7 +1191,7 @@ export default function EventForm({ event }) {
               <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
               <span className="input-info">
                 <Info size={14} />
-                <span>E-Mail oder Telefonnummer</span>
+                <span>Telefonnummer oder E-Mail</span>
               </span>
             </div>
             <input
@@ -1228,7 +1229,7 @@ export default function EventForm({ event }) {
               value={formData.registration}
               onChange={handleChange}
               maxLength={REGISTRATION_MAX_LENGTH}
-              placeholder="z.B. Buchungslink, E-Mail oder Telefonnummer"
+              placeholder="z.B. Buchungslink, Telefonnummer oder E-Mail"
             />
           </div>
 
@@ -1244,8 +1245,11 @@ export default function EventForm({ event }) {
               type="text"
               value={formData.title}
               onChange={handleChange}
+              maxLength={TITLE_MAX_LENGTH}
               placeholder="z.B. Morgen-Yoga im Park"
-              className={errors.title ? 'input-error' : ''}
+              className={
+                errors.title || formData.title.length >= TITLE_MAX_LENGTH ? 'input-error' : ''
+              }
             />
             {errors.title && <span className="error-text">{errors.title}</span>}
           </div>

@@ -39,6 +39,11 @@ import {
 import { REGION_MODERATOR_ROLE } from './staffRoles';
 import { isRegionId, regionNameOf } from './regions';
 import {
+  MODERATION_LOG_COLLECTION,
+  actorRoleFromStaffDoc,
+  buildClarificationLogEntry,
+} from './moderationLog';
+import {
   buildEmailPayload,
   NotificationType,
   SubmittedPayloadInput,
@@ -607,6 +612,43 @@ export const onEventStatusChanged = onDocumentUpdated(
   }
 );
 
+/**
+ * Moderation log entry "Rückfrage gestellt" when the team writes on a pending
+ * event (at most one per event and Vienna day: fixed doc id + create()).
+ * Never throws: the mail to the organizer must not depend on it.
+ */
+async function logClarification(
+  eventId: string,
+  eventData: Record<string, unknown>,
+  message: AdminMessageSnapshot
+): Promise<void> {
+  try {
+    const uid = message.authorUid;
+    const db = getFirestore();
+    const staffDoc = uid ? (await db.doc(`admin_users/${uid}`).get()).data() : undefined;
+    const built = buildClarificationLogEntry({
+      eventId,
+      event: eventData,
+      message,
+      actor: {
+        uid: uid ?? null,
+        name: message.authorName ?? null,
+        role: actorRoleFromStaffDoc(uid ?? null, staffDoc),
+      },
+      atMs: Date.now(),
+    });
+    if (!built) return;
+    await db
+      .collection(MODERATION_LOG_COLLECTION)
+      .doc(built.id)
+      .create({ at: FieldValue.serverTimestamp(), ...built.entry });
+  } catch (err) {
+    // ALREADY_EXISTS: there is an entry for this event and day already.
+    if ((err as { code?: unknown })?.code === 6) return;
+    logger.error('Failed to write clarification log entry', { eventId, err });
+  }
+}
+
 export const onAdminMessageCreated = onDocumentCreated(
   {
     region: REGION,
@@ -639,6 +681,8 @@ export const onAdminMessageCreated = onDocumentCreated(
     const eventSnapshot = snapshotToEventSnapshot(eventData);
     const title = readString(eventData.title);
     const slug = readString(eventData.slug);
+
+    await logClarification(eventId, eventData, snapshot);
 
     const decision = decideAdminMessageNotification(eventId, snapshot, eventSnapshot, title, slug);
     if (!decision) {

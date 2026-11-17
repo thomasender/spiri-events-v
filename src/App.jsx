@@ -207,6 +207,10 @@ function AppLayout() {
               <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
               <Route path="/impressum" element={<LegalPage page="impressum" />} />
               <Route
+                path="/nutzungsbedingungen"
+                element={<LegalPage page="nutzungsbedingungen" />}
+              />
+              <Route
                 path="/admin"
                 element={
                   <ProtectedRoute>
@@ -232,14 +236,8 @@ function AppLayout() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/new"
-                element={
-                  <ProtectedRoute>
-                    <EventFormPage />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Open to guests: the wizard asks for the login only at the end (docs/guest-event-draft.md). */}
+              <Route path="/admin/new" element={<EventFormPage />} />
               <Route
                 path="/admin/edit/:id"
                 element={

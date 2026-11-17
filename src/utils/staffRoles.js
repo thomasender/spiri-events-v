@@ -110,6 +110,7 @@ export const ADMIN_TABS = [
   'chat',
   'instagram',
   'analytics',
+  'funfacts',
   'mailgun',
   'ledger',
   'moderation',

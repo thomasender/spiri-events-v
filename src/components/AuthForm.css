@@ -136,6 +136,17 @@
   color: var(--accent-primary);
 }
 
+.auth-registration-hint {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: var(--text-90);
+  line-height: 1.5;
+}
+
 .auth-tabs {
   display: flex;
   gap: var(--space-1);
@@ -287,6 +298,20 @@
 .btn-google:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.auth-google-terms {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-80);
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.auth-google-terms a {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .google-icon {

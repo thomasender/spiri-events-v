@@ -18,7 +18,6 @@ import {
 import { DEFAULT_REGION_ID } from '../utils/regions';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
-import EmailVerificationModal from '../components/EmailVerificationModal';
 import LoginPromptModal from '../components/LoginPromptModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SeoMeta from '../components/SeoMeta';
@@ -188,7 +187,7 @@ function FacetCount({ value }) {
 export default function CalendarPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, canCreateEvents } = useAuth();
+  const { user } = useAuth();
   const { colorFor: districtColorFor } = useDistrictColors();
   const canonicalPath = useRegionCanonicalPath('/');
   const regionTexts = useRegionTexts();
@@ -244,7 +243,6 @@ export default function CalendarPage() {
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(
     (savedState?.selectedOrte?.length ?? 0) > 0 || savedState?.onlyFavorites === true
   );
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   // Served from the CDN-cached JSON; only the Firestore fallback is region-scoped
   // once the regionId migration is marked complete (utils/regionQueries.js). The
   // client filter below stays as a second safety layer.
@@ -631,37 +629,15 @@ export default function CalendarPage() {
               <strong>Du willst ein Event teilen?</strong>
               <span>Erstelle dein eigenes Event in wenigen Schritten.</span>
             </div>
-            {canCreateEvents ? (
-              <Link
-                to="/admin/new"
-                className="btn btn-primary create-event-cta-button"
-                data-testid="create-event-cta-button"
-              >
-                <PlusCircle size={18} aria-hidden="true" />
-                <span>Event erstellen</span>
-              </Link>
-            ) : user ? (
-              <button
-                type="button"
-                className="btn btn-primary create-event-cta-button btn-disabled"
-                onClick={() => setVerificationModalOpen(true)}
-                title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
-                data-testid="create-event-cta-locked"
-              >
-                <PlusCircle size={18} aria-hidden="true" />
-                <span>Event erstellen</span>
-              </button>
-            ) : (
-              <Link
-                to="/login"
-                state={{ from: '/admin/new' }}
-                className="btn btn-primary create-event-cta-button"
-                data-testid="create-event-cta-button"
-              >
-                <PlusCircle size={18} aria-hidden="true" />
-                <span>Event erstellen</span>
-              </Link>
-            )}
+            {/* Everybody straight into the wizard; login / confirmation come at its end. */}
+            <Link
+              to="/admin/new"
+              className="btn btn-primary create-event-cta-button"
+              data-testid="create-event-cta-button"
+            >
+              <PlusCircle size={18} aria-hidden="true" />
+              <span>Event erstellen</span>
+            </Link>
           </div>
 
           <section className="filter-panel" aria-label="Filter" ref={filterPanelRef} tabIndex={-1}>
@@ -946,10 +922,6 @@ export default function CalendarPage() {
         </aside>
       </div>
 
-      <EmailVerificationModal
-        open={verificationModalOpen}
-        onClose={() => setVerificationModalOpen(false)}
-      />
       <LoginPromptModal
         open={calendarLoginPromptOpen}
         variant="calendar"

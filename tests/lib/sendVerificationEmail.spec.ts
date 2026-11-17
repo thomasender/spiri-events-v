@@ -3,6 +3,7 @@ import { MailgunError } from '../../functions/src/mailgun';
 import {
   toVerificationEmailHttpsError,
   renderEmail,
+  buildVerificationButtonUrl,
 } from '../../functions/src/sendVerificationEmail';
 
 describe('toVerificationEmailHttpsError', () => {
@@ -41,5 +42,27 @@ describe('renderEmail', () => {
       appName: 'Tribe',
     });
     expect(subject).toBe('Bestätige deine E-Mail-Adresse für den Tribe');
+  });
+});
+
+describe('buildVerificationButtonUrl', () => {
+  const ORIGIN = 'https://www.thetribe.at';
+
+  it('leads to the action page without `next` by default', () => {
+    expect(buildVerificationButtonUrl(ORIGIN, 'a b')).toBe(
+      'https://www.thetribe.at/auth-action?mode=verifyEmail&oobCode=a%20b'
+    );
+  });
+
+  it('adds next=/admin/new for a guest who filled in the event wizard', () => {
+    const url = new URL(buildVerificationButtonUrl(ORIGIN, 'code', 'createEvent'));
+    expect(url.searchParams.get('next')).toBe('/admin/new');
+    expect(url.searchParams.get('oobCode')).toBe('code');
+  });
+
+  it('ignores unknown values instead of passing a path through', () => {
+    for (const value of ['/admin', 'https://evil.example', '__proto__', 'toString', 42, null]) {
+      expect(buildVerificationButtonUrl(ORIGIN, 'code', value)).not.toContain('next=');
+    }
   });
 });

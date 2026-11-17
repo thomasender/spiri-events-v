@@ -16,6 +16,7 @@ export const ACTION_META = {
   deleted: { label: 'Endgültig gelöscht', tone: 'error' },
   edited: { label: 'Bearbeitet', tone: 'info' },
   cancelled: { label: 'Abgesagt', tone: 'warning' },
+  clarification: { label: 'Rückfrage gestellt', tone: 'info' },
   submitted: { label: 'Eingereicht', tone: 'neutral' },
   status: { label: 'Status geändert', tone: 'neutral' },
 };

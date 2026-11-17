@@ -162,6 +162,21 @@ service cloud.firestore {
         && (!('fireplaceVisible' in d) || d.fireplaceVisible is bool);
     }
 
+    // Consent to the Nutzungsbedingungen on `users/{uid}` (src/utils/terms.js):
+    // `termsAcceptedAt` is the server time of the write that sets it (no
+    // back-dating), `termsVersion` a short version string; both are written
+    // together and cannot be removed. Accounts from before the terms have
+    // neither field. `changedKeys`: all keys on create, affected keys on update.
+    function isValidTermsAcceptance(d, changedKeys) {
+      return (('termsAcceptedAt' in changedKeys) == ('termsVersion' in changedKeys))
+        && (!('termsAcceptedAt' in changedKeys)
+              || (d.termsAcceptedAt is timestamp && d.termsAcceptedAt == request.time))
+        && (!('termsVersion' in d)
+            || (d.termsVersion is string
+                && d.termsVersion.size() > 0
+                && d.termsVersion.size() <= 20));
+    }
+
     function isValidFireplaceLabel(d) {
       return !('fireplaceLabel' in d)
         || (d.fireplaceLabel is string
@@ -607,6 +622,20 @@ service cloud.firestore {
         allow read: if isAdminOrEmulatorAdmin();
         allow write: if false;
       }
+
+      // "Zum Event anmelden" (docs/event-registration.md): name + contact of people who
+      // registered, written only by the submitEventRegistration callable (Admin SDK)
+      // and deleted once the event is over. Only the organizer and admins may read;
+      // nobody writes from the client.
+      match /registrations/{registrationId} {
+        allow read: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
+        allow write: if false;
+      }
+
+      // "Confirmation already sent" markers (hashed e-mail), server-only.
+      match /registration_mails/{markerId} {
+        allow read, write: if false;
+      }
     }
 
     // Role docs ({ role: 'Admin' } or { role: 'RegionModerator', regionIds }).
@@ -626,9 +655,18 @@ service cloud.firestore {
 
     // Moderation log (admin tab "Protokoll"): one entry per approval,
     // rejection, edit, trash, restore and delete of an event, written only by
-    // the event triggers in functions/src/eventRevisionTrigger.ts (Admin SDK).
+    // the event triggers in functions/src/eventRevisionTrigger.ts and the
+    // "Rückfrage" entry of onAdminMessageCreated (Admin SDK).
     // Super-Admins only; moderators and organizers never read it.
     match /moderation_log/{entryId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
+    }
+
+    // Cached numbers of the Super-Admin tab "Fun Facts" (app_stats/fun_facts),
+    // written only by the callable adminFunFacts (Admin SDK). Super-Admins
+    // only; nobody writes from the client.
+    match /app_stats/{statId} {
       allow read: if isAdminOrEmulatorAdmin();
       allow write: if false;
     }
@@ -666,8 +704,9 @@ service cloud.firestore {
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                        'notifyOnDirectMessage', 'notifyOnEventChat',
                        'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
-                       'siteOrigin', 'createdAt', 'updatedAt']
+                       'siteOrigin', 'termsAcceptedAt', 'termsVersion', 'createdAt', 'updatedAt']
                     )
+                    && isValidTermsAcceptance(request.resource.data, request.resource.data.keys())
                     && (!('siteOrigin' in request.resource.data)
                         || (request.resource.data.siteOrigin is string
                             && request.resource.data.siteOrigin.size() <= 100))
@@ -696,6 +735,8 @@ service cloud.firestore {
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
                     && isValidPlaceSelection(request.resource.data)
+                    && isValidTermsAcceptance(request.resource.data,
+                                              request.resource.data.diff(resource.data).affectedKeys())
                     && (!('instagramConsentDefault' in request.resource.data)
                         || request.resource.data.instagramConsentDefault is bool)
                     && (!('showOnlineStatus' in request.resource.data)
@@ -720,7 +761,7 @@ service cloud.firestore {
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                                   'notifyOnDirectMessage', 'notifyOnEventChat',
                                   'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
-                                  'updatedAt']);
+                                  'termsAcceptedAt', 'termsVersion', 'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
 

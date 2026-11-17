@@ -533,7 +533,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
             type="text"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
-            placeholder="z.B. E-Mail oder Telefonnummer"
+            placeholder="z.B. Telefonnummer oder E-Mail"
             data-testid="profile-contact"
             autoComplete="email"
           />

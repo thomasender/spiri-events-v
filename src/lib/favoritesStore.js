@@ -8,6 +8,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { clearPendingRegistration, readPendingRegistration } from './eventRegistration';
 
 // One shared store for the signed-in user's favorites: a single auth listener
 // and a single Firestore listener no matter how many hearts are on screen.
@@ -66,6 +67,17 @@ function start() {
       setDoc(doc(db, 'users', user.uid, 'favorites', pending), {
         createdAt: serverTimestamp(),
       }).catch(() => {});
+    }
+    // Same for an event a guest registered for ("Zum Event anmelden") before
+    // creating an account or logging in.
+    const registration = readPendingRegistration();
+    if (registration) {
+      clearPendingRegistration();
+      if (registration.eventId !== pending) {
+        setDoc(doc(db, 'users', user.uid, 'favorites', registration.eventId), {
+          createdAt: serverTimestamp(),
+        }).catch(() => {});
+      }
     }
   });
 }

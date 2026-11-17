@@ -506,6 +506,7 @@ const OTHER_INTERNAL = new Set([
   'pioniere',
   'datenschutz',
   'impressum',
+  'nutzungsbedingungen',
 ]);
 
 /** Readable name for the page a visitor came from (GA `pageReferrer`). */
