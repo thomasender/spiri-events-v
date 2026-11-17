@@ -6,6 +6,12 @@ import { writePlaceSelection } from '../../src/utils/placeSelection';
 
 const mocks = vi.hoisted(() => ({
   regions: { regions: [] as unknown[], loading: false },
+  pwa: { isStandalone: false, isMobileViewport: false },
+}));
+
+vi.mock('../../src/hooks/usePwaInstall', () => ({
+  isIOSDevice: () => false,
+  usePwaInstall: () => ({ installAvailable: false, requestInstall: vi.fn(), ...mocks.pwa }),
 }));
 
 vi.mock('../../src/hooks/useRegions', () => ({ useRegions: () => mocks.regions }));
@@ -69,6 +75,61 @@ describe('Footer donation link', () => {
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Footer-Navigation' });
     expect(nav.firstElementChild).toBe(screen.getByTestId('footer-donate-link'));
+  });
+});
+
+describe('Footer phone structure', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    mocks.regions = { regions: mergeRegions([]), loading: false };
+    mocks.pwa = { isStandalone: false, isMobileViewport: false };
+  });
+
+  it('ends with the copyright, after the legal links', () => {
+    renderAt('/');
+    const footer = document.querySelector('footer') as HTMLElement;
+    const copy = footer.querySelector('.footer-copy') as HTMLElement;
+    const cookie = screen.getByTestId('footer-cookie-settings');
+    expect(copy.textContent).toContain('Alle Rechte vorbehalten');
+    expect(cookie.compareDocumentPosition(copy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(footer.querySelector('.footer-container')?.lastElementChild).toBe(copy);
+  });
+
+  it('shows Über uns and FAQ in the main row, the legal links in two rows', () => {
+    renderAt('/');
+    const main = document.querySelector('.footer-group--main') as HTMLElement;
+    expect(main.textContent).toBe('Über unsFAQ');
+    const rows = document.querySelectorAll('.footer-group--legal .footer-group-row');
+    expect(Array.from(rows).map((r) => r.textContent)).toEqual([
+      'ImpressumDatenschutz',
+      'NutzungsbedingungenCookie-Einstellungen',
+    ]);
+  });
+
+  it('offers "App installieren" only on a phone and not when already installed', () => {
+    renderAt('/');
+    expect(screen.queryByTestId('footer-install-link')).toBeNull();
+  });
+
+  it('puts "App installieren" below the divider and above Impressum on a phone', () => {
+    mocks.pwa = { isStandalone: false, isMobileViewport: true };
+    renderAt('/');
+    const divider = document.querySelector('.footer-divider') as HTMLElement;
+    const install = screen.getByTestId('footer-install-link');
+    const impressum = screen.getByRole('link', { name: 'Impressum' });
+    expect(
+      divider.compareDocumentPosition(install) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      install.compareDocumentPosition(impressum) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('hides "App installieren" in standalone mode', () => {
+    mocks.pwa = { isStandalone: true, isMobileViewport: true };
+    renderAt('/');
+    expect(screen.queryByTestId('footer-install-link')).toBeNull();
   });
 });
 
