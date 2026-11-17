@@ -11,7 +11,6 @@ import { useThreads } from '../hooks/useMessenger';
 import { useChatUnread } from '../hooks/useChatUnread';
 import { useChatRoom } from '../hooks/useChatRoom';
 import { useNavHint } from '../hooks/useNavHint';
-import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import { MemberBadgeFrame } from './MemberBadge';
 import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
@@ -48,7 +47,7 @@ const SCROLL_DIRECTION_THRESHOLD = 8;
 const HEADER_TOP_BUFFER = 80;
 
 export default function Header() {
-  const { user, logout, role, staffRegionIds, canCreateEvents } = useAuth();
+  const { user, logout, role, staffRegionIds } = useAuth();
   const { profile } = useProfile(user?.uid);
   const regionTexts = useRegionTexts();
   const {
@@ -110,7 +109,6 @@ export default function Header() {
   const { unreadCount: dmUnread } = useThreads(messengerAvailable);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
@@ -120,11 +118,6 @@ export default function Header() {
   const closeMenu = () => {
     setMenuOpen(false);
     setAccountOpen(false);
-  };
-
-  const openVerificationModal = () => {
-    closeMenu();
-    setVerificationModalOpen(true);
   };
 
   const handleLogout = async () => {
@@ -439,28 +432,18 @@ export default function Header() {
     </NavLink>
   );
 
-  const createLink = (extraClass = '') =>
-    canCreateEvents ? (
-      <NavLink
-        to={addEventPath}
-        className={({ isActive }) => `${navClass({ isActive })}${extraClass}`}
-        onClick={closeMenu}
-      >
-        <PlusCircle size={18} />
-        <span>Event erstellen</span>
-      </NavLink>
-    ) : (
-      <button
-        type="button"
-        className={`nav-link nav-link--disabled${extraClass}`}
-        onClick={openVerificationModal}
-        title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
-        data-testid="event-create-locked"
-      >
-        <PlusCircle size={18} aria-hidden="true" />
-        <span>Event erstellen</span>
-      </button>
-    );
+  // Straight into the wizard, also without a confirmed e-mail: it asks for the
+  // confirmation only at the end (docs/guest-event-draft.md).
+  const createLink = (extraClass = '') => (
+    <NavLink
+      to={addEventPath}
+      className={({ isActive }) => `${navClass({ isActive })}${extraClass}`}
+      onClick={closeMenu}
+    >
+      <PlusCircle size={18} />
+      <span>Event erstellen</span>
+    </NavLink>
+  );
 
   const logoutButton = (
     <button type="button" onClick={handleLogout} className="nav-link nav-link--logout">
@@ -475,9 +458,9 @@ export default function Header() {
         <User size={18} />
         <span>Anmelden</span>
       </NavLink>
+      {/* Guests start the wizard right away; the login comes at its end. */}
       <NavLink
-        to="/login"
-        state={{ from: addEventPath }}
+        to={addEventPath}
         className={({ isActive }) => `${navClass({ isActive })}${extraClass}`}
         onClick={closeMenu}
         data-testid="event-create-cta"
@@ -714,11 +697,6 @@ export default function Header() {
           {renderMobileNav()}
         </div>
       )}
-
-      <EmailVerificationModal
-        open={verificationModalOpen}
-        onClose={() => setVerificationModalOpen(false)}
-      />
     </header>
   );
 }

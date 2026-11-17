@@ -40,6 +40,7 @@ import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
 import { auth, db, callable, getStorageInstance } from '../lib/firebase';
 import { readPendingRegistration } from '../lib/eventRegistration';
+import { hasGuestWizardDraft } from '../utils/wizardDraftStorage';
 import {
   checkRateLimit,
   recordRateLimitAttempt,
@@ -311,6 +312,9 @@ export function useAuth() {
     recordRateLimitAttempt({ bucket, ...preset });
     // Read before the account exists: once signed in, the favorites store consumes it.
     const pendingEventId = readPendingRegistration()?.eventId ?? null;
+    // A guest filled in "Event erstellen" first: the confirmation link leads back
+    // to the wizard's last page (docs/guest-event-draft.md).
+    const afterVerify = hasGuestWizardDraft() ? 'createEvent' : null;
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
       await updateProfile(credential.user, { displayName });
@@ -320,7 +324,7 @@ export function useAuth() {
       isNewAccount: true,
     });
     try {
-      await requestVerificationEmail(credential.user, pendingEventId);
+      await requestVerificationEmail(credential.user, pendingEventId, afterVerify);
     } catch (err) {
       console.warn('Failed to send initial verification email:', err);
     }
@@ -330,18 +334,25 @@ export function useAuth() {
 
   // `pendingEventId`: a guest registered for this event before creating the
   // account ("Zum Event anmelden"); the mail then names the event.
-  const requestVerificationEmail = async (targetUser = auth.currentUser, pendingEventId = null) => {
+  // `afterVerify`: 'createEvent' makes the link lead back to the event wizard.
+  const requestVerificationEmail = async (
+    targetUser = auth.currentUser,
+    pendingEventId = null,
+    afterVerify = null
+  ) => {
     if (!targetUser) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
     const fn = callable('sendVerificationEmail');
-    await fn(
-      pendingEventId ? { userId: targetUser.uid, pendingEventId } : { userId: targetUser.uid }
-    );
+    await fn({
+      userId: targetUser.uid,
+      ...(pendingEventId && { pendingEventId }),
+      ...(afterVerify && { afterVerify }),
+    });
   };
 
-  const resendVerificationEmail = async () => {
-    await requestVerificationEmail();
+  const resendVerificationEmail = async ({ afterVerify = null } = {}) => {
+    await requestVerificationEmail(auth.currentUser, null, afterVerify);
   };
 
   const login = async (email, password) => {

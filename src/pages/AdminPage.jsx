@@ -52,7 +52,6 @@ import MailgunTab from '../components/MailgunTab';
 import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
-import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -171,7 +170,6 @@ export default function AdminPage() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { hasFeedback } = useHasFeedback(isAdmin);
   const { count: trashedCount } = useTrashedEventsCount();
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
@@ -297,23 +295,11 @@ export default function AdminPage() {
           <h1>Verwaltung</h1>
           <p>Verwalte deine Events und Nachrichten</p>
         </div>
-        {canCreateEvents ? (
-          <Link to="/admin/new" className="btn btn-primary">
-            <PlusCircle size={18} aria-hidden="true" />
-            <span>Neues Event</span>
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-primary btn-disabled"
-            onClick={() => setVerificationModalOpen(true)}
-            title="Bitte bestätige zuerst deine E-Mail-Adresse."
-            data-testid="new-event-locked"
-          >
-            <PlusCircle size={18} aria-hidden="true" />
-            <span>Neues Event</span>
-          </button>
-        )}
+        {/* Also without a confirmed e-mail: the wizard asks for it only at the end. */}
+        <Link to="/admin/new" className="btn btn-primary">
+          <PlusCircle size={18} aria-hidden="true" />
+          <span>Neues Event</span>
+        </Link>
       </header>
 
       {!canCreateEvents && <EmailVerificationBanner />}
@@ -420,11 +406,6 @@ export default function AdminPage() {
           </div>
         ) : null
       )}
-
-      <EmailVerificationModal
-        open={verificationModalOpen}
-        onClose={() => setVerificationModalOpen(false)}
-      />
     </div>
   );
 }

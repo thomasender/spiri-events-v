@@ -71,6 +71,33 @@ export function renderEmail(args: {
   return { subject, html, text };
 }
 
+/**
+ * Where the confirmation link leads afterwards (`next`), by the optional
+ * `afterVerify` of the request. Only these fixed paths, never a path sent by
+ * the client, so the link cannot become an open redirect. The page side checks
+ * the same list (src/utils/returnPath.js, AFTER_VERIFY_PATHS).
+ */
+export const AFTER_VERIFY_PATHS: Readonly<Record<string, string>> = {
+  // A guest filled in "Event erstellen" before creating the account
+  // (docs/guest-event-draft.md): back to the wizard's last page.
+  createEvent: '/admin/new',
+};
+
+/** The button link of the mail: the action page, plus `next` for a known `afterVerify`. */
+export function buildVerificationButtonUrl(
+  origin: string,
+  oobCode: string,
+  afterVerify?: unknown
+): string {
+  const base = `${origin}/auth-action?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
+  const next =
+    typeof afterVerify === 'string' &&
+    Object.prototype.hasOwnProperty.call(AFTER_VERIFY_PATHS, afterVerify)
+      ? AFTER_VERIFY_PATHS[afterVerify]
+      : null;
+  return next ? `${base}&next=${encodeURIComponent(next)}` : base;
+}
+
 function isFirebaseRateLimit(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as { code?: unknown; message?: unknown; cause?: unknown };
@@ -140,7 +167,11 @@ export const sendVerificationEmail = onCall(
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Must be signed in.');
     }
-    const payload = (request.data ?? {}) as { userId?: string; pendingEventId?: string };
+    const payload = (request.data ?? {}) as {
+      userId?: string;
+      pendingEventId?: string;
+      afterVerify?: string;
+    };
     const userId = payload.userId;
     if (typeof userId !== 'string' || !userId) {
       throw new HttpsError('invalid-argument', 'userId is required.');
@@ -172,7 +203,11 @@ export const sendVerificationEmail = onCall(
     }
 
     // The link goes to the domain the user is on, so their session there stays valid.
-    const buttonUrl = `${requestSiteOrigin(request)}/auth-action?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
+    const buttonUrl = buildVerificationButtonUrl(
+      requestSiteOrigin(request),
+      oobCode,
+      payload.afterVerify
+    );
     const displayName = user.displayName || user.email;
     const appName = process.env.APP_DISPLAY_NAME || 'Tribe';
     const eventTitle = await pendingEventTitle(payload.pendingEventId);
