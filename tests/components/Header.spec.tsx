@@ -152,14 +152,15 @@ describe('Header (logged out)', () => {
     expect(screen.queryByText('Abmelden')).toBeNull();
   });
 
-  it('renders an "Event erstellen" link for logged-out users that points to /login', () => {
+  it('renders an "Event erstellen" link for logged-out users that opens the wizard directly', () => {
     const { container } = render(
       <MemoryRouter>
         <Header />
       </MemoryRouter>
     );
 
-    const createLinks = container.querySelectorAll('a[href="/login"]');
+    // Guests fill in the wizard first; the login comes at its end.
+    const createLinks = container.querySelectorAll('a[href="/admin/new"]');
     expect(createLinks.length).toBeGreaterThan(0);
     const labels = Array.from(createLinks).map((link) => link.textContent?.trim() ?? '');
     expect(labels.some((l) => l.includes('Event erstellen'))).toBe(true);

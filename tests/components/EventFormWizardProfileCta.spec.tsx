@@ -6,6 +6,7 @@ import { HelmetProvider } from 'react-helmet-async';
 const mockAuth = vi.hoisted(() => ({
   user: { uid: 'user-uid', email: 'user@test.local', emailVerified: true },
   role: null,
+  canCreateEvents: true,
 }));
 
 const mockProfile = vi.hoisted(() => ({ value: null }));
@@ -69,6 +70,16 @@ vi.mock('../../src/lib/imageUpload', () => ({
 }));
 
 import EventFormWizard from '../../src/components/EventFormWizard';
+import { clearWizardDraftFiles, saveWizardDraftFiles } from '../../src/utils/wizardDraftFiles';
+
+// The Titelbild of a seeded draft (kept in memory by wizardDraftFiles); a save
+// re-checks it, so every seeded draft gets one unless a test removes it.
+function seedCover() {
+  clearWizardDraftFiles('user-uid');
+  saveWizardDraftFiles('user-uid', {
+    cover: new File(['x'], 'cover.jpg', { type: 'image/jpeg' }),
+  });
+}
 
 const FUTURE_DATE = (() => {
   const d = new Date();
@@ -121,6 +132,7 @@ function renderWizard() {
 }
 
 beforeEach(() => {
+  seedCover();
   mockAuth.user = { uid: 'user-uid', email: 'user@test.local', emailVerified: true };
   mockAuth.role = null;
   mockProfile.value = null;

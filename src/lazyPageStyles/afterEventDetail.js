@@ -40,7 +40,8 @@ import '../pages/SpendenDankePage.css';
 // AuthActionPage
 import '../pages/AuthActionPage.css';
 
-// ChatPage
+// ChatPage (also MessengerPage)
+import '../components/EmailVerificationModal.css';
 import '../components/chat/EmojiPicker.css';
 import '../components/chat/MessageReactions.css';
 import '../pages/ChatPage.css';

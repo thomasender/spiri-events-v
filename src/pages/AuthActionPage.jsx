@@ -6,6 +6,7 @@ import { useAuth, MIN_PASSWORD_LENGTH } from '../hooks/useAuth';
 import SeoMeta from '../components/SeoMeta';
 import './AuthActionPage.css';
 import PasswordInput from '../components/PasswordInput';
+import { afterVerifyPath } from '../utils/returnPath';
 
 const STATUS = {
   APPLYING: 'applying',
@@ -82,6 +83,8 @@ export default function AuthActionPage() {
 
   const mode = searchParams.get('mode');
   const oobCode = searchParams.get('oobCode');
+  // Only whitelisted pages (the event wizard); everything else goes home.
+  const nextPath = afterVerifyPath(searchParams.get('next'));
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +98,14 @@ export default function AuthActionPage() {
         if (cancelled) return;
         setStatus(STATUS.SUCCESS);
         await refreshEmailVerified();
-        setTimeout(() => navigate('/', { replace: true }), 2500);
+        setTimeout(
+          () =>
+            navigate(
+              nextPath,
+              nextPath === '/' ? { replace: true } : { replace: true, state: { afterVerify: true } }
+            ),
+          2500
+        );
       } catch (err) {
         if (cancelled) return;
         const code = err?.code ?? '';
@@ -115,7 +125,7 @@ export default function AuthActionPage() {
     return () => {
       cancelled = true;
     };
-  }, [mode, oobCode, navigate, refreshEmailVerified]);
+  }, [mode, oobCode, nextPath, navigate, refreshEmailVerified]);
 
   useEffect(() => {
     let cancelled = false;

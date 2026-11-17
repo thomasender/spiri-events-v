@@ -47,6 +47,10 @@ vi.mock('../../src/hooks/useCategories', () => ({
   ],
 }));
 
+vi.mock('../../src/components/EventFormWizard', () => ({
+  default: () => <div data-testid="wizard-stub" />,
+}));
+
 import { useEventById } from '../../src/hooks/useEvents';
 
 describe('EventFormPage', () => {
@@ -176,5 +180,53 @@ describe('EventFormPage', () => {
     );
 
     expect(screen.queryByText('Event bearbeiten')).not.toBeInTheDocument();
+  });
+});
+
+describe('EventFormPage: creating without account', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    vi.mocked(useEventById).mockReturnValue({
+      event: null,
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useEventById>);
+  });
+
+  const renderNew = () =>
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/admin/new']}>
+          <Routes>
+            <Route path="/admin/new" element={<EventFormPage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+
+  it('opens the wizard for a guest instead of sending them to the login', () => {
+    authState.current = { user: null, role: null, loading: false, canCreateEvents: false };
+    renderNew();
+    expect(screen.getByTestId('wizard-stub')).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('opens the wizard for a member whose e-mail is not confirmed yet', () => {
+    authState.current = {
+      user: { uid: 'u1', emailVerified: false },
+      role: null,
+      loading: false,
+      canCreateEvents: false,
+    };
+    renderNew();
+    expect(screen.getByTestId('wizard-stub')).toBeInTheDocument();
+    expect(screen.queryByTestId('event-create-blocked')).toBeNull();
+  });
+
+  it('waits for the login state before showing the wizard', () => {
+    authState.current = { user: null, role: null, loading: true };
+    renderNew();
+    expect(screen.queryByTestId('wizard-stub')).toBeNull();
+    expect(document.querySelector('.loading-spinner')).toBeTruthy();
   });
 });

@@ -6,6 +6,7 @@ import { HelmetProvider } from 'react-helmet-async';
 const mockAuth = vi.hoisted(() => ({
   user: { uid: 'user-uid', email: 'user@test.local', emailVerified: true },
   role: null,
+  canCreateEvents: true,
 }));
 
 const mockProfile = vi.hoisted(() => ({ value: null }));
@@ -63,6 +64,16 @@ vi.mock('../../src/lib/imageUpload', () => ({
 }));
 
 import EventFormWizard from '../../src/components/EventFormWizard';
+import { clearWizardDraftFiles, saveWizardDraftFiles } from '../../src/utils/wizardDraftFiles';
+
+// The Titelbild of a seeded draft (kept in memory by wizardDraftFiles); a save
+// re-checks it, so every seeded draft gets one unless a test removes it.
+function seedCover() {
+  clearWizardDraftFiles('user-uid');
+  saveWizardDraftFiles('user-uid', {
+    cover: new File(['x'], 'cover.jpg', { type: 'image/jpeg' }),
+  });
+}
 
 const FUTURE_DATE = (() => {
   const d = new Date();
@@ -120,6 +131,7 @@ function renderWizard() {
 }
 
 beforeEach(() => {
+  seedCover();
   localStorage.clear();
   mockAuth.user = { uid: 'user-uid', email: 'user@test.local', emailVerified: true };
   mockAuth.role = null;
@@ -137,6 +149,8 @@ async function submitAndGetSavedEvent() {
   await waitFor(() => expect(confirmDialog).toBeTruthy());
   fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
   await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalled());
+  // Let the save finish (it clears the draft photos) before the next test seeds new ones.
+  await screen.findByText('Vielen Dank!');
   return (mockEvents.addEvent.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
 }
 
@@ -260,13 +274,16 @@ describe('EventFormWizard extra Instagram names', () => {
 });
 
 describe('EventFormWizard Instagram needs a photo', () => {
-  it('blocks submitting with Instagram on and no photo, and shows an error', () => {
+  // The Titelbild is required, so Instagram always has a photo; a draft that lost
+  // it (reload without IndexedDB) goes back to step 2 instead.
+  it('sends a draft without Titelbild back to step 2 instead of submitting', () => {
+    clearWizardDraftFiles('user-uid');
     mockProfile.value = profileWith({ instagramConsentDefault: true });
     seedDraft();
     renderWizard();
     fireEvent.click(screen.getByTestId('submit-event-button'));
     expect(document.querySelector('.confirm-dialog')).toBeNull();
-    expect(screen.getByTestId('instagram-image-error')).toHaveTextContent(/brauchst du ein Foto/);
+    expect(screen.getByText('Bitte lade ein Titelbild hoch')).toBeInTheDocument();
     expect(mockEvents.addEvent).not.toHaveBeenCalled();
   });
 });
@@ -299,6 +316,7 @@ describe('EventFormWizard Instagram image crop', () => {
   });
 
   it('tells the user a mood picture is used when there is no photo', () => {
+    clearWizardDraftFiles('user-uid');
     mockProfile.value = profileWith({ instagramConsentDefault: true });
     seedDraft();
     renderWizard();
@@ -321,10 +339,11 @@ describe('EventFormWizard Instagram image crop', () => {
     mockProfile.value = profileWith({ instagramConsentDefault: true });
     seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}"><img src="${IMG_B}">`);
     renderWizard();
+    // Titelbild first, then the two description photos.
     const options = screen.getAllByTestId('instagram-image-option');
-    expect(options).toHaveLength(2);
-    fireEvent.click(options[1]);
-    expect(options[1]).toHaveAttribute('aria-pressed', 'true');
+    expect(options).toHaveLength(3);
+    fireEvent.click(options[2]);
+    expect(options[2]).toHaveAttribute('aria-pressed', 'true');
     fireEvent.change(screen.getByTestId('instagram-image-zoom'), { target: { value: '2' } });
     fireEvent.keyDown(screen.getByTestId('instagram-focal-picker-handle-x'), { key: 'Home' });
     const saved = await submitAndGetSavedEvent();
@@ -333,7 +352,7 @@ describe('EventFormWizard Instagram image crop', () => {
 
   it('blocks submitting until the user confirms the photo has no text', () => {
     mockProfile.value = profileWith({ instagramConsentDefault: true });
-    seedDraftWithDescription(`<img src="${IMG_A}">`);
+    seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}">`);
     renderWizard();
     fireEvent.click(screen.getByTestId('submit-event-button'));
     expect(screen.getByTestId('instagram-no-text-error')).toBeInTheDocument();
@@ -344,15 +363,29 @@ describe('EventFormWizard Instagram image crop', () => {
 
   it('defaults to the first photo, centred, and stores nothing without consent', async () => {
     mockProfile.value = profileWith({ instagramConsentDefault: true });
-    seedDraftWithDescription(`<img src="${IMG_A}">`);
+    seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}">`);
     const { unmount } = renderWizard();
+    // The first photo is the Titelbild: its URL is known only after the upload.
     const saved = await submitAndGetSavedEvent();
-    expect(saved.instagramImage).toEqual({ url: IMG_A, focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 });
+    expect(saved).not.toHaveProperty('instagramImage');
+    await waitFor(() =>
+      expect(mockEvents.updateEvent).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          instagramImage: {
+            url: 'https://example.com/test.jpg',
+            focalPoint: { x: 0.5, y: 0.5 },
+            zoom: 1,
+          },
+        })
+      )
+    );
     unmount();
 
     mockEvents.addEvent.mockClear();
     mockProfile.value = profileWith({});
-    seedDraftWithDescription(`<img src="${IMG_A}">`);
+    seedCover();
+    seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}">`);
     renderWizard();
     const savedWithout = await submitAndGetSavedEvent();
     expect(savedWithout).not.toHaveProperty('instagramImage');
@@ -363,15 +396,15 @@ describe('EventFormWizard Instagram image crop', () => {
     URL.createObjectURL = vi.fn(() => 'blob:instagram-extra');
     try {
       mockProfile.value = profileWith({ instagramConsentDefault: true });
-      seedDraftWithDescription(`<img src="${IMG_A}">`);
+      seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}">`);
       renderWizard();
       const file = new File(['x'], 'hochformat.jpg', { type: 'image/jpeg' });
       fireEvent.change(screen.getByTestId('instagram-upload-input'), {
         target: { files: [file] },
       });
       const options = screen.getAllByTestId('instagram-image-option');
-      expect(options).toHaveLength(2);
-      expect(options[1]).toHaveAttribute('aria-pressed', 'true');
+      expect(options).toHaveLength(3);
+      expect(options[2]).toHaveAttribute('aria-pressed', 'true');
 
       const saved = await submitAndGetSavedEvent();
       expect(saved).not.toHaveProperty('instagramImage');

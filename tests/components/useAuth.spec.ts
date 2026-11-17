@@ -8,6 +8,8 @@ import {
   verificationEmailErrorMessage,
 } from '../../src/hooks/useAuth';
 
+const callableMock = vi.hoisted(() => vi.fn());
+
 // A fake Firebase auth: one signed-in user and the two listener kinds.
 const fakeAuth = vi.hoisted(() => {
   const state = {
@@ -21,7 +23,7 @@ const fakeAuth = vi.hoisted(() => {
 vi.mock('../../src/lib/firebase', () => ({
   auth: fakeAuth,
   db: {},
-  callable: vi.fn(),
+  callable: callableMock,
   getStorageInstance: vi.fn(),
 }));
 
@@ -38,6 +40,10 @@ vi.mock('firebase/auth', async (importOriginal) => ({
     return () => fakeAuth.tokenListeners.delete(cb);
   },
   getIdTokenResult: async () => ({ claims: {} }),
+  createUserWithEmailAndPassword: async (_auth: unknown, email: string) => ({
+    user: { uid: 'new-user', email, emailVerified: false, displayName: null },
+  }),
+  updateProfile: async () => {},
 }));
 
 vi.mock('firebase/firestore', async (importOriginal) => ({
@@ -167,5 +173,40 @@ describe('isPasswordProviderUser', () => {
 
   it('returns true for legacy users without providerData when email is set', () => {
     expect(isPasswordProviderUser({ email: 'a@b.com' })).toBe(true);
+  });
+});
+
+describe('useAuth register: confirmation link back to the event wizard', () => {
+  async function registerAndGetMailRequest() {
+    const send = vi.fn(async () => ({ data: { sent: true } }));
+    callableMock.mockImplementation(() => send);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fakeAuth.currentUser = null;
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.register('neu@test.local', 'geheim1234', 'Neu');
+    });
+    expect(callableMock).toHaveBeenCalledWith('sendVerificationEmail');
+    return send.mock.calls[0][0];
+  }
+
+  it('asks for the link back to the wizard while a guest draft waits', async () => {
+    localStorage.setItem(
+      'eventWizardDraft:guest',
+      JSON.stringify({
+        version: 1,
+        savedAt: Date.now(),
+        draft: { formData: { title: 'Gast' }, currentStep: 4 },
+      })
+    );
+    expect(await registerAndGetMailRequest()).toEqual({
+      userId: 'new-user',
+      afterVerify: 'createEvent',
+    });
+  });
+
+  it('sends the plain request without a guest draft', async () => {
+    expect(await registerAndGetMailRequest()).toEqual({ userId: 'new-user' });
   });
 });

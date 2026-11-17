@@ -325,7 +325,7 @@ function RichTextEditor({
         editor.chain().focus().setImage({ src: url, alt }).run();
       } catch (err) {
         console.error('Description image upload failed:', err);
-        reportImageError('Bild-Upload fehlgeschlagen');
+        reportImageError(err?.userMessage || 'Bild-Upload fehlgeschlagen');
       } finally {
         setUploadCount((n) => n - 1);
       }

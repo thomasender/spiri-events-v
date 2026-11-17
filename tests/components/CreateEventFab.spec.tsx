@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import CreateEventFab from '../../src/components/CreateEventFab';
 import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
@@ -10,46 +10,12 @@ const mockAuth = vi.hoisted(() => ({
   canCreateEvents: false,
 }));
 
-vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({
-    user: mockAuth.user,
-    canCreateEvents: mockAuth.canCreateEvents,
-    logout: () => {},
-  }),
-}));
-
-// The verification modal pulls in EmailVerificationModal which talks to
-// Firebase Auth. Stub it out so the unit tests stay hermetic — the
-// FAB's behaviour when this modal opens is exercised by an integration
-// spec, not here.
-vi.mock('../../src/components/EmailVerificationModal', () => ({
-  default: ({ open }: { open: boolean }) => (
-    <div data-testid="email-verification-modal-stub" data-open={open} />
-  ),
-}));
-
-beforeEach(() => {
-  mockAuth.user = null;
-  mockAuth.canCreateEvents = false;
-});
-
-function LoginStub() {
-  const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? '';
-  return (
-    <div data-testid="login-page" data-from={from}>
-      Login
-    </div>
-  );
-}
-
 function renderFab(initialPath = '/') {
   return render(
     <HelmetProvider>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/" element={<CreateEventFab />} />
-          <Route path="/login" element={<LoginStub />} />
           <Route path="/admin/new" element={<div data-testid="admin-new-page">Admin New</div>} />
         </Routes>
       </MemoryRouter>
@@ -67,55 +33,22 @@ describe('CreateEventFab (zh4jJzje)', () => {
     expect(fab.textContent).toContain('Event erstellen');
   });
 
-  it('routes signed-in verified users directly to /admin/new', () => {
-    mockAuth.user = { uid: 'test-uid' };
-    mockAuth.canCreateEvents = true;
-
+  // Everybody goes straight into the wizard: guests and unconfirmed members are
+  // asked to log in / confirm only at its end (docs/guest-event-draft.md).
+  it('opens the wizard directly for everybody, signed in or not', () => {
     renderFab();
 
     const fab = screen.getByTestId('create-event-fab');
     expect(fab.tagName).toBe('A');
     expect(fab.getAttribute('href')).toBe('/admin/new');
-  });
-
-  it('opens the verification modal for signed-in unverified users instead of navigating', () => {
-    mockAuth.user = { uid: 'test-uid' };
-    mockAuth.canCreateEvents = false;
-
-    renderFab();
-
-    const fab = screen.getByTestId('create-event-fab');
-    expect(fab.tagName).toBe('BUTTON');
 
     fireEvent.click(fab);
-
-    const modal = screen.getByTestId('email-verification-modal-stub');
-    expect(modal.getAttribute('data-open')).toBe('true');
-    expect(screen.queryByTestId('admin-new-page')).toBeNull();
-  });
-
-  it('routes logged-out users to /login', () => {
-    mockAuth.user = null;
-    mockAuth.canCreateEvents = false;
-
-    renderFab();
-
-    const fab = screen.getByTestId('create-event-fab');
-    expect(fab.tagName).toBe('BUTTON');
-
-    fireEvent.click(fab);
-
-    expect(screen.getByTestId('login-page')).toBeInTheDocument();
-    // The login page sends the user on to the wizard after sign-in.
-    expect(screen.getByTestId('login-page').getAttribute('data-from')).toBe('/admin/new');
-    expect(screen.queryByTestId('admin-new-page')).toBeNull();
+    expect(screen.getByTestId('admin-new-page')).toBeInTheDocument();
   });
 });
 
 describe('CreateEventFab on a coming-soon region page (yA90Y5W1)', () => {
   it('links to the event form of that region, not the default one', () => {
-    mockAuth.user = { uid: 'test-uid' };
-    mockAuth.canCreateEvents = true;
     render(
       <HelmetProvider>
         <MemoryRouter initialEntries={['/']}>

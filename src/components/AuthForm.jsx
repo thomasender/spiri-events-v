@@ -58,6 +58,8 @@ export default function AuthForm() {
     typeof location.state?.registrationEventTitle === 'string'
       ? location.state.registrationEventTitle.trim()
       : '';
+  // Coming from the end of the "Event erstellen" wizard (guest draft kept).
+  const createEventDraft = location.state?.createEventDraft === true;
   const [displayName, setDisplayName] = useState(prefillName);
   const [acceptDatenschutz, setAcceptDatenschutz] = useState(false);
   const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
@@ -247,6 +249,13 @@ export default function AuthForm() {
             Anmeldung für Event „{registrationEventTitle}“: Deine Anmeldung ist schon beim
             Veranstalter. {isLogin ? 'Melde dich an' : 'Erstelle dein Konto'}, dann speichern wir
             das Event in deinen Favoriten.
+          </p>
+        )}
+
+        {!isForgotPassword && createEventDraft && (
+          <p className="auth-registration-hint" data-testid="auth-create-event-hint">
+            Dein Event ist gespeichert. {isLogin ? 'Melde dich an' : 'Erstelle dein Konto'}, dann
+            kommst du direkt zurück und kannst es einreichen.
           </p>
         )}
 
