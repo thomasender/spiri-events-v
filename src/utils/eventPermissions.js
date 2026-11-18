@@ -1,3 +1,4 @@
+import { isUnclaimedCuratedEvent } from './eventImport.js';
 import { getStaffAccess, isModeratorForEvent } from './staffRoles.js';
 
 export function isAdmin(role) {
@@ -24,8 +25,12 @@ export function canDeleteEvent(user, event, role) {
 
 // Staff (Super-Admin or Regions-Moderator:in) deleting someone else's event
 // must give a reason, which is emailed to the owner. Owners (staff included)
-// deleting their own event need none.
+// deleting their own event need none. Neither do events imported by the
+// curation team that nobody has claimed yet: they belong to the curator account
+// and have no organizer address, so a reason would be mailed to nobody
+// (docs/event-import.md, "Review comments"). After the claim the rule applies.
 export function requiresDeleteReason(user, event, role, staffRegionIds = []) {
+  if (isUnclaimedCuratedEvent(event)) return false;
   const staff = isAdmin(role) || isModeratorForEvent(getStaffAccess(role, staffRegionIds), event);
   return Boolean(user) && staff && Boolean(event?.createdBy) && !isEventOwner(user, event);
 }

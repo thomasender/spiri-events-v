@@ -22,7 +22,13 @@ import { resolveRegionId } from '../utils/regions';
 import { buildRejectUpdate, buildTrashUpdate } from '../utils/trashUpdates';
 import { rejectionReasonFromMessage } from '../utils/rejectionTemplates';
 import EventAdminListRow from './EventAdminListRow';
-import { isCuratedEvent, isCuratedWithoutConsent } from '../utils/eventImport';
+import {
+  NO_CONSENT_APPROVE_MESSAGE,
+  approveBlockedReason,
+  isCuratedEvent,
+  isCuratedWithoutConsent,
+  isUnclaimedCuratedEvent,
+} from '../utils/eventImport';
 import AdminCoverPreview from './AdminCoverPreview';
 import { AdminInstagramPreview } from './InstagramPostPreview';
 import ConfirmDialog from './ConfirmDialog';
@@ -126,10 +132,7 @@ function CurationBadges({ event }) {
   );
 }
 
-const NO_CONSENT_MESSAGE =
-  'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.';
-const approveBlockedReason = (event) =>
-  isCuratedWithoutConsent(event) ? NO_CONSENT_MESSAGE : null;
+const NO_CONSENT_MESSAGE = NO_CONSENT_APPROVE_MESSAGE;
 
 export default function ReviewTab() {
   const { user, role, staffRegionIds } = useAuth();
@@ -269,11 +272,16 @@ export default function ReviewTab() {
       id: evt.id,
       eventTitle: evt.title,
       eventPath: `/event/${evt.slug || evt.id}`,
-      reason: rejectionReasonFromMessage(lastStaffMessageByEvent[evt.id]?.text),
+      // Unclaimed curated events have no organizer to mail: no reason needed,
+      // and the backend sends nothing (docs/event-import.md).
+      internal: isUnclaimedCuratedEvent(evt),
+      reason: isUnclaimedCuratedEvent(evt)
+        ? ''
+        : rejectionReasonFromMessage(lastStaffMessageByEvent[evt.id]?.text),
     });
 
   const handleReject = async () => {
-    if (!rejectTarget?.reason) return;
+    if (!rejectTarget || (!rejectTarget.reason && !rejectTarget.internal)) return;
     setMutating(true);
     try {
       const db = getFirestore(getApp());
@@ -296,6 +304,7 @@ export default function ReviewTab() {
       id: evt.id,
       eventTitle: evt.title,
       reasonRequired: requiresDeleteReason(user, evt, role, staffRegionIds),
+      internal: isUnclaimedCuratedEvent(evt),
     });
 
   const recentlyApproved = useMemo(() => {
@@ -620,7 +629,7 @@ export default function ReviewTab() {
         title="In Papierkorb verschieben"
         message={
           deleteTarget
-            ? `Das Event „${deleteTarget.eventTitle}" wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht.`
+            ? `Das Event „${deleteTarget.eventTitle}" wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht.${deleteTarget.internal ? ' Es wird keine E-Mail verschickt.' : ''}`
             : ''
         }
         confirmLabel="In Papierkorb"
@@ -640,9 +649,13 @@ export default function ReviewTab() {
         onCancel={() => setRejectTarget(null)}
         loading={mutating}
         danger
-        confirmDisabled={!rejectTarget?.reason}
+        confirmDisabled={!rejectTarget?.reason && !rejectTarget?.internal}
       >
-        {rejectTarget?.reason ? (
+        {rejectTarget?.internal ? (
+          <p data-testid="review-reject-internal">
+            {`Das Event „${rejectTarget.eventTitle}" wird abgelehnt und in den Papierkorb verschoben. Es gehört noch der Redaktion und hat keine Veranstalter:in, deshalb wird keine E-Mail verschickt.`}
+          </p>
+        ) : rejectTarget?.reason ? (
           <>
             <p>
               {`Das Event „${rejectTarget.eventTitle}" wird abgelehnt und in den Papierkorb der einreichenden Person verschoben. Sie bekommt eine E-Mail mit dieser Nachricht als Grund:`}

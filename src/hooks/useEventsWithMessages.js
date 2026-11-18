@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { useReviewVisibility } from './useImportVisibility';
+import { filterCuratedForReview } from '../utils/eventImport';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 import { messageIsUnreadFor, responsibleStaffUid } from '../utils/staffNotifications';
@@ -10,6 +12,7 @@ import { latestStaffMessage } from '../utils/rejectionTemplates';
 
 export function useEventsWithMessages() {
   const { user, role, staffRegionIds } = useAuth();
+  const { isSuperAdmin, moderatorsSeeInReview } = useReviewVisibility();
   const regionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
   const [events, setEvents] = useState([]);
   const [unreadCountByEvent, setUnreadCountByEvent] = useState({});
@@ -51,7 +54,8 @@ export function useEventsWithMessages() {
 
     const eventsUnsub = subscribeEventQueries(
       specs,
-      (docs) => {
+      (allDocs) => {
+        const docs = filterCuratedForReview(allDocs, { isSuperAdmin, moderatorsSeeInReview });
         messageUnsubscribers.forEach((u) => {
           try {
             u();
@@ -185,7 +189,7 @@ export function useEventsWithMessages() {
         // ignore
       }
     };
-  }, [user, role, regionKey]);
+  }, [user, role, regionKey, isSuperAdmin, moderatorsSeeInReview]);
 
   return {
     events,

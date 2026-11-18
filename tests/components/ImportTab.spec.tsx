@@ -26,7 +26,13 @@ vi.mock('../../src/hooks/useImportData', () => ({
   useLastOutreach: () => null,
   useCandidateCounts: () => ({ found: 2, published: 1 }),
 }));
+const visibility = vi.hoisted(() => ({ value: false }));
+vi.mock('../../src/hooks/useImportVisibility', () => ({
+  useModeratorsSeeInReview: () => visibility.value,
+}));
 const api = vi.hoisted(() => ({
+  setCandidateStatus: vi.fn(async (..._: unknown[]) => {}),
+  setModeratorsSeeInReview: vi.fn(async (_: unknown) => {}),
   importAcceptCandidate: vi.fn(async (_: unknown) => ({ eventId: 'e1' })),
   importRejectCandidate: vi.fn(async (_: unknown) => ({ ok: true })),
   createPreviewLink: vi.fn(async (_: unknown) => ({
@@ -130,6 +136,45 @@ describe('Kandidaten', () => {
     await waitFor(() =>
       expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1', force: true })
     );
+  });
+
+  it('explains the pilot badge in a tooltip and in the confirm dialog', () => {
+    state.candidates = [candidate({ pilotExcluded: true })];
+    render(<ImportTab />);
+    expect(screen.getByTestId('badge-pilot')).toHaveAttribute(
+      'title',
+      expect.stringContaining('strengere Datenschutz- und Werberegeln')
+    );
+    fireEvent.click(screen.getByText('Annehmen'));
+    fireEvent.click(confirmButton('Annehmen'));
+    expect(screen.getByTestId('pilot-help')).toHaveTextContent(
+      'Einzelperson oder Einzelunternehmen'
+    );
+  });
+
+  it('defers a found candidate and reopens a deferred one', async () => {
+    const { unmount } = render(<ImportTab />);
+    fireEvent.click(screen.getByTestId('import-defer-c1'));
+    await waitFor(() => expect(api.setCandidateStatus).toHaveBeenCalledWith('c1', 'reviewed'));
+    unmount();
+
+    state.candidates = [candidate({ status: 'reviewed' })];
+    render(<ImportTab />);
+    fireEvent.click(screen.getByTestId('import-status-reviewed'));
+    expect(screen.getByTestId('import-status-reviewed')).toHaveTextContent('Zurückgestellt');
+    expect(screen.queryByText('Annehmen')).toBeNull();
+    fireEvent.click(screen.getByTestId('import-reopen-c1'));
+    await waitFor(() => expect(api.setCandidateStatus).toHaveBeenCalledWith('c1', 'found'));
+  });
+
+  it('the visibility switch reflects and writes app_settings/importVisibility', async () => {
+    visibility.value = true;
+    render(<ImportTab />);
+    const sw = screen.getByTestId('import-visibility-switch') as HTMLInputElement;
+    expect(sw.checked).toBe(true);
+    fireEvent.click(sw);
+    await waitFor(() => expect(api.setModeratorsSeeInReview).toHaveBeenCalledWith(false));
+    visibility.value = false;
   });
 
   it('rejects with the chosen reason', async () => {

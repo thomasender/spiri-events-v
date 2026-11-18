@@ -218,6 +218,56 @@ describe('decideCreatedEventNotification', () => {
     ).toMatchObject({ type: 'submitted' });
   });
 
+  it('sends no status, trash, reject or change-request mail for an unclaimed curated event', () => {
+    const unclaimed: EventSnapshot = {
+      organizer: organizer('admin+kurator@thetribe.at'),
+      curated: true,
+      curatedUnclaimed: true,
+    };
+    const pending = { ...unclaimed, status: 'pending' as const };
+    for (const status of ['approved', 'trashed'] as const) {
+      expect(
+        decideEventStatusNotification('e', pending, { ...unclaimed, status, trashKind: 'rejected' })
+      ).toBeNull();
+    }
+    expect(
+      decideEventStatusNotification(
+        'e',
+        { ...unclaimed, status: 'approved' },
+        { ...unclaimed, status: 'draft' }
+      )
+    ).toBeNull();
+    expect(
+      decideAdminMessageNotification(
+        'e',
+        { id: 'm', authorRole: 'Admin', text: 'Bitte ändern' },
+        pending
+      )
+    ).toBeNull();
+  });
+
+  it('mails normally once the curated event is claimed (curatedUnclaimed false)', () => {
+    const claimed: EventSnapshot = {
+      organizer: organizer(),
+      curated: true,
+      curatedUnclaimed: false,
+    };
+    expect(
+      decideEventStatusNotification(
+        'e',
+        { ...claimed, status: 'pending' },
+        { ...claimed, status: 'trashed', trashKind: 'rejected', trashReason: 'x' }
+      )
+    ).toMatchObject({ type: 'rejected', recipient: 'owner@example.com' });
+    expect(
+      decideAdminMessageNotification(
+        'e',
+        { id: 'm', authorRole: 'Admin', text: 'Bitte ändern' },
+        { ...claimed, status: 'pending' }
+      )
+    ).toMatchObject({ type: 'changes_requested' });
+  });
+
   it('returns null when a new event is created as a draft', () => {
     const after: EventSnapshot = { status: 'draft', organizer: organizer() };
     expect(decideCreatedEventNotification('evt1', after)).toBeNull();

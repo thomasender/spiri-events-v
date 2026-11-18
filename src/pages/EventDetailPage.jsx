@@ -57,6 +57,12 @@ import {
 } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
+import {
+  NO_CONSENT_APPROVE_MESSAGE,
+  approveBlockedReason,
+  isCuratedEvent,
+  isUnclaimedCuratedEvent,
+} from '../utils/eventImport';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
 import { parseRegistrationText } from '../utils/contactFormat';
 import RegistrationText from '../components/RegistrationText';
@@ -247,6 +253,7 @@ export default function EventDetailPage() {
   // null = closed; a string (maybe empty) = reject dialog open with that reason.
   const [rejectReason, setRejectReason] = useState(null);
   const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState(null);
   const [showUnpublishDialog, setShowUnpublishDialog] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [calendarLoginPromptOpen, setCalendarLoginPromptOpen] = useState(false);
@@ -462,18 +469,32 @@ export default function EventDetailPage() {
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
   const deleteReasonRequired = requiresDeleteReason(user, event, role, staffRegionIds);
+  // Imported and not yet claimed: nobody to write to or to mail (docs/event-import.md).
+  const internalOnly = isUnclaimedCuratedEvent(event);
   const fallbackImage = getEventFallbackImage(event);
   const showRemoteImage = Boolean(event.imageUrl);
 
   const showApproveButton = (isAdmin || isEventModerator) && event.status === 'pending';
 
+  const approveBlocked = approveBlockedReason(event);
+
   const handleApprove = async () => {
+    if (approveBlocked) {
+      setApproveError(approveBlocked);
+      return;
+    }
+    setApproveError(null);
     setApproving(true);
     try {
       await approveEvent(event.id);
       setEvent((prev) => (prev ? { ...prev, status: 'approved' } : prev));
     } catch (err) {
       console.error('Approve failed:', err);
+      setApproveError(
+        err?.code === 'permission-denied' && isCuratedEvent(event)
+          ? NO_CONSENT_APPROVE_MESSAGE
+          : 'Das Event konnte nicht genehmigt werden. Bitte versuche es noch einmal.'
+      );
     } finally {
       setApproving(false);
     }
@@ -495,7 +516,7 @@ export default function EventDetailPage() {
   };
 
   const handleReject = async () => {
-    if (!rejectReason) return;
+    if (!rejectReason && !internalOnly) return;
     setDeleting(true);
     try {
       await updateDoc(doc(db, 'events', event.id), buildRejectUpdate(user?.uid, rejectReason));
@@ -698,13 +719,19 @@ export default function EventDetailPage() {
             <button
               type="button"
               onClick={handleApprove}
-              disabled={approving}
+              disabled={approving || Boolean(approveBlocked)}
+              title={approveBlocked || undefined}
               className="btn btn-success"
               data-testid="approve-event-button"
             >
               <CheckCircle size={16} />
               <span>{approving ? 'Genehmige…' : 'Event genehmigen'}</span>
             </button>
+          )}
+          {showApproveButton && (approveBlocked || approveError) && (
+            <p className="moderation-error" role="alert" data-testid="approve-event-error">
+              {approveBlocked || approveError}
+            </p>
           )}
           {showUnpublishButton && (
             <button
@@ -1111,7 +1138,8 @@ export default function EventDetailPage() {
           eventStatus={event.status}
           organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
           onReady={() => setEventMessagesReady(true)}
-          onReject={isOwner ? undefined : setRejectReason}
+          internalOnly={internalOnly}
+          onReject={isOwner ? undefined : (reason) => setRejectReason(reason ?? '')}
         />
       )}
 
@@ -1148,9 +1176,13 @@ export default function EventDetailPage() {
         onCancel={() => setRejectReason(null)}
         loading={deleting}
         danger
-        confirmDisabled={!rejectReason}
+        confirmDisabled={!rejectReason && !internalOnly}
       >
-        {rejectReason ? (
+        {internalOnly ? (
+          <p data-testid="event-reject-internal">
+            {`Das Event „${event.title}" wird abgelehnt und in den Papierkorb verschoben. Es gehört noch der Redaktion und hat keine Veranstalter:in, deshalb wird keine E-Mail verschickt.`}
+          </p>
+        ) : rejectReason ? (
           <>
             <p>
               {`Das Event „${event.title}" wird abgelehnt und in den Papierkorb der einreichenden Person verschoben. Sie bekommt eine E-Mail mit dieser Nachricht als Grund:`}

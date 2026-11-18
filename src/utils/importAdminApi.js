@@ -11,6 +11,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 import { callable, db } from '../lib/firebase';
@@ -18,6 +19,7 @@ import {
   IMPORT_BLOCKLIST,
   IMPORT_CANDIDATES,
   IMPORT_ORGANIZERS,
+  IMPORT_VISIBILITY_DOC,
   blocklistIdAsync,
   blocklistKind,
   normalizeBlocklistValue,
@@ -118,4 +120,21 @@ export async function fetchImportProgress(regionId) {
     console.warn('Import progress failed:', err);
     return null;
   }
+}
+
+/**
+ * "Zurückstellen" / "Wieder öffnen": a Super-Admin moves a candidate between
+ * `found` and `reviewed` directly (the rules allow the write for Super-Admins).
+ */
+export async function setCandidateStatus(candidateId, status) {
+  if (status !== 'found' && status !== 'reviewed') throw new Error(`Ungültiger Status: ${status}`);
+  await updateDoc(doc(db, IMPORT_CANDIDATES, candidateId), { status });
+}
+
+/** Switch "Import-Events für Moderator:innen im Prüfen-Tab sichtbar". */
+export async function setModeratorsSeeInReview(value) {
+  await setDoc(doc(db, IMPORT_VISIBILITY_DOC), {
+    moderatorsSeeInReview: Boolean(value),
+    updatedAt: serverTimestamp(),
+  });
 }

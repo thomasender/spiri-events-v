@@ -101,6 +101,22 @@ describe('event permissions for moderators', () => {
     ).toBe(false);
   });
 
+  it('no reason is needed for an unclaimed imported event, but after the claim again', () => {
+    const curated = {
+      ...tirolEvent,
+      createdBy: 'curator',
+      curation: { organizerRef: 'o1', claimable: true },
+    };
+    expect(requiresDeleteReason(user, curated, 'RegionModerator', ['tirol'])).toBe(false);
+    expect(requiresDeleteReason(user, curated, 'Admin')).toBe(false);
+    const claimed = {
+      ...curated,
+      createdBy: 'owner',
+      curation: { ...curated.curation, claimable: false },
+    };
+    expect(requiresDeleteReason(user, claimed, 'RegionModerator', ['tirol'])).toBe(true);
+  });
+
   it('a moderator never edits content of other people’s events', () => {
     expect(canEditEvent(user, tirolEvent, 'RegionModerator')).toBe(false);
     expect(canEditEvent(user, tirolEvent, 'Admin')).toBe(true);

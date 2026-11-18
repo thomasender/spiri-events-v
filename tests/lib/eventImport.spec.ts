@@ -190,7 +190,10 @@ describe('curated event predicates', () => {
       { curation: {} },
       { curation: { consentAt: 1 } },
       { curation: 'x' },
+      { curation: { claimable: true } },
+      { curation: { claimable: false } },
     ]) {
+      expect(client.isUnclaimedCuratedEvent(ev)).toBe(server.isUnclaimedCuratedEvent(ev));
       expect(client.isCuratedEvent(ev)).toBe(server.isCuratedEvent(ev));
       expect(client.isCuratedWithoutConsent(ev)).toBe(server.isCuratedWithoutConsent(ev));
     }

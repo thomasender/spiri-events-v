@@ -516,6 +516,30 @@ describe('EventDetailPage — admin approve button', () => {
     expect(mockAlerts.markRead).not.toHaveBeenCalled();
   });
 
+  it('disables approval for an imported event without consent and says why', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        status: 'pending',
+        curation: { organizerRef: 'o1', claimable: true },
+      },
+    };
+
+    renderPage();
+    const button = await screen.findByTestId('approve-event-button');
+    expect(button).toBeDisabled();
+    expect(screen.getByTestId('approve-event-error')).toHaveTextContent(
+      'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.'
+    );
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(mockEvents.approveEvent).not.toHaveBeenCalled();
+  });
+
   it('does not offer approval to the event owner', async () => {
     mockAuth.user = { uid: 'other-user-uid' };
     setStatus('pending');
