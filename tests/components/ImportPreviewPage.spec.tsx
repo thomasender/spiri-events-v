@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 
 const calls = vi.hoisted(() => ({
@@ -62,12 +62,18 @@ const preview = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+function ClaimLanding() {
+  const location = useLocation();
+  return <div data-testid="claim-landing">{`${location.pathname}${location.search}`}</div>;
+}
+
 async function renderAt(url: string) {
   render(
     <HelmetProvider>
       <MemoryRouter initialEntries={[url]}>
         <Routes>
-          <Route path="/vorschau/:token" element={<ImportPreviewPage />} />
+          <Route path="/vorschau/import/:token" element={<ImportPreviewPage />} />
+          <Route path="/uebernehmen" element={<ClaimLanding />} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>
@@ -84,7 +90,7 @@ describe('ImportPreviewPage', () => {
   });
 
   it('renders the events with the preview notice and the hotlinked image without referrer', async () => {
-    await renderAt(`/vorschau/${TOKEN}`);
+    await renderAt(`/vorschau/import/${TOKEN}`);
     expect(calls.log[0]).toEqual({ name: 'getImportPreview', data: { token: TOKEN } });
     expect(
       screen.getByText(/Das ist eine Vorschau. Nichts davon ist öffentlich./)
@@ -101,14 +107,14 @@ describe('ImportPreviewPage', () => {
   });
 
   it('shows a placeholder when the organizer’s image fails to load', async () => {
-    await renderAt(`/vorschau/${TOKEN}`);
+    await renderAt(`/vorschau/import/${TOKEN}`);
     fireEvent.error(screen.getByRole('img', { name: 'Kakaozeremonie' }));
     expect(screen.queryByRole('img', { name: 'Kakaozeremonie' })).toBeNull();
     expect(screen.getByTestId('preview-image-placeholder')).toBeInTheDocument();
   });
 
   it('sets noindex and no-referrer and removes the social image while open', async () => {
-    await renderAt(`/vorschau/${TOKEN}`);
+    await renderAt(`/vorschau/import/${TOKEN}`);
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe(
       'noindex, nofollow'
     );
@@ -120,7 +126,7 @@ describe('ImportPreviewPage', () => {
 
   it('approves only after the first checkbox and sends the chosen scopes', async () => {
     calls.handlers.submitImportConsent = () => ({ consent: 'manual_ok', syncMode: 'curated_once' });
-    await renderAt(`/vorschau/${TOKEN}`);
+    await renderAt(`/vorschau/import/${TOKEN}`);
     const approve = screen.getByTestId('action-approve-once') as HTMLButtonElement;
     expect(approve.disabled).toBe(true);
     fireEvent.click(screen.getByTestId('scope-event'));
@@ -138,12 +144,14 @@ describe('ImportPreviewPage', () => {
         wordingVersion: CONSENT_WORDING_VERSION,
       },
     });
-    expect(screen.getByText(/du hast zugestimmt/)).toBeInTheDocument();
+    expect(screen.getByText(/Wir haben deine Zustimmung gespeichert/)).toBeInTheDocument();
+    expect(screen.getByText(/sobald die Region startet/)).toBeInTheDocument();
+    expect(screen.queryByText(/auf tribe sichtbar/)).toBeNull();
   });
 
   it('the decline link preselects declining; one click declines', async () => {
     calls.handlers.submitImportConsent = () => ({ consent: 'declined', syncMode: 'declined' });
-    await renderAt(`/vorschau/${TOKEN}?aktion=ablehnen`);
+    await renderAt(`/vorschau/import/${TOKEN}?aktion=ablehnen`);
     const box = screen.getByTestId('decline-preselected');
     await act(async () => {
       fireEvent.click(box.querySelector('button') as HTMLButtonElement);
@@ -154,24 +162,43 @@ describe('ImportPreviewPage', () => {
     expect(screen.queryByTestId('action-decline')).toBeNull();
   });
 
-  it('calls self_manage and decline with their own actions', async () => {
-    calls.handlers.submitImportConsent = (data) =>
-      data.action === 'self_manage'
-        ? { consent: 'asked', syncMode: 'self_managed' }
-        : { consent: 'declined', syncMode: 'declined' };
-    await renderAt(`/vorschau/${TOKEN}`);
+  it('"selbst verwalten" records the intent (no consent) and opens the claim flow', async () => {
+    calls.handlers.submitImportConsent = () => ({ consent: 'asked', syncMode: 'self_managed' });
+    await renderAt(`/vorschau/import/${TOKEN}`);
     await act(async () => {
       fireEvent.click(screen.getByTestId('action-self-manage'));
     });
-    expect(calls.log[1].data.action).toBe('self_manage');
+    expect(calls.log[1].data).toMatchObject({ action: 'self_manage', token: TOKEN });
+    expect(screen.getByTestId('claim-landing').textContent).toBe(`/uebernehmen?claim=${TOKEN}`);
+  });
+
+  it('decline needs an explicit confirmation and can be cancelled', async () => {
+    calls.handlers.submitImportConsent = () => ({ consent: 'declined', syncMode: 'declined' });
+    await renderAt(`/vorschau/import/${TOKEN}`);
+    fireEvent.click(screen.getByTestId('action-decline'));
+    expect(calls.log).toHaveLength(1); // only the preview load, nothing declined yet
+    fireEvent.click(screen.getByTestId('action-decline-cancel'));
+    expect(screen.getByTestId('action-decline')).toBeInTheDocument();
+    expect(calls.log).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('action-decline'));
     await act(async () => {
-      fireEvent.click(screen.getByTestId('action-decline'));
+      fireEvent.click(screen.getByTestId('action-decline-confirm'));
     });
-    expect(calls.log[2].data.action).toBe('decline');
+    expect(calls.log[1].data.action).toBe('decline');
+  });
+
+  it('a claimed organizer can still consent, but not decline or claim again', async () => {
+    calls.handlers.getImportPreview = () =>
+      preview({ consent: 'claimed', syncMode: 'self_managed' });
+    await renderAt(`/vorschau/import/${TOKEN}`);
+    expect(screen.getByText(/in dein Konto übernommen/)).toBeInTheDocument();
+    expect(screen.getByTestId('action-approve-once')).toBeInTheDocument();
+    expect(screen.queryByTestId('action-decline')).toBeNull();
+    expect(screen.queryByTestId('action-self-manage')).toBeNull();
   });
 
   it('a wrong link shows the generic message and calls nothing for a malformed token', async () => {
-    await renderAt('/vorschau/kurz');
+    await renderAt('/vorschau/import/kurz');
     expect(calls.log).toHaveLength(0);
     expect(screen.getByText(/ungültig oder abgelaufen/)).toBeInTheDocument();
   });
@@ -180,6 +207,7 @@ describe('ImportPreviewPage', () => {
 describe('preview helpers', () => {
   it('keeps the token out of analytics paths and URLs', () => {
     expect(redactPrivatePath(`/vorschau/${TOKEN}`)).toBe('/vorschau');
+    expect(redactPrivatePath(`/vorschau/import/${TOKEN}`)).toBe('/vorschau');
     expect(redactPrivatePath('/vorschau')).toBe('/vorschau');
     expect(redactPrivatePath('/event/vorschau-abend')).toBe('/event/vorschau-abend');
     expect(redactPrivateUrl(`https://www.thetribe.at/vorschau/${TOKEN}`)).toBe(

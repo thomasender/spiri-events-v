@@ -115,16 +115,21 @@ function ReviewImageCheck({ event }) {
   );
 }
 
-// Badges for imported (curated) events; shown next to the row, behaviour unchanged.
+// Badges for imported (curated) events; rendered inside the card, next to the other badges.
 function CurationBadges({ event }) {
   if (!isCuratedEvent(event)) return null;
   return (
-    <p className="review-curation-badges" data-testid={`review-curation-${event.id}`}>
+    <span className="review-curation-badges" data-testid={`review-curation-${event.id}`}>
       <span className="badge">importiert</span>
       {isCuratedWithoutConsent(event) && <span className="badge">ohne Consent</span>}
-    </p>
+    </span>
   );
 }
+
+const NO_CONSENT_MESSAGE =
+  'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.';
+const approveBlockedReason = (event) =>
+  isCuratedWithoutConsent(event) ? NO_CONSENT_MESSAGE : null;
 
 export default function ReviewTab() {
   const { user, role, staffRegionIds } = useAuth();
@@ -189,6 +194,7 @@ export default function ReviewTab() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [approveSuccess, setApproveSuccess] = useState(null);
+  const [approveError, setApproveError] = useState(null);
   const [mutating, setMutating] = useState(false);
   // Pending (needs action) and "In Klärung" start open; the approved history starts closed.
   const [openSections, setOpenSections] = useState({
@@ -200,6 +206,11 @@ export default function ReviewTab() {
 
   const handleApprove = async (eventId) => {
     const target = pendingEvents.find((e) => e.id === eventId);
+    setApproveError(null);
+    if (target && isCuratedWithoutConsent(target)) {
+      setApproveError(NO_CONSENT_MESSAGE);
+      return;
+    }
     setApprovingId(eventId);
     try {
       await approveEvent(eventId);
@@ -207,6 +218,11 @@ export default function ReviewTab() {
       setApproveSuccess(target ? { eventTitle: target.title } : null);
     } catch (err) {
       console.error('Approve failed:', err);
+      setApproveError(
+        err?.code === 'permission-denied' && target && isCuratedEvent(target)
+          ? NO_CONSENT_MESSAGE
+          : 'Das Event konnte nicht genehmigt werden. Bitte versuche es noch einmal.'
+      );
     } finally {
       setApprovingId(null);
     }
@@ -370,6 +386,11 @@ export default function ReviewTab() {
       </div>
 
       {pendingEvents.length > 0 && <ModerationGuidanceNotice />}
+      {approveError && (
+        <p className="review-approve-error" role="alert" data-testid="review-approve-error">
+          {approveError}
+        </p>
+      )}
 
       {showRegionFilter && (
         <div className="review-region-filter">
@@ -445,6 +466,8 @@ export default function ReviewTab() {
                         fromPath="/admin?tab=review"
                         isAdmin
                         showEdit={canEdit(event)}
+                        extraBadges={<CurationBadges event={event} />}
+                        approveBlockedReason={approveBlockedReason(event)}
                         approving={approvingId}
                         unreadCount={unreadCountByEvent[event.id] || 0}
                         hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -453,7 +476,6 @@ export default function ReviewTab() {
                         onReject={openReject}
                         onDeleteClick={(evt) => openDelete(evt)}
                       />
-                      <CurationBadges event={event} />
                       {canEdit(event) && <ReviewImageCheck event={event} />}
                     </div>
                   ))}
@@ -507,6 +529,8 @@ export default function ReviewTab() {
                           fromPath="/admin?tab=review"
                           isAdmin
                           showEdit={canEdit(event)}
+                          extraBadges={<CurationBadges event={event} />}
+                          approveBlockedReason={approveBlockedReason(event)}
                           approving={approvingId}
                           unreadCount={unreadCountByEvent[event.id] || 0}
                           hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -515,7 +539,6 @@ export default function ReviewTab() {
                           onReject={openReject}
                           onDeleteClick={(evt) => openDelete(evt)}
                         />
-                        <CurationBadges event={event} />
                         {canEdit(event) && <ReviewImageCheck event={event} />}
                       </div>
                     ))}

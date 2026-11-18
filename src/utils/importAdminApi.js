@@ -18,7 +18,6 @@ import {
   IMPORT_BLOCKLIST,
   IMPORT_CANDIDATES,
   IMPORT_ORGANIZERS,
-  PUBLISHABLE_CONSENT_STATES,
   blocklistIdAsync,
   blocklistKind,
   normalizeBlocklistValue,
@@ -93,15 +92,27 @@ export async function fetchImportProgress(regionId) {
         query(collection(db, IMPORT_ORGANIZERS), where('regionId', '==', regionId), limit(500))
       ),
     ]);
-    const consented = new Set(
+    // Only an organizer who really consented counts. `claimed` is NOT consent
+    // (docs/event-import.md): a claim overwrites `consent` and keeps the event's
+    // `curation.consentAt`, so a claimed organizer counts only through events
+    // that carry `curation.consentAt`.
+    const events = candidates.docs.map((d) => d.data()).filter((c) => c.eventId);
+    const consentedOrganizers = new Set(
       organizers.docs
-        .filter((d) => PUBLISHABLE_CONSENT_STATES.includes(d.data().consent))
+        .filter((d) => ['manual_ok', 'sync_ok'].includes(d.data().consent))
         .map((d) => d.id)
     );
-    const events = candidates.docs.map((d) => d.data()).filter((c) => c.eventId);
+    const eventDocs = await Promise.all(
+      events
+        .filter((c) => !consentedOrganizers.has(c.organizerRef))
+        .map((c) => getDoc(doc(db, 'events', c.eventId)))
+    );
+    const consentedByEvent = eventDocs.filter((e) => e.exists() && e.data()?.curation?.consentAt);
     return {
       importedEvents: events.length,
-      consentedEvents: events.filter((c) => consented.has(c.organizerRef)).length,
+      consentedEvents:
+        events.filter((c) => consentedOrganizers.has(c.organizerRef)).length +
+        consentedByEvent.length,
     };
   } catch (err) {
     console.warn('Import progress failed:', err);
