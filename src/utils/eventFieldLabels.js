@@ -21,6 +21,7 @@ export const FIELD_LABELS = {
   recurrence: 'Wiederholung',
   recurrenceEndDate: 'Wiederholung bis',
   customDates: 'Termine',
+  customTimes: 'Uhrzeiten der Termine',
   exceptionDates: 'Ausnahmen',
   isOnline: 'Online',
   organizer: 'Veranstalter',

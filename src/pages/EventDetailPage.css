@@ -254,6 +254,11 @@
   font-size: var(--text-85);
 }
 
+.event-detail-date-time {
+  color: var(--text-secondary);
+  font-size: var(--text-85);
+}
+
 .event-cancelled-banner {
   display: flex;
   align-items: center;

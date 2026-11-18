@@ -269,6 +269,10 @@ export function useEvents(user) {
       recurrence: source.recurrence || 'none',
       recurrenceEndDate: source.recurrenceEndDate || '',
       customDates: Array.isArray(source.customDates) ? [...source.customDates] : [],
+      customTimes:
+        source.customTimes && typeof source.customTimes === 'object'
+          ? { ...source.customTimes }
+          : {},
       exceptionDates: [],
       category: source.category || 'Sonstiges',
       bezirk: source.bezirk || '',

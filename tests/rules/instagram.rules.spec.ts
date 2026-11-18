@@ -768,6 +768,17 @@ describe('events: owners cannot approve their own events', () => {
       await assertSucceeds(updateDoc(ownerRef('e'), { recurrenceEndDate: '', updatedAt: 3 }));
     });
 
+    it('sets own times of single dates (customTimes) on an approved event, only as a map', async () => {
+      await seed('e', { status: 'approved', recurrence: 'custom', customDates: ['2026-11-01'] });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          customTimes: { '2026-11-01': { time: '18:00', endTime: '' } },
+          updatedAt: 1,
+        })
+      );
+      await assertFails(updateDoc(ownerRef('e'), { customTimes: '18:00', updatedAt: 2 }));
+    });
+
     it('patches series exceptions and images on an approved event without touching status', async () => {
       await seed('e', {
         status: 'approved',

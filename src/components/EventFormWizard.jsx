@@ -85,6 +85,13 @@ import {
   pruneExceptionDates,
 } from '../utils/eventOccurrences';
 import SeriesDatesOverview from './SeriesDatesOverview';
+import CustomDateTimeInputs from './CustomDateTimeInputs';
+import {
+  buildCustomTimesPayload,
+  invalidCustomTimeDates,
+  moveFormCustomTime,
+  setFormCustomTime,
+} from '../utils/customSeriesUpdates';
 import {
   saveWizardDraft,
   loadWizardDraft,
@@ -150,6 +157,8 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  // Own times of single dates ({ 'YYYY-MM-DD': { time?, endTime? } }), see CustomDateTimeInputs.
+  customTimes: {},
   exceptionDates: [],
   category: '',
   bezirk: '',
@@ -305,6 +314,12 @@ export default function EventFormWizard() {
         customDates: Array.isArray(restoredDraft.formData.customDates)
           ? restoredDraft.formData.customDates
           : [],
+        customTimes:
+          restoredDraft.formData.customTimes &&
+          typeof restoredDraft.formData.customTimes === 'object' &&
+          !Array.isArray(restoredDraft.formData.customTimes)
+            ? restoredDraft.formData.customTimes
+            : {},
         exceptionDates: Array.isArray(restoredDraft.formData.exceptionDates)
           ? restoredDraft.formData.exceptionDates
           : [],
@@ -644,12 +659,14 @@ export default function EventFormWizard() {
         recurrence: 'none',
         recurrenceEndDate: '',
         customDates: [],
+        customTimes: {},
         exceptionDates: [],
       }));
       setErrors((prev) => ({
         ...prev,
         recurrenceEndDate: null,
         customDates: null,
+        customTimes: null,
       }));
     }
   };
@@ -761,6 +778,17 @@ export default function EventFormWizard() {
         (!formData.customDates || formData.customDates.length === 0)
       ) {
         newErrors.customDates = 'Bitte mindestens ein Datum hinzufügen';
+      }
+      if (
+        formData.recurrence === 'custom' &&
+        !formData.endDate &&
+        invalidCustomTimeDates(
+          formData.customTimes,
+          (formData.customDates || []).filter((d) => d !== formData.date),
+          formData
+        ).length > 0
+      ) {
+        newErrors.customTimes = 'Die Endzeit muss nach der Startzeit liegen';
       }
     } else if (step === 4) {
       if (!rightsConfirmed) {
@@ -937,6 +965,8 @@ export default function EventFormWizard() {
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
       // A Bezirk / Landkreis chosen in the select belongs to the region of the form.
       ...(name === 'bezirk' ? { placeRegionId: '' } : {}),
+      // Own times of single dates only belong to "An einzelnen Terminen".
+      ...(name === 'recurrence' && value !== 'custom' ? { customTimes: {} } : {}),
       // A new region has its own Bezirke / Landkreise (and Orte): drop what no longer fits.
       ...(name === 'regionId'
         ? {
@@ -1052,19 +1082,39 @@ export default function EventFormWizard() {
   };
 
   const handleRemoveCustomDate = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).filter((_, i) => i !== index),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).filter((_, i) => i !== index);
+      const removed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, removed, '', customDates),
+      };
+    });
   };
 
   const handleCustomDateChange = (index, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).map((d, i) => (i === index ? value : d)),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).map((d, i) => (i === index ? value : d));
+      const changed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, changed, value, customDates),
+      };
+    });
     if (errors.customDates) {
       setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
+  const handleCustomTimeChange = (date, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      customTimes: setFormCustomTime(prev.customTimes, date, field, value),
+    }));
+    if (errors.customTimes) {
+      setErrors((prev) => ({ ...prev, customTimes: null }));
     }
   };
 
@@ -1177,6 +1227,15 @@ export default function EventFormWizard() {
             ),
           ].sort()
         : [],
+    // Only the dates whose time differs from the one above (Trello 6afd86b4).
+    customTimes:
+      formData.recurrence === 'custom'
+        ? buildCustomTimesPayload(
+            formData.customTimes,
+            (formData.customDates || []).filter((d) => d !== formData.date),
+            formData
+          )
+        : {},
     exceptionDates: pruneExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
@@ -2051,7 +2110,7 @@ export default function EventFormWizard() {
             <label>Termine</label>
             <span className="input-info">
               <Info size={14} />
-              <span>Füge einzelne Termine hinzu</span>
+              <span>Füge einzelne Termine hinzu, die Uhrzeit kannst du pro Termin ändern</span>
             </span>
           </div>
           <div className="custom-dates-list" data-testid="custom-dates-list">
@@ -2063,6 +2122,19 @@ export default function EventFormWizard() {
                   onChange={(e) => handleCustomDateChange(index, e.target.value)}
                   data-testid={`custom-date-input-${index}`}
                   aria-label={`Termin ${index + 1}`}
+                />
+                <CustomDateTimeInputs
+                  index={index}
+                  date={date}
+                  customTimes={formData.customTimes}
+                  defaults={formData}
+                  fixed={Boolean(date) && date === formData.date}
+                  invalid={
+                    !formData.endDate &&
+                    date !== formData.date &&
+                    invalidCustomTimeDates(formData.customTimes, [date], formData).length > 0
+                  }
+                  onChange={handleCustomTimeChange}
                 />
                 <button
                   type="button"
@@ -2088,6 +2160,11 @@ export default function EventFormWizard() {
           {errors.customDates && (
             <span className="error-text" data-testid="custom-dates-error">
               {errors.customDates}
+            </span>
+          )}
+          {errors.customTimes && (
+            <span className="error-text" data-testid="custom-times-error">
+              {errors.customTimes}
             </span>
           )}
         </div>

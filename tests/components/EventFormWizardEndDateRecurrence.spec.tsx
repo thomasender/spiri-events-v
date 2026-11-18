@@ -499,3 +499,100 @@ describe('EventFormWizard — Serientermine-Übersicht', () => {
     expect(within(list()).getAllByRole('listitem')).toHaveLength(12);
   });
 });
+
+describe('EventFormWizard — own time per single date (6afd86b4)', () => {
+  const customDraft = (extra: Record<string, unknown> = {}) =>
+    seedDraft({
+      formData: {
+        date: '2030-05-01',
+        time: '10:00',
+        endTime: '12:00',
+        endDate: '',
+        recurrence: 'custom',
+        recurrenceEndDate: '',
+        customDates: ['2030-05-08', '2030-05-15'],
+        ...extra,
+      },
+    });
+  const timeInput = (i: number) => screen.getByTestId(`custom-time-input-${i}`) as HTMLInputElement;
+  const endInput = (i: number) =>
+    screen.getByTestId(`custom-end-time-input-${i}`) as HTMLInputElement;
+  const setValue = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
+
+  async function submitAndGetPayload() {
+    fireEvent.click(screen.getByTestId('continue-button'));
+    await waitFor(() => expect(screen.queryByTestId('submit-event-button')).not.toBeNull());
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
+    const dialog = document.querySelector('.confirm-dialog') as HTMLElement;
+    const buttons = within(dialog).getAllByRole('button');
+    fireEvent.click(buttons[buttons.length - 1]);
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledTimes(1));
+    return (mockEvents.addEvent.mock.calls[0] as unknown as unknown[])[0] as Record<
+      string,
+      unknown
+    >;
+  }
+
+  it('prefills every date with the time from above and moves untouched dates along', () => {
+    customDraft();
+    renderWizard();
+    expect(timeInput(0).value).toBe('10:00');
+    expect(endInput(0).value).toBe('12:00');
+
+    setValue(timeInput(1), '18:00');
+    setValue(document.getElementById('time') as HTMLElement, '09:00');
+    setValue(document.getElementById('endTime') as HTMLElement, '11:00');
+
+    expect(timeInput(0).value).toBe('09:00');
+    expect(endInput(0).value).toBe('11:00');
+    // Own start stays, the end that was never touched follows.
+    expect(timeInput(1).value).toBe('18:00');
+    expect(endInput(1).value).toBe('11:00');
+  });
+
+  it('saves only the dates whose time differs from the one above', async () => {
+    customDraft();
+    renderWizard();
+    setValue(timeInput(0), '10:00'); // same as above: not saved
+    setValue(timeInput(1), '18:00');
+    setValue(endInput(1), '20:00');
+
+    const payload = await submitAndGetPayload();
+    expect(payload).toMatchObject({ time: '10:00', endTime: '12:00' });
+    expect(payload.customTimes).toEqual({ '2030-05-15': { time: '18:00', endTime: '20:00' } });
+  });
+
+  it('a date that gets another date takes its own time along', async () => {
+    customDraft();
+    renderWizard();
+    setValue(timeInput(1), '18:00');
+    setValue(endInput(1), '20:00');
+    setValue(screen.getByTestId('custom-date-input-1'), '2030-05-22');
+    expect(timeInput(1).value).toBe('18:00');
+
+    const payload = await submitAndGetPayload();
+    expect(payload.customTimes).toEqual({ '2030-05-22': { time: '18:00', endTime: '20:00' } });
+  });
+
+  it('blocks Weiter when the end of a date lies before its start', async () => {
+    customDraft();
+    renderWizard();
+    setValue(timeInput(0), '19:00');
+    fireEvent.click(screen.getByTestId('continue-button'));
+
+    await waitFor(() => expect(screen.getByTestId('custom-times-error')).toBeInTheDocument());
+    expect(endInput(0)).toHaveClass('input-error');
+    expect(screen.queryByTestId('submit-event-button')).toBeNull();
+  });
+
+  it('another kind of repetition drops the own times', async () => {
+    customDraft({ customTimes: { '2030-05-08': { time: '18:00' } } });
+    renderWizard();
+    expect(timeInput(0).value).toBe('18:00');
+    fireEvent.click(screen.getByLabelText('Wöchentlich'));
+    setValue(document.getElementById('recurrenceEndDate') as HTMLElement, '2030-06-01');
+    fireEvent.click(screen.getByLabelText('Benutzerdefinierte Termine'));
+    expect(timeInput(0).value).toBe('10:00');
+  });
+});
