@@ -2,10 +2,20 @@ import { EVENTS, trackEvent } from '../lib/analytics';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
-import { serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import CityField from './CityField';
 import { validatePlaceChoice } from '../utils/placeDistrict';
+import {
+  applyEventFormDefaults,
+  isRememberableVenue,
+  knownCategory,
+  mergeVenue,
+  pickDefaults,
+  venueLabel,
+  venuesForRegion,
+} from '../utils/eventFormDefaults';
 import { canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
@@ -587,6 +597,36 @@ export default function EventFormWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
+  // A new event of a signed-in person starts with the answers of the last one (Trello
+  // 6afd8505): once, when the profile has arrived. A restored draft wins, what was typed
+  // meanwhile stays. The category follows as soon as the category list is there.
+  const defaultsApplied = useRef(false);
+  const categoryDefaultApplied = useRef(false);
+  const remembered = profile?.eventFormDefaults ?? null;
+  useEffect(() => {
+    if (defaultsApplied.current || restoredDraft || !user || !profile) return;
+    defaultsApplied.current = true;
+    if (!remembered) return;
+    setFormData((prev) =>
+      applyEventFormDefaults(prev, remembered, {
+        organizerDefaults: [emailFallbackName, profileDisplayName],
+        kontaktDefault: user.email || '',
+        // With several regions only a place of the chosen region is taken over.
+        placeAllowed: (placeRegionId) =>
+          !regionChoices.enabled || (placeRegionId || DEFAULT_REGION_ID) === selectedRegion,
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+  useEffect(() => {
+    if (categoryDefaultApplied.current || restoredDraft || !user || !remembered) return;
+    if (!allCategories.length) return;
+    categoryDefaultApplied.current = true;
+    const category = knownCategory(remembered.category, allCategories);
+    if (category) setFormData((prev) => (prev.category ? prev : { ...prev, category }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remembered, allCategories]);
+
   const hasRecurrence = formData.recurrence !== 'none';
   const hasEndDateRecurrenceConflict = Boolean(formData.endDate) && hasRecurrence;
   // Red marking only while the conflict still exists (clears once resolved).
@@ -933,6 +973,27 @@ export default function EventFormWizard() {
     if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
   };
 
+  // "Frühere Orte": one choice sets Ort, Bezirk / Landkreis, region of the place and Adresse
+  // together, as if the Ort had been picked from the list.
+  const savedVenueChoices = user
+    ? venuesForRegion(profile?.savedVenues, {
+        regionId: regionChoices.enabled ? selectedRegion : '',
+        defaultRegionId: DEFAULT_REGION_ID,
+      })
+    : [];
+  const handleSavedVenuePick = (e) => {
+    const venue = savedVenueChoices[Number(e.target.value)];
+    if (!venue) return;
+    handleCityChange({
+      city: venue.city,
+      bezirk: venue.bezirk,
+      regionId: venue.placeRegionId || null,
+      picked: true,
+    });
+    setFormData((prev) => ({ ...prev, place: venue.place }));
+    if (errors.place) setErrors((prev) => ({ ...prev, place: null }));
+  };
+
   const handleOrganizerChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -1230,6 +1291,25 @@ export default function EventFormWizard() {
     });
   };
 
+  // Keeps the answers of this save for the next new event (profile doc, best effort: a
+  // failure never blocks saving, and a slow connection is not waited for).
+  const rememberFormAnswers = () => {
+    if (!user?.uid) return;
+    try {
+      const update = {
+        eventFormDefaults: pickDefaults(formData, profile?.eventFormDefaults ?? {}),
+      };
+      if (isRememberableVenue(formData)) {
+        update.savedVenues = mergeVenue(profile?.savedVenues, formData);
+      }
+      Promise.resolve(updateDoc(doc(db, 'users', user.uid), update)).catch((err) => {
+        console.warn('Event form defaults not saved:', err?.code || err?.message);
+      });
+    } catch (err) {
+      console.warn('Event form defaults not saved:', err?.code || err?.message);
+    }
+  };
+
   const saveEvent = async (eventData) => {
     setLoading(true);
     setShowConfirmModal(false);
@@ -1270,6 +1350,7 @@ export default function EventFormWizard() {
         createdEventRef.current = docRef;
       }
       if (imageFile) markCoverSaved();
+      rememberFormAnswers();
       if (eventData.status !== 'draft') trackEvent(EVENTS.EVENT_CREATE_SUBMIT);
 
       if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
@@ -1602,6 +1683,25 @@ export default function EventFormWizard() {
           className={showEndDateConflict ? 'input-error' : ''}
         />
       </div>
+
+      {savedVenueChoices.length > 0 && !formData.isOnline && (
+        <div className="form-group">
+          <label htmlFor="saved-venues">Frühere Orte</label>
+          <select
+            id="saved-venues"
+            value=""
+            onChange={handleSavedVenuePick}
+            data-testid="saved-venues-select"
+          >
+            <option value="">Früheren Ort übernehmen...</option>
+            {savedVenueChoices.map((venue, index) => (
+              <option key={`${venue.city}|${venue.place}`} value={index}>
+                {venueLabel(venue)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="form-row">
         {useGemeinden ? (
