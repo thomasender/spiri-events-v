@@ -83,6 +83,13 @@ const PUSH_DEFINITIONS = [
     description: 'Ein kurzer Hinweis, wenn das Team eine Frage zu deinem Event hat.',
     staffOnly: false,
   },
+  {
+    key: 'pushStaffReview',
+    label: 'Review: Einreichungen und Antworten',
+    description:
+      'Für das Team: neue Einreichungen (bei Moderator:innen aus deiner Region) sowie Änderungen und Antworten bei Events, die du gerade klärst.',
+    staffOnly: true,
+  },
 ];
 
 const SAVED_INDICATOR_TIMEOUT_MS = 3000;

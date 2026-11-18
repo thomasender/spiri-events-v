@@ -14,16 +14,24 @@
  */
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getUsersNotificationPreferences, type NotificationPreferenceMap } from './userPreferences';
-import { filterUidsByPushPreference, type PushMessage, type PushPlan } from './pushRouting';
+import {
+  filterUidsByPushPreference,
+  isPushThrottled,
+  pushThrottleDocId,
+  type PushMessage,
+  type PushPlan,
+} from './pushRouting';
 
 if (getApps().length === 0) {
   initializeApp();
 }
 
 export const PUSH_TOKENS_SUBCOLLECTION = 'pushTokens';
+/** Rate-limit markers `{eventId}_{uid}` = { at, expireAt }; server-only (no rule matches). */
+export const PUSH_THROTTLE_COLLECTION = 'push_throttle';
 
 /** FCM's limit for one sendEachForMulticast call. */
 const MULTICAST_LIMIT = 500;
@@ -150,12 +158,55 @@ export const firestorePushDeps = (): PushDeps => ({
 export interface PushPlanDeps {
   loadPreferences: (uids: string[]) => Promise<Map<string, NotificationPreferenceMap>>;
   push: PushDeps;
+  /**
+   * Rate limit: true = this person may get a push for this event now (and the
+   * time is recorded), false = one went out within PUSH_THROTTLE_MS.
+   */
+  claimThrottle: (eventId: string, uid: string, nowMs: number) => Promise<boolean>;
+}
+
+/** Transaction on push_throttle/{eventId}_{uid}: read the last push, record this one. */
+async function claimFirestoreThrottle(
+  eventId: string,
+  uid: string,
+  nowMs: number
+): Promise<boolean> {
+  const db = getFirestore();
+  const ref = db.collection(PUSH_THROTTLE_COLLECTION).doc(pushThrottleDocId(eventId, uid));
+  return db.runTransaction(async (tx) => {
+    const at = (await tx.get(ref)).get('at');
+    const lastMs = at instanceof Timestamp ? at.toMillis() : null;
+    if (isPushThrottled(lastMs, nowMs)) return false;
+    tx.set(ref, {
+      at: Timestamp.fromMillis(nowMs),
+      // For a Firestore TTL policy on `expireAt`, if one is ever set up; harmless without.
+      expireAt: Timestamp.fromMillis(nowMs + 24 * 60 * 60 * 1000),
+    });
+    return true;
+  });
 }
 
 const defaultPlanDeps = (): PushPlanDeps => ({
   loadPreferences: getUsersNotificationPreferences,
   push: firestorePushDeps(),
+  claimThrottle: claimFirestoreThrottle,
 });
+
+/** Keeps the uids not rate-limited for this event (all of them when the plan has no limit). */
+async function applyThrottle(
+  plan: PushPlan,
+  uids: string[],
+  deps: PushPlanDeps,
+  nowMs: number
+): Promise<string[]> {
+  const eventId = plan.throttleEventId;
+  if (!eventId) return uids;
+  const allowed: string[] = [];
+  for (const uid of uids) {
+    if (await deps.claimThrottle(eventId, uid, nowMs)) allowed.push(uid);
+  }
+  return allowed;
+}
 
 /**
  * One routed push (pushRouting.ts): keeps the uids that opted in and sends.
@@ -164,12 +215,14 @@ const defaultPlanDeps = (): PushPlanDeps => ({
 export async function sendPushPlan(
   plan: PushPlan | null,
   context: Record<string, unknown>,
-  deps: PushPlanDeps = defaultPlanDeps()
+  deps: PushPlanDeps = defaultPlanDeps(),
+  nowMs: number = Date.now()
 ): Promise<PushResult | null> {
   if (!plan || plan.uids.length === 0) return null;
   try {
     const prefs = await deps.loadPreferences([...plan.uids]);
-    const uids = filterUidsByPushPreference(plan.uids, plan.prefKey, prefs);
+    const optedIn = filterUidsByPushPreference(plan.uids, plan.prefKey, prefs);
+    const uids = await applyThrottle(plan, optedIn, deps, nowMs);
     if (uids.length === 0) return null;
     const result = await sendPushToUids(uids, plan.message, deps.push);
     logger.info('Push processed', { ...context, prefKey: plan.prefKey, ...result });

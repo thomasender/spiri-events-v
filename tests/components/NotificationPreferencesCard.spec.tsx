@@ -307,6 +307,45 @@ describe('NotificationPreferencesCard push section', () => {
     await waitFor(() => expect(push.disable).toHaveBeenCalledTimes(1));
   });
 
+  it('only staff see the review switch, and the first device turns it on too', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { unmount } = render(
+      <NotificationPreferencesCard
+        preferences={{ ...allOn, pushOnEventStatus: true }}
+        push={pushOf('active')}
+        onSave={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('notification-pref-pushStaffReview')).not.toBeInTheDocument();
+    unmount();
+
+    const push = pushOf('available');
+    render(<NotificationPreferencesCard preferences={allOn} isStaff push={push} onSave={onSave} />);
+    fireEvent.click(screen.getByTestId('push-device-toggle'));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith({
+        pushOnEventStatus: true,
+        pushOnReviewMessage: true,
+        pushStaffReview: true,
+      })
+    );
+  });
+
+  it('moderators (staff without admin rights) get the review switch on an active device', () => {
+    render(
+      <NotificationPreferencesCard
+        preferences={allOn}
+        isAdmin={false}
+        isStaff
+        push={pushOf('active')}
+        onSave={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('notification-pref-pushStaffReview')).not.toBeChecked();
+    // E-mail switches for admins stay admin-only.
+    expect(screen.queryByTestId('notification-pref-notifyOnSubmitted')).not.toBeInTheDocument();
+  });
+
   it('shows an error when switching on fails', async () => {
     const push = pushOf('available', vi.fn().mockRejectedValue(new Error('boom')));
     vi.spyOn(console, 'error').mockImplementation(() => {});

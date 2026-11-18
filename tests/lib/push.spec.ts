@@ -100,7 +100,15 @@ describe('sendPushPlan', () => {
       ['anna', { ...DEFAULT_NOTIFICATION_PREFERENCES, pushOnEventStatus: true }],
       ['ben', { ...DEFAULT_NOTIFICATION_PREFERENCES }],
     ]);
-    const result = await sendPushPlan(plan, {}, { loadPreferences: async () => prefs, push: deps });
+    const result = await sendPushPlan(
+      plan,
+      {},
+      {
+        loadPreferences: async () => prefs,
+        push: deps,
+        claimThrottle: async () => true,
+      }
+    );
     expect(result).toEqual({ devices: 1, sent: 1, removed: 0 });
     expect(vi.mocked(deps.sendEachForMulticast).mock.calls[0][0].tokens).toEqual(['t1']);
   });
@@ -108,14 +116,56 @@ describe('sendPushPlan', () => {
   it('never throws (a push must not block the mail)', async () => {
     const { deps } = depsWith({});
     await expect(
-      sendPushPlan(plan, {}, { loadPreferences: () => Promise.reject(new Error('x')), push: deps })
+      sendPushPlan(
+        plan,
+        {},
+        {
+          loadPreferences: () => Promise.reject(new Error('x')),
+          push: deps,
+          claimThrottle: async () => true,
+        }
+      )
     ).resolves.toBeNull();
   });
 
   it('does nothing without a plan', async () => {
     const { deps } = depsWith({});
     const loadPreferences = vi.fn();
-    expect(await sendPushPlan(null, {}, { loadPreferences, push: deps })).toBeNull();
+    expect(
+      await sendPushPlan(null, {}, { loadPreferences, push: deps, claimThrottle: async () => true })
+    ).toBeNull();
     expect(loadPreferences).not.toHaveBeenCalled();
+  });
+
+  it('rate-limited plans skip people who got a push for this event recently', async () => {
+    const { deps } = depsWith({ anna: ['t1'], ben: ['t2'] });
+    const prefs = new Map([
+      ['anna', { ...DEFAULT_NOTIFICATION_PREFERENCES, pushStaffReview: true }],
+      ['ben', { ...DEFAULT_NOTIFICATION_PREFERENCES, pushStaffReview: true }],
+    ]);
+    const claimed: string[] = [];
+    const claimThrottle = vi.fn(async (eventId: string, uid: string, nowMs: number) => {
+      claimed.push(`${eventId}:${uid}:${nowMs}`);
+      return uid === 'anna';
+    });
+    const result = await sendPushPlan(
+      { uids: ['anna', 'ben'], prefKey: 'pushStaffReview', message, throttleEventId: 'ev1' },
+      {},
+      { loadPreferences: async () => prefs, push: deps, claimThrottle },
+      42
+    );
+    expect(claimed).toEqual(['ev1:anna:42', 'ev1:ben:42']);
+    expect(vi.mocked(deps.sendEachForMulticast).mock.calls[0][0].tokens).toEqual(['t1']);
+    expect(result?.sent).toBe(1);
+  });
+
+  it('plans without a limit never touch the rate-limit store', async () => {
+    const { deps } = depsWith({ anna: ['t1'] });
+    const prefs = new Map([
+      ['anna', { ...DEFAULT_NOTIFICATION_PREFERENCES, pushOnEventStatus: true }],
+    ]);
+    const claimThrottle = vi.fn();
+    await sendPushPlan(plan, {}, { loadPreferences: async () => prefs, push: deps, claimThrottle });
+    expect(claimThrottle).not.toHaveBeenCalled();
   });
 });

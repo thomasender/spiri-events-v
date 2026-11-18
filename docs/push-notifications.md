@@ -22,7 +22,7 @@ functions still run their push step, but nobody has a token or an opt-in, so not
 | Profile switch + topics                                                                | `NotificationPreferencesCard.jsx`                                          |
 | Who gets what (pure, Vitest)                                                           | `functions/src/pushRouting.ts`                                             |
 | Sending, dead-token cleanup                                                            | `functions/src/push.ts`                                                    |
-| Hooks into the mail triggers                                                           | `notifications.ts`                                                         |
+| Hooks into the mail triggers / the edit alert                                          | `notifications.ts`, `eventRevisionTrigger.ts`                              |
 
 There is one service worker (vite-plugin-pwa, `autoUpdate`), no `firebase-messaging-sw.js`.
 `getToken` gets the existing registration (`serviceWorkerRegistration`). In `npm run dev` there
@@ -38,16 +38,27 @@ first device turns the topics on; they then apply to every device of the account
 
 **Who gets what** (texts carry only the event title, never chat content):
 
-| Event                                                  | Recipient               | Opt-in                |
-| ------------------------------------------------------ | ----------------------- | --------------------- |
-| approved (`published` after pending/draft/trash)       | organizer (`createdBy`) | `pushOnEventStatus`   |
-| rejected                                               | organizer               | `pushOnEventStatus`   |
-| team question in the review chat (`changes_requested`) | organizer               | `pushOnReviewMessage` |
+| Event                                                        | Recipient                                       | Opt-in                |
+| ------------------------------------------------------------ | ----------------------------------------------- | --------------------- |
+| approved (`published` after pending/draft/trash)             | organizer (`createdBy`)                         | `pushOnEventStatus`   |
+| rejected                                                     | organizer                                       | `pushOnEventStatus`   |
+| team question in the review chat (`changes_requested`)       | organizer                                       | `pushOnReviewMessage` |
+| submitted (new, or back from draft/trash to pending)         | Super-Admins + moderators of the event's region | `pushStaffReview`     |
+| organizer edited a pending event "in Klärung"                | the responsible staff member only               | `pushStaffReview`     |
+| organizer answered in the review chat (`authorRole: 'User'`) | the responsible staff member only               | `pushStaffReview`     |
 
 Reused decisions: `decideEventStatusNotification`, `decideAdminMessageNotification`. Not pushed:
 back to draft, deleted, edits of an approved event. Never the person who caused it
 (`approvedBy` / `trashedBy` / message author). The push runs before and independent of the mail
 (`sendPushPlan` never throws, also when Mailgun is not configured).
+
+**Team pushes** do not depend on `ADMIN_EVENT_EMAILS_ENABLED` (still `false`) or Mailgun.
+Region: `eventMailRegionId` + `moderatorUidsForRegion` (no `regionId` = Vorarlberg); the submitter
+(`createdBy`) is left out. "Responsible" = `pickResponsibleStaff` (first staff message author, or
+who sent it back to draft), still staff (`parseStaffRole`); the "every Super-Admin" fallback of the
+in-app alert is not pushed, and a re-submission only sends "Neues Event eingereicht". Edits and
+replies are rate-limited to one push per event and person in 15 minutes
+(`push_throttle/{eventId}_{uid}`, server-only, carries `expireAt` for an optional TTL policy).
 
 ## Platforms
 

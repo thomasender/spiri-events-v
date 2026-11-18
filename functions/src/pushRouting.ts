@@ -20,6 +20,8 @@
  * The person who caused it never gets a push.
  */
 import type { NotificationDecision, EventLifecycleStatus } from './notificationRouting';
+import { eventMailRegionId, moderatorUidsForRegion, type StaffDocEntry } from './adminEventRouting';
+import type { EditAlertKind } from './eventEditNotice';
 import type { NotificationPreferenceMap } from './userPreferences';
 
 export type PushPreferenceKey = 'pushOnEventStatus' | 'pushOnReviewMessage' | 'pushStaffReview';
@@ -37,7 +39,15 @@ export interface PushPlan {
   uids: string[];
   prefKey: PushPreferenceKey;
   message: PushMessage;
+  /**
+   * Rate limit key (the event id) for staff updates: at most one push per event
+   * and person within PUSH_THROTTLE_MS. Absent = no limit.
+   */
+  throttleEventId?: string;
 }
+
+/** Edits and replies: at most one push per event and person in this window. */
+export const PUSH_THROTTLE_MS = 15 * 60 * 1000;
 
 const TITLE_MAX = 80;
 
@@ -51,6 +61,10 @@ function quotedTitle(title: string | null | undefined, fallback: string): string
 
 function eventPath(slug: string | null | undefined): string {
   return slug ? `/event/${slug}` : '/admin';
+}
+
+export function reviewPath(eventId: string): string {
+  return `/admin?tab=review#${eventId}`;
 }
 
 function uidOrNull(value: unknown): string | null {
@@ -124,6 +138,113 @@ export function ownerReviewMessagePush(input: {
   };
 }
 
+/**
+ * "Neu eingereicht": Super-Admins plus the moderators of the event's region
+ * (never of another region), each once, without the person who submitted.
+ */
+export function staffSubmittedPush(input: {
+  decision: NotificationDecision | null;
+  eventData: unknown;
+  superAdminUids: readonly string[];
+  moderatorDocs: readonly StaffDocEntry[];
+  actorUid?: string | null;
+}): PushPlan | null {
+  const { decision } = input;
+  if (!decision || decision.type !== 'submitted') return null;
+  const regionId = eventMailRegionId(input.eventData);
+  const actor = uidOrNull(input.actorUid);
+  const uids = Array.from(
+    new Set([
+      ...input.superAdminUids.filter((uid) => uidOrNull(uid)),
+      ...moderatorUidsForRegion([...input.moderatorDocs], regionId),
+    ])
+  ).filter((uid) => uid !== actor);
+  if (uids.length === 0) return null;
+  return {
+    uids,
+    prefKey: 'pushStaffReview',
+    message: {
+      title: 'Neues Event eingereicht',
+      body: `${quotedTitle(decision.event.title, 'Ein Event')} wartet auf eure Prüfung.`,
+      link: reviewPath(decision.event.id),
+      tag: `review-${decision.event.id}`,
+    },
+  };
+}
+
+/**
+ * "Update in Klärung": the organizer changed a pending event the team asked
+ * about. Only the responsible staff member (the adminAlerts recipient after
+ * pickResponsibleStaff), never the fallback "all Super-Admins". A re-submission
+ * (draft -> pending) already sends "Neues Event eingereicht", so no second push.
+ */
+export function staffEditPush(input: {
+  eventId: string;
+  title: string | null | undefined;
+  kind: EditAlertKind | null;
+  responsibleUid: string | null | undefined;
+  actorUid?: string | null;
+}): PushPlan | null {
+  const responsible = uidOrNull(input.responsibleUid);
+  if (input.kind !== 'edited' || !responsible) return null;
+  if (responsible === uidOrNull(input.actorUid)) return null;
+  return {
+    uids: [responsible],
+    prefKey: 'pushStaffReview',
+    throttleEventId: input.eventId,
+    message: {
+      title: 'Update in Klärung',
+      body: `${quotedTitle(input.title, 'Ein Event')} wurde überarbeitet.`,
+      link: reviewPath(input.eventId),
+      tag: `review-${input.eventId}`,
+    },
+  };
+}
+
+export interface ReviewMessageLike {
+  authorRole?: unknown;
+  authorUid?: unknown;
+}
+
+/**
+ * Who a message in the review chat is "for" on the staff side, like
+ * messageIsUnreadFor (src/utils/staffNotifications.js): only the organizer's
+ * messages, only for the staff member responsible for the conversation (the
+ * author of the first staff message). Unlike the red dot, no push while no
+ * staff member has written yet: then the event is not "in Klärung".
+ */
+export function replyPushRecipient(
+  message: ReviewMessageLike,
+  responsibleUid: string | null | undefined
+): string | null {
+  if (message.authorRole !== 'User') return null;
+  const responsible = uidOrNull(responsibleUid);
+  if (!responsible || responsible === uidOrNull(message.authorUid)) return null;
+  return responsible;
+}
+
+/** "Antwort im Review-Chat" to the responsible staff member (rate-limited). */
+export function staffReplyPush(input: {
+  eventId: string;
+  title: string | null | undefined;
+  message: ReviewMessageLike;
+  responsibleUid: string | null | undefined;
+}): PushPlan | null {
+  const recipient = replyPushRecipient(input.message, input.responsibleUid);
+  if (!recipient) return null;
+  return {
+    uids: [recipient],
+    prefKey: 'pushStaffReview',
+    throttleEventId: input.eventId,
+    message: {
+      title: 'Antwort in Klärung',
+      body: `Neue Antwort zu ${quotedTitle(input.title, 'einem Event')}.`,
+      link: reviewPath(input.eventId),
+      tag: `review-${input.eventId}`,
+    },
+  };
+}
+
 /** Only the uids that switched this kind of push on. */
 export function filterUidsByPushPreference(
   uids: readonly string[],
@@ -131,4 +252,18 @@ export function filterUidsByPushPreference(
   prefs: Map<string, NotificationPreferenceMap>
 ): string[] {
   return uids.filter((uid) => prefs.get(uid)?.[prefKey] === true);
+}
+
+/** True while the last push for this event and person is younger than the window. */
+export function isPushThrottled(
+  lastAtMs: number | null | undefined,
+  nowMs: number,
+  windowMs: number = PUSH_THROTTLE_MS
+): boolean {
+  return typeof lastAtMs === 'number' && nowMs - lastAtMs < windowMs;
+}
+
+/** Doc id of the rate-limit marker in `push_throttle` (server-only collection). */
+export function pushThrottleDocId(eventId: string, uid: string): string {
+  return `${eventId}_${uid}`;
 }

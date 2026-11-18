@@ -2,6 +2,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useRegion } from '../hooks/useRegion';
 import { usePushDevice } from '../hooks/usePushDevice';
+import { REGION_MODERATOR_ROLE } from '../utils/staffRoles';
 import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import ProfileForm from '../components/ProfileForm';
 import ChangeEmailForm from '../components/ChangeEmailForm';
@@ -17,6 +18,8 @@ export default function ProfilePage() {
   const { user, role, changeEmail, deleteAccount, isGoogleUser } = useAuth();
   const { profile, notificationPreferences, loading: profileLoading, save } = useProfile(user?.uid);
   const isAdmin = role === 'Admin';
+  // Super-Admins and Regions-Moderator:innen get the review push switch.
+  const isStaff = isAdmin || role === REGION_MODERATOR_ROLE;
   // Dark launch: no region card at all while there is nothing to switch between
   // (an empty card with only the hint text looked broken).
   const canPickRegion = useRegion().regions.length >= 2;
@@ -78,6 +81,7 @@ export default function ProfilePage() {
         <NotificationPreferencesCard
           preferences={notificationPreferences}
           isAdmin={isAdmin}
+          isStaff={isStaff}
           messengerAvailable={messengerAvailable}
           chatAvailable={chatAvailable}
           push={push}

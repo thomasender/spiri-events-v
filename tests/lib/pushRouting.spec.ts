@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
+  PUSH_THROTTLE_MS,
   filterUidsByPushPreference,
+  isPushThrottled,
   ownerReviewMessagePush,
   ownerStatusPush,
+  pushThrottleDocId,
+  replyPushRecipient,
+  staffEditPush,
+  staffReplyPush,
+  staffSubmittedPush,
 } from '../../functions/src/pushRouting';
 import type { NotificationDecision } from '../../functions/src/notificationRouting';
 import { DEFAULT_NOTIFICATION_PREFERENCES } from '../../functions/src/userPreferences';
@@ -147,5 +154,158 @@ describe('filterUidsByPushPreference', () => {
       ['anna']
     );
     expect(filterUidsByPushPreference(['anna'], 'pushOnReviewMessage', prefs)).toEqual([]);
+  });
+});
+
+describe('staffSubmittedPush', () => {
+  const moderatorDocs = [
+    { uid: 'mod-vbg', data: { role: 'RegionModerator', regionIds: ['vorarlberg'] } },
+    { uid: 'mod-tirol', data: { role: 'RegionModerator', regionIds: ['tirol'] } },
+    { uid: 'mod-none', data: { role: 'RegionModerator', regionIds: [] } },
+  ];
+  const submitted = decision('submitted', { recipient: 'admins' });
+
+  it('goes to the Super-Admins and the moderators of the event region', () => {
+    const plan = staffSubmittedPush({
+      decision: submitted,
+      eventData: { regionId: 'tirol' },
+      superAdminUids: ['peter', 'thomas'],
+      moderatorDocs,
+      actorUid: 'owner',
+    });
+    expect(plan?.uids).toEqual(['peter', 'thomas', 'mod-tirol']);
+    expect(plan?.prefKey).toBe('pushStaffReview');
+    expect(plan?.message).toEqual({
+      title: 'Neues Event eingereicht',
+      body: '„Klangreise“ wartet auf eure Prüfung.',
+      link: '/admin?tab=review#ev1',
+      tag: 'review-ev1',
+    });
+  });
+
+  it('an event without region counts as Vorarlberg', () => {
+    const plan = staffSubmittedPush({
+      decision: submitted,
+      eventData: {},
+      superAdminUids: [],
+      moderatorDocs,
+    });
+    expect(plan?.uids).toEqual(['mod-vbg']);
+  });
+
+  it('leaves out the person who submitted (a moderator submitting in her own region)', () => {
+    const plan = staffSubmittedPush({
+      decision: submitted,
+      eventData: { regionId: 'vorarlberg' },
+      superAdminUids: ['peter', 'mod-vbg'],
+      moderatorDocs,
+      actorUid: 'mod-vbg',
+    });
+    expect(plan?.uids).toEqual(['peter']);
+  });
+
+  it('nothing for other decisions or when nobody is left', () => {
+    expect(
+      staffSubmittedPush({
+        decision: decision('published'),
+        eventData: {},
+        superAdminUids: ['p'],
+        moderatorDocs,
+      })
+    ).toBeNull();
+    expect(
+      staffSubmittedPush({
+        decision: submitted,
+        eventData: { regionId: 'wien' },
+        superAdminUids: ['p'],
+        moderatorDocs: [],
+        actorUid: 'p',
+      })
+    ).toBeNull();
+  });
+});
+
+describe('staffEditPush', () => {
+  it('"Update in Klärung" only to the responsible staff member, rate-limited', () => {
+    expect(
+      staffEditPush({
+        eventId: 'ev1',
+        title: 'Klangreise',
+        kind: 'edited',
+        responsibleUid: 'jana',
+        actorUid: 'owner',
+      })
+    ).toEqual({
+      uids: ['jana'],
+      prefKey: 'pushStaffReview',
+      throttleEventId: 'ev1',
+      message: {
+        title: 'Update in Klärung',
+        body: '„Klangreise“ wurde überarbeitet.',
+        link: '/admin?tab=review#ev1',
+        tag: 'review-ev1',
+      },
+    });
+  });
+
+  it('no push without a responsible person (alert fallback to all admins is not pushed)', () => {
+    expect(
+      staffEditPush({ eventId: 'ev1', title: 'x', kind: 'edited', responsibleUid: null })
+    ).toBeNull();
+  });
+
+  it('no second push for a re-submission (that is "Neues Event eingereicht")', () => {
+    expect(
+      staffEditPush({ eventId: 'ev1', title: 'x', kind: 'resubmitted', responsibleUid: 'jana' })
+    ).toBeNull();
+  });
+
+  it('never to the person who edited', () => {
+    expect(
+      staffEditPush({
+        eventId: 'ev1',
+        title: 'x',
+        kind: 'edited',
+        responsibleUid: 'jana',
+        actorUid: 'jana',
+      })
+    ).toBeNull();
+  });
+});
+
+describe('replyPushRecipient / staffReplyPush', () => {
+  it('an organizer reply goes to the responsible staff member', () => {
+    expect(replyPushRecipient({ authorRole: 'User', authorUid: 'owner' }, 'jana')).toBe('jana');
+    const plan = staffReplyPush({
+      eventId: 'ev1',
+      title: 'Klangreise',
+      message: { authorRole: 'User', authorUid: 'owner' },
+      responsibleUid: 'jana',
+    });
+    expect(plan?.uids).toEqual(['jana']);
+    expect(plan?.throttleEventId).toBe('ev1');
+    expect(plan?.message.body).toBe('Neue Antwort zu „Klangreise“.');
+  });
+
+  it('staff messages, own messages and conversations without staff get no push', () => {
+    expect(replyPushRecipient({ authorRole: 'Admin', authorUid: 'ben' }, 'jana')).toBeNull();
+    expect(replyPushRecipient({ authorRole: 'User', authorUid: 'jana' }, 'jana')).toBeNull();
+    expect(replyPushRecipient({ authorRole: 'User', authorUid: 'owner' }, null)).toBeNull();
+  });
+});
+
+describe('push rate limit', () => {
+  const now = 1_000_000_000;
+
+  it('allows one push per event and person in 15 minutes', () => {
+    expect(PUSH_THROTTLE_MS).toBe(15 * 60 * 1000);
+    expect(isPushThrottled(null, now)).toBe(false);
+    expect(isPushThrottled(now - 60_000, now)).toBe(true);
+    expect(isPushThrottled(now - PUSH_THROTTLE_MS + 1, now)).toBe(true);
+    expect(isPushThrottled(now - PUSH_THROTTLE_MS, now)).toBe(false);
+  });
+
+  it('keys the marker by event and person', () => {
+    expect(pushThrottleDocId('ev1', 'jana')).toBe('ev1_jana');
   });
 });
