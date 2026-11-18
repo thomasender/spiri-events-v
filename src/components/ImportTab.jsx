@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useImportOrganizers, useImportRuns } from '../hooks/useImportData';
+import { useModeratorsSeeInReview } from '../hooks/useImportVisibility';
 import { getStaffAccess } from '../utils/staffRoles';
+import { setModeratorsSeeInReview } from '../utils/importAdminApi';
 import { IMPORT_REGION_IDS } from '../utils/eventImport';
 import { STATIC_REGIONS } from '../utils/regions';
 import ImportCandidates from './ImportCandidates';
@@ -105,6 +107,8 @@ export default function ImportTab() {
   const isSuperAdmin = getStaffAccess(role, staffRegionIds).isSuperAdmin;
   const [view, setView] = useState('candidates');
   const [regionId, setRegionId] = useState(IMPORT_REGION_IDS[0]);
+  const moderatorsSee = useModeratorsSeeInReview();
+  const [visibilityError, setVisibilityError] = useState(false);
   const runs = useImportRuns(isSuperAdmin);
   const organizers = useImportOrganizers(regionId, isSuperAdmin);
 
@@ -120,6 +124,16 @@ export default function ImportTab() {
     [organizers.items]
   );
 
+  const toggleVisibility = async (checked) => {
+    setVisibilityError(false);
+    try {
+      await setModeratorsSeeInReview(checked);
+    } catch (err) {
+      console.error('Import visibility write failed:', err);
+      setVisibilityError(true);
+    }
+  };
+
   if (!isSuperAdmin) return null;
 
   return (
@@ -129,6 +143,26 @@ export default function ImportTab() {
         steuerst die einmalige Anfrage um Erlaubnis. Nichts davon ist öffentlich, bevor die
         Veranstalter:in zugestimmt hat.
       </p>
+
+      <div className="import-visibility">
+        <label className="import-visibility-label">
+          <input
+            type="checkbox"
+            checked={moderatorsSee}
+            onChange={(e) => toggleVisibility(e.target.checked)}
+            data-testid="import-visibility-switch"
+          />
+          Import-Events für Moderator:innen im Prüfen-Tab sichtbar
+        </label>
+        <p className="import-hint">
+          Standardmäßig sehen nur Super-Admins importierte Events, die noch niemand übernommen hat.
+        </p>
+        {visibilityError && (
+          <p className="moderation-error" role="alert">
+            Die Einstellung konnte nicht gespeichert werden.
+          </p>
+        )}
+      </div>
 
       <div className="import-toolbar">
         <label className="import-region">

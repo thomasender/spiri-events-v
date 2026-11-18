@@ -1637,6 +1637,21 @@ service cloud.firestore {
       allow delete: if isChatStaff();
     }
 
+    // Whether Regions-Moderator:innen see imported (curated, unclaimed) events in
+    // the Review tab: { moderatorsSeeInReview: bool }. A missing doc means no.
+    // Read via the app_settings match above (the client filters on it; this is a
+    // UI-level hide, docs/event-import.md). Only Super-Admins write.
+    match /app_settings/importVisibility {
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly(['moderatorsSeeInReview', 'updatedAt'])
+                    && request.resource.data.moderatorsSeeInReview is bool;
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['moderatorsSeeInReview', 'updatedAt'])
+                    && request.resource.data.moderatorsSeeInReview is bool;
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
     // ---- Vereinsmitgliedschaft "Pioniere" (Trello 6af620c0) ----------------
     // Feature flag app_settings/membership { mode: 'off' | 'admins' | 'all',
     // statutesUrl, statutesVersion }. A missing doc means off. Public read (the

@@ -522,6 +522,25 @@ describe('event import (import_* collections, events.curation)', () => {
     await assertFails(getDoc(doc(ctx('member'), 'events/curated')));
   });
 
+  it('app_settings/importVisibility: everyone reads, only a Super-Admin writes bool + updatedAt', async () => {
+    const path = 'app_settings/importVisibility';
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(setDoc(doc(admin, path), { moderatorsSeeInReview: true, updatedAt: 1 }));
+    await assertSucceeds(getDoc(doc(ctx('mod'), path)));
+    await assertSucceeds(getDoc(doc(ctx('member'), path)));
+    await assertSucceeds(updateDoc(doc(admin, path), { moderatorsSeeInReview: false }));
+    await assertFails(updateDoc(doc(admin, path), { moderatorsSeeInReview: 'yes' }));
+    await assertFails(updateDoc(doc(admin, path), { extra: 1 }));
+    await assertFails(setDoc(doc(admin, path), { moderatorsSeeInReview: true, other: 1 }));
+    for (const db of [ctx('mod'), ctx('member'), env.unauthenticatedContext().firestore()]) {
+      await assertFails(updateDoc(doc(db, path), { moderatorsSeeInReview: true }));
+      await assertFails(setDoc(doc(db, path), { moderatorsSeeInReview: true }));
+      await assertFails(deleteDoc(doc(db, path)));
+    }
+    // app_settings/import stays Super-Admin only.
+    await assertFails(getDoc(doc(ctx('mod'), 'app_settings/import')));
+  });
+
   it('owners cannot add, change or remove curation, nor change createdBy', async () => {
     const owner = ctx('owner');
     await assertFails(updateDoc(doc(owner, 'events/own'), { curation }));

@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { useImportCandidates, useCandidateCounts } from '../hooks/useImportData';
-import { importAcceptCandidate, importRejectCandidate } from '../utils/importAdminApi';
+import {
+  importAcceptCandidate,
+  importRejectCandidate,
+  setCandidateStatus,
+} from '../utils/importAdminApi';
 import {
   CANDIDATE_STATUSES,
   CANDIDATE_STATUS_LABELS,
   LEGAL_FORM_LABELS,
+  PILOT_EXCLUDED_HELP,
   REJECT_REASONS,
 } from '../utils/eventImport';
 import ConfirmDialog from './ConfirmDialog';
@@ -73,6 +78,19 @@ export default function ImportCandidates({ regionId, organizersById }) {
     }
   };
 
+  const moveTo = async (candidate, nextStatus) => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await setCandidateStatus(candidate.id, nextStatus);
+      done(nextStatus === 'reviewed' ? 'Kandidat zurückgestellt.' : 'Kandidat wieder geöffnet.');
+    } catch (err) {
+      setNotice({ kind: 'error', text: errorText(err) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onConfirmAccept = () => {
     const { candidate, step } = confirm;
     if (candidate.pilotExcluded && step === 'first') {
@@ -135,7 +153,11 @@ export default function ImportCandidates({ regionId, organizersById }) {
                 <div className="import-card-title">
                   <span className="moderation-card-name">{x.title || '(ohne Titel)'}</span>
                   {c.pilotExcluded && (
-                    <span className="import-badge import-badge--warn" data-testid="badge-pilot">
+                    <span
+                      className="import-badge import-badge--warn"
+                      data-testid="badge-pilot"
+                      title={PILOT_EXCLUDED_HELP}
+                    >
                       Pilot ausgeschlossen
                     </span>
                   )}
@@ -208,6 +230,28 @@ export default function ImportCandidates({ regionId, organizersById }) {
                   >
                     Ablehnen
                   </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy}
+                    data-testid={`import-defer-${c.id}`}
+                    onClick={() => moveTo(c, 'reviewed')}
+                  >
+                    Zurückstellen
+                  </button>
+                </div>
+              )}
+              {status === 'reviewed' && (
+                <div className="moderation-card-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy}
+                    data-testid={`import-reopen-${c.id}`}
+                    onClick={() => moveTo(c, 'found')}
+                  >
+                    Wieder öffnen
+                  </button>
                 </div>
               )}
             </li>
@@ -243,6 +287,9 @@ export default function ImportCandidates({ regionId, organizersById }) {
         <p>
           Dieser Kandidat ist vom Pilot ausgeschlossen. Wenn du ihn trotzdem annimmst, wird der
           Ausschluss übergangen.
+        </p>
+        <p className="import-hint" data-testid="pilot-help">
+          {PILOT_EXCLUDED_HELP}
         </p>
       </ConfirmDialog>
 

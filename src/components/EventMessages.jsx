@@ -66,6 +66,9 @@ export default function EventMessages({
   organizerName,
   onReady,
   onReject,
+  // Imported event nobody has claimed: there is no organizer to read or be mailed,
+  // so messages are internal notes and a rejection needs no reason.
+  internalOnly = false,
 }) {
   const { user, role, staffRegionIds } = useAuth();
   const { messages, loading, sending, sendMessage, editMessage, deleteMessage, markAsRead } =
@@ -81,7 +84,8 @@ export default function EventMessages({
   // box ticked): such a message sends no mail until the event is rejected.
   const [messageKind, setMessageKind] = useState(null);
   // Rejection reasons only where a rejection follows: someone else's pending event.
-  const offersRejection = writesAsStaff && eventStatus === 'pending';
+  const offersRejection = writesAsStaff && eventStatus === 'pending' && !internalOnly;
+  const offersInternalReject = writesAsStaff && eventStatus === 'pending' && internalOnly;
   const sendsAsRejection = offersRejection && messageKind === REJECTION_MESSAGE_KIND;
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -199,7 +203,7 @@ export default function EventMessages({
         {writesAsStaff && (
           <span className="event-messages-hint">
             <ShieldCheck size={14} aria-hidden="true" />
-            Admin-Nachricht
+            {internalOnly ? 'Interne Notiz' : 'Admin-Nachricht'}
           </span>
         )}
       </header>
@@ -329,14 +333,22 @@ export default function EventMessages({
             if (isHtmlEmpty(value)) setMessageKind(null);
           }}
           placeholder={
-            writesAsStaff
-              ? 'Beschreibe, was am Event geändert werden soll…'
-              : 'Schreibe eine Antwort an das Admin-Team…'
+            internalOnly
+              ? 'Interne Notiz für das Team…'
+              : writesAsStaff
+                ? 'Beschreibe, was am Event geändert werden soll…'
+                : 'Schreibe eine Antwort an das Admin-Team…'
           }
           maxLength={MAX_MESSAGE_LENGTH}
           testId="event-message-input"
           eventId={eventId}
         />
+        {internalOnly && writesAsStaff && (
+          <p className="event-messages-rejection-hint" data-testid="event-message-internal-hint">
+            Dieses Event gehört noch der Redaktion und hat keine Veranstalter:in. Nachrichten sind
+            interne Notizen, es wird keine E-Mail verschickt.
+          </p>
+        )}
         {sendsAsRejection && (
           <p className="event-messages-rejection-hint" data-testid="event-message-rejection-hint">
             Diese Nachricht löst noch keine E-Mail aus. Die E-Mail mit diesem Grund geht erst raus,
@@ -375,7 +387,7 @@ export default function EventMessages({
               ))}
             </select>
           )}
-          {writesAsStaff && (
+          {writesAsStaff && !internalOnly && (
             <>
               <button
                 type="button"
@@ -404,6 +416,19 @@ export default function EventMessages({
               onClick={() =>
                 onReject(rejectionReasonFromMessage(latestStaffMessage(messages)?.text))
               }
+              data-testid="event-message-reject"
+              aria-label="Ablehnen"
+              title="Ablehnen"
+            >
+              <Ban size={16} aria-hidden="true" />
+              <span>Ablehnen</span>
+            </button>
+          )}
+          {offersInternalReject && onReject && (
+            <button
+              type="button"
+              className="btn btn-subtle-danger btn-sm"
+              onClick={() => onReject('')}
               data-testid="event-message-reject"
               aria-label="Ablehnen"
               title="Ablehnen"

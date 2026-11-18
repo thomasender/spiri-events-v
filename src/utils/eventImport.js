@@ -51,6 +51,16 @@ export function isCuratedEvent(event) {
 }
 
 /**
+ * A curated event nobody has claimed yet (`curation.claimable !== false`): still
+ * owned by the curator account, no organizer address. Synced copy of
+ * functions/src/eventImport.ts.
+ */
+export function isUnclaimedCuratedEvent(event) {
+  const curation = curationOf(event);
+  return curation !== null && curation.claimable !== false;
+}
+
+/**
  * A curated event whose organizer has not consented yet (no
  * `curation.consentAt`): never public (calendar, ICS, sitemap, prerender,
  * Instagram).
@@ -58,6 +68,29 @@ export function isCuratedEvent(event) {
 export function isCuratedWithoutConsent(event) {
   const curation = curationOf(event);
   return curation !== null && curation.consentAt == null;
+}
+
+export const IMPORT_VISIBILITY_DOC = 'app_settings/importVisibility';
+
+/**
+ * UI-level hide (docs/event-import.md, "Visibility in Review"): unclaimed curated
+ * events are dropped from the staff review lists unless the viewer is a
+ * Super-Admin or the Super-Admin switched `moderatorsSeeInReview` on.
+ */
+export function filterCuratedForReview(events, { isSuperAdmin, moderatorsSeeInReview }) {
+  if (isSuperAdmin || moderatorsSeeInReview) return events;
+  return events.filter((e) => !isUnclaimedCuratedEvent(e));
+}
+
+export const PILOT_EXCLUDED_HELP =
+  'Einzelperson oder Einzelunternehmen. Wir fragen solche Veranstalter:innen im Pilot nicht an, weil für sie strengere Datenschutz- und Werberegeln gelten. Annehmen nur, wenn du sie bewusst trotzdem aufnehmen willst.';
+
+export const NO_CONSENT_APPROVE_MESSAGE =
+  'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.';
+
+/** Why approving is not offered for this event (German), or null when it may be approved. */
+export function approveBlockedReason(event) {
+  return isCuratedWithoutConsent(event) ? NO_CONSENT_APPROVE_MESSAGE : null;
 }
 
 // ── Curator account (scripts/ensure-curator-account.mjs) ─────────────
@@ -161,7 +194,7 @@ export const LEGAL_FORM_LABELS = Object.freeze({
 
 export const CANDIDATE_STATUS_LABELS = Object.freeze({
   found: 'Gefunden',
-  reviewed: 'Geprüft',
+  reviewed: 'Zurückgestellt',
   published: 'Übernommen',
   rejected: 'Abgelehnt',
   duplicate: 'Duplikat',

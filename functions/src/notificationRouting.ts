@@ -17,6 +17,12 @@ export interface EventSnapshot {
   contentKey?: string | null;
   /** True for events imported by the curation team (they carry `curation`, docs/event-import.md). */
   curated?: boolean;
+  /**
+   * Curated and not yet claimed (`curation.claimable !== false`): owned by the
+   * curator account, no organizer address. No status / trash / reject / change
+   * request mail may go out for it (docs/event-import.md, "Review comments").
+   */
+  curatedUnclaimed?: boolean;
 }
 
 // Fields an owner can change on an approved event (src/utils/eventReviewFields.js).
@@ -148,6 +154,9 @@ export function decideEventStatusNotification(
   // Pre-entered events of the system account "Dein Tribe" (Trello 6afb1116) have
   // no owner who could read a mail; the organizer is reached via the moderator.
   if (after.createdBy === SYSTEM_UID && afterStatus !== 'pending') return null;
+  // Unclaimed curated events have no organizer to mail (the curator mailbox is not
+  // one): approve, reject, delete and unpublish stay internal until the claim.
+  if (after.curatedUnclaimed && afterStatus !== 'pending') return null;
 
   // An owner edited an approved event and it stayed approved (Trello 6af0678b):
   // the owner still gets the "Dein Event ist live" mail.
@@ -244,6 +253,7 @@ export function decideAdminMessageNotification(
   slug?: string | null
 ): ChangesRequestedDecision | null {
   if (message.authorRole !== 'Admin') return null;
+  if (eventSnapshot.curatedUnclaimed) return null;
   // A rejection reason is mailed with "Dein Event wurde abgelehnt" once staff
   // rejects the event, not as a change request (no double mail).
   if (message.kind === 'rejection') return null;

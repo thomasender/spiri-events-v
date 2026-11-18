@@ -36,6 +36,8 @@ import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQu
 import { buildPublicEventQueryPlan, queryPlanKey } from '../utils/regionQueries';
 import { POSITION_SOURCE_FIELDS, positionFields } from '../lib/eventPosition';
 import { useRegions } from './useRegions';
+import { useReviewVisibility } from './useImportVisibility';
+import { filterCuratedForReview } from '../utils/eventImport';
 import { useRegion } from './useRegion';
 import { useRegionMigrationComplete } from './useRegionMigrationMarker';
 
@@ -380,6 +382,9 @@ export function usePendingEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const regionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
+  // Imported events nobody has claimed are for Super-Admins unless switched on
+  // (docs/event-import.md, "Visibility in Review").
+  const { isSuperAdmin, moderatorsSeeInReview } = useReviewVisibility();
 
   useEffect(() => {
     setLoading(true);
@@ -396,7 +401,8 @@ export function usePendingEvents() {
     return subscribeEventQueries(
       specs,
       (eventData) => {
-        const normalized = normalizeEvents(eventData);
+        const visible = filterCuratedForReview(eventData, { isSuperAdmin, moderatorsSeeInReview });
+        const normalized = normalizeEvents(visible);
         normalized.sort(compareEventsByDateTime);
         setPendingEvents(normalized);
         setLoading(false);
@@ -408,7 +414,7 @@ export function usePendingEvents() {
         setLoading(false);
       }
     );
-  }, [user, role, regionKey]);
+  }, [user, role, regionKey, isSuperAdmin, moderatorsSeeInReview]);
 
   const approveEvent = (eventId) => approveEventAsAdmin(eventId, user.uid);
 

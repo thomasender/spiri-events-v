@@ -303,6 +303,17 @@ export function isCuratedEvent(event: unknown): boolean {
 }
 
 /**
+ * A curated event nobody has claimed yet (`curation.claimable !== false`): it is
+ * still owned by the curator account and has no organizer address, so there is
+ * nobody to mail about its review / deletion. After the claim `claimable` is
+ * false and the event behaves like a normal one.
+ */
+export function isUnclaimedCuratedEvent(event: unknown): boolean {
+  const curation = curationOf(event);
+  return curation !== null && curation.claimable !== false;
+}
+
+/**
  * A curated event whose organizer has not consented yet
  * (no `curation.consentAt`). Such an event must never be public: no
  * calendar, ICS, sitemap, prerender, Instagram.

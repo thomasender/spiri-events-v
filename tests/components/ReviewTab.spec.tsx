@@ -698,4 +698,24 @@ describe('ReviewTab — imported events without consent', () => {
       )
     );
   });
+
+  it('rejects an unclaimed imported event without a reason and says no mail goes out', async () => {
+    mockUsePendingEvents.pendingEvents = [curated('TS')];
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Ablehnen' }));
+    expect(screen.getByTestId('review-reject-internal')).toHaveTextContent(
+      'keine E-Mail verschickt'
+    );
+    const confirm = screen
+      .getAllByRole('button', { name: 'Ablehnen' })
+      .find((b) => b.classList.contains('confirm-confirm'))!;
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledTimes(1));
+    expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
+      status: 'trashed',
+      trashKind: 'rejected',
+      trashReason: null,
+    });
+  });
 });

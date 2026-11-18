@@ -348,6 +348,56 @@ All callables go through `src/utils/importAdminApi.js` (mock it in tests); the b
 written from the client (rules: Super-Admin, id = `blocklistIdAsync(value)`, an async WebCrypto
 copy of `blocklistId`, parity tested in `tests/components/ImportTab.spec.tsx`).
 
+Follow-ups on this tab:
+
+- **Layout**: the intro paragraph is a flex item of a column here; its `flex: 1 1 320px` from
+  `ModerationTab.css` (meant for a header row) turned into a 320px height, the gap above the
+  region select. `ImportTab.css` sets `flex: 0 0 auto` and a `--space-3` gap for all three views.
+- **"Pilot ausgeschlossen"** (`pilotExcluded`: individuals / sole proprietors, higher legal
+  risk) has a tooltip and the same plain-German explanation in the confirm dialog
+  (`PILOT_EXCLUDED_HELP`).
+- **"Zurückgestellt"** (stored value stays `reviewed`, label was "Geprüft"): "Zurückstellen" on a
+  `found` candidate and "Wieder öffnen" on a deferred one write `status` directly
+  (`setCandidateStatus`; the `import_candidates` rules already allow any valid status for
+  Super-Admins). Deferred candidates cannot be accepted until reopened.
+- **Visibility switch** "Import-Events für Moderator:innen im Prüfen-Tab sichtbar" (see below).
+
+### Visibility in Review (UI-level hide)
+
+Unclaimed curated events (`curation` set, `claimable !== false`) are shown in the Review tab,
+the Review dot / header count and the "In Klärung" list **only to Super-Admins**, unless a
+Super-Admin switches on `app_settings/importVisibility` = `{ moderatorsSeeInReview: boolean,
+updatedAt }` (missing = off). The doc is readable by everyone (generic `app_settings` read; only
+`import` and `instagram` are Super-Admin only) and writable only by Super-Admins (own rules
+block: `hasOnly(['moderatorsSeeInReview','updatedAt'])`, bool).
+
+This is **a hide in the client, not access control**. Firestore rules cannot filter query
+results, and a moderator's query (`status == 'pending'` and `regionId in [...]`) must stay valid
+or the whole Review tab fails, so the events read rules are unchanged: a moderator of the region
+can still read these docs directly. What they contain is only public facts the organizer already
+published on its own website. The filter (`filterCuratedForReview`) sits in the data layer
+(`usePendingEvents`, `useEventsWithMessages`, `useAdminAlerts`, via `useReviewVisibility`), so
+list, counts and badges agree. After a claim the event is a normal event again.
+
+### Review comments and delete reasons for unclaimed curated events
+
+An unclaimed curated event is owned by the curator account and has no `organizer.email`.
+A comment or reason "to the organizer" would reach nobody (or the curator mailbox). So for
+`isUnclaimedCuratedEvent`:
+
+- UI: `requiresDeleteReason` is false (no reason field when trashing); the Review tab and the
+  event page reject without a reason and say that no e-mail is sent; the message thread on the
+  event page is labelled "Interne Notiz" and offers no rejection templates / mail templates.
+- Backend (`notificationRouting.ts`, snapshot field `curatedUnclaimed`): no approved, trashed,
+  rejected, unpublished or change-request mail for such an event (the "submitted" guard for
+  `curated` stays). Needs a Cloud Functions deploy.
+- After the claim (`claimable: false`, `createdBy` = the real user) everything works as for a
+  normal event.
+
+Approve is not offered for curated events without `curation.consentAt` (event page button
+disabled with the Review-tab hint text; `approveBlockedReason`); a refusal by the rules shows
+the same message.
+
 Other places: the **Regionen** tab shows "Import: x von 15 Events, davon y mit Consent" for
 inactive import regions with curated events. It is computed **client-side** from bounded reads
 (published candidates with an `eventId`, organizers with a publishable consent;

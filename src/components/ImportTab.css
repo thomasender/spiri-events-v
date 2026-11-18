@@ -1,5 +1,35 @@
 /* "Import" admin tab; cards, notices and buttons reuse ModerationTab.css. */
 
+/* The intro sits directly in a column here (not in a header row as in the
+   Moderation tab): without this its 320px flex-basis becomes a 320px height,
+   which was the big gap above the region select. */
+.import-tab > .moderation-intro {
+  flex: 0 0 auto;
+}
+
+.import-tab {
+  gap: var(--space-3);
+}
+
+.import-visibility {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.import-visibility-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-88);
+}
+
+.import-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-81);
+}
+
 .import-toolbar {
   display: flex;
   flex-wrap: wrap;
