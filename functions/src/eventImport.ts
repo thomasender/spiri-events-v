@@ -131,6 +131,14 @@ function sha256Hex(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
+/**
+ * `import_organizers.previewTokenHash`: sha256 (hex) of the plain preview
+ * token. Only the hash is stored; the token travels in the outreach mail.
+ */
+export function hashPreviewToken(token: string): string {
+  return sha256Hex(String(token ?? ''));
+}
+
 // ── Fingerprint ───────────────────────────────────────────────────────
 
 const TRACKING_PARAM = /^(utm_[a-z]+|fbclid|gclid|mc_cid|mc_eid|ref)$/i;
@@ -166,6 +174,37 @@ export function normalizeTitle(title: string): string {
     .replace(/ß/g, 'ss')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
+}
+
+function titleBigrams(title: string): string[] {
+  const text = normalizeTitle(title).replace(/ /g, '');
+  if (text.length < 2) return text ? [text] : [];
+  const grams: string[] = [];
+  for (let i = 0; i < text.length - 1; i += 1) grams.push(text.slice(i, i + 2));
+  return grams;
+}
+
+/**
+ * Similarity 0..1 of two event titles for the claim dedupe hint
+ * (findCuratedMatches): Sørensen-Dice over character bigrams of the
+ * normalised titles, so case, accents, punctuation and spacing do not matter.
+ */
+export function claimTitleSimilarity(a: string, b: string): number {
+  const x = titleBigrams(a);
+  const y = titleBigrams(b);
+  if (x.length === 0 || y.length === 0) return 0;
+  if (normalizeTitle(a) === normalizeTitle(b)) return 1;
+  const counts = new Map<string, number>();
+  for (const g of x) counts.set(g, (counts.get(g) ?? 0) + 1);
+  let common = 0;
+  for (const g of y) {
+    const n = counts.get(g) ?? 0;
+    if (n > 0) {
+      common += 1;
+      counts.set(g, n - 1);
+    }
+  }
+  return (2 * common) / (x.length + y.length);
 }
 
 /** YYYY-MM-DD from an ISO date or date-time; anything else trimmed. */
