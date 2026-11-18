@@ -46,6 +46,12 @@ vi.mock('firebase/functions', () => ({
     throw new Error(`unexpected callable ${name}`);
   },
 }));
+const importApi = vi.hoisted(() => ({
+  fetchImportProgress: vi.fn(async (regionId: string) =>
+    regionId === 'tirol' ? { importedEvents: 6, consentedEvents: 2 } : null
+  ),
+}));
+vi.mock('../../src/utils/importAdminApi', () => importApi);
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({ user: { uid: 'me' }, role: state.role, staffRegionIds: state.staffRegionIds }),
 }));
@@ -102,6 +108,16 @@ async function row(id: string) {
 }
 
 describe('RegionsTab', () => {
+  it('shows the import progress of an inactive region with curated events', async () => {
+    render(<RegionsTab />);
+    const tirol = await row('tirol');
+    expect(await within(tirol).findByTestId('region-import-progress')).toHaveTextContent(
+      'Import: 6 von 15 Events, davon 2 mit Consent'
+    );
+    expect(within(await row('vorarlberg')).queryByTestId('region-import-progress')).toBeNull();
+    expect(importApi.fetchImportProgress).not.toHaveBeenCalledWith('vorarlberg');
+  });
+
   it('renders nothing for moderators and normal users', () => {
     for (const [role, ids] of [
       ['RegionModerator', ['tirol']],

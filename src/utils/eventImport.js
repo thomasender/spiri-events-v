@@ -108,3 +108,68 @@ export function buildImportSettingsDoc(curatorUid, { now }) {
   if (!curatorUid) throw new Error('curatorUid fehlt');
   return { curatorUid, updatedAt: now };
 }
+
+// ── Blocklist ids (browser) ───────────────────────────────────────────
+// Same normalisation as functions/src/eventImport.ts (guarded by
+// tests/components/importAdminTab.spec.tsx); the hash is async because the
+// browser only has WebCrypto.
+
+/** Lower-cased e-mail address or domain (without "www." / leading "@"). */
+export function normalizeBlocklistValue(emailOrDomain) {
+  const value = String(emailOrDomain ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
+  if (value.includes('@')) return value;
+  return value
+    .replace(/^[a-z]+:\/\//, '')
+    .replace(/[/?#].*$/, '')
+    .replace(/:\d+$/, '')
+    .replace(/^www\./, '')
+    .replace(/\.$/, '');
+}
+
+export function blocklistKind(emailOrDomain) {
+  return normalizeBlocklistValue(emailOrDomain).includes('@') ? 'email' : 'domain';
+}
+
+/** Doc id in import_blocklist: sha256 (hex) of the normalised e-mail or domain. */
+export async function blocklistIdAsync(emailOrDomain) {
+  const value = normalizeBlocklistValue(emailOrDomain);
+  if (!value) throw new Error('blocklistId needs an e-mail address or domain');
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ── Admin tab labels ──────────────────────────────────────────────────
+
+export const CONSENT_LABELS = Object.freeze({
+  none: 'noch nicht angeschrieben',
+  asked: 'angeschrieben',
+  manual_ok: 'einmalig freigegeben',
+  sync_ok: 'Sync erlaubt',
+  declined: 'abgelehnt',
+  claimed: 'übernommen',
+});
+
+export const LEGAL_FORM_LABELS = Object.freeze({
+  company: 'Unternehmen',
+  verein: 'Verein',
+  individual: 'Einzelperson',
+  unknown: 'unbekannt',
+});
+
+export const CANDIDATE_STATUS_LABELS = Object.freeze({
+  found: 'Gefunden',
+  reviewed: 'Geprüft',
+  published: 'Übernommen',
+  rejected: 'Abgelehnt',
+  duplicate: 'Duplikat',
+});
+
+export const REJECT_REASONS = Object.freeze([
+  'kein Fit',
+  'Duplikat',
+  'falsches Datum',
+  'Sonstiges',
+]);

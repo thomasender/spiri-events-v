@@ -47,6 +47,7 @@ import '../components/EventStatusMismatchBanner.css';
 import '../components/ModerationTab.css';
 import '../components/ModerationLogTab.css';
 import '../components/RegionsTab.css';
+import '../components/ImportTab.css';
 import '../components/RegionAboutTab.css';
 import '../components/StaffNotificationsTab.css';
 import '../pages/AdminPage.css';

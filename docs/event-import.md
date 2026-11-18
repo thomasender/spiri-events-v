@@ -189,6 +189,37 @@ node scripts/ensure-curator-account.mjs --project spirieventsvbg --allow-prod --
   in the sign-up shape (`buildUserProfileDocs`, slug `tribe-redaktion`) and
   `app_settings/import.curatorUid`. Prints the UID. Idempotent.
 
+## Admin tab
+
+Verwaltung -> Regionen -> **Import** (`?tab=import`, Super-Admin only; everyone else gets
+"Kein Zugriff"; `ImportTab.jsx`, registered in `AdminPage.jsx` and `ADMIN_TABS`). Region filter
+(`zuerich`, `tirol`, `berlin` plus regions that appear in a run) and three views:
+
+- **Kandidaten**: `import_candidates` of the region by status (default `found`), live, max 100,
+  newest first (index `regionId + status + fetchedAt`); counts per status via `getCountFromServer`.
+  Shows facts, `confidence`, `pilotExcluded`, the verbatim `dateQuote`, source link and the image
+  URL as a **text link** (no third-party `<img>`). "Annehmen" confirms, then calls
+  `importAcceptCandidate`; for `pilotExcluded` a second confirm follows and `force: true` is sent.
+  "Ablehnen" asks for a reason (kein Fit, Duplikat, falsches Datum, Sonstiges).
+- **Veranstalter**: `import_organizers` (index `regionId + name`, max 200) with consent badge,
+  candidate / event counts (from the region's candidates, max 500), last `outreach` entry, preview
+  link (`createPreviewLink`, copied to the clipboard, shows expiry; "Link neu erzeugen" when a
+  token exists), "Testmail an: [Adresse]" + "Testmail senden" (`sendOutreachMail` with
+  `testRecipient`; there is deliberately **no plain send button**, and a banner says real
+  organizer addresses are never mailed on staging) and blocklist toggles for the e-mail address
+  and the website domain. Consent is never editable here; the backend sets it.
+- **Läufe**: last 50 `import_runs` with counts and errors.
+
+All callables go through `src/utils/importAdminApi.js` (mock it in tests); the blocklist is
+written from the client (rules: Super-Admin, id = `blocklistIdAsync(value)`, an async WebCrypto
+copy of `blocklistId`, parity tested in `tests/components/ImportTab.spec.tsx`).
+
+Other places: the **Regionen** tab shows "Import: x von 15 Events, davon y mit Consent" for
+inactive import regions with curated events. It is computed **client-side** from bounded reads
+(published candidates with an `eventId`, organizers with a publishable consent;
+`fetchImportProgress`), not by `adminListRegionActivation`, and does not change the activation
+conditions. The **Review** tab marks curated events "importiert" (and "ohne Consent").
+
 ## Open points
 
 - Each curated event written as `pending` triggers the usual "neues Event eingereicht" mail to
