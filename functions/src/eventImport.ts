@@ -544,6 +544,9 @@ export function candidateToEventData(
       sourceUrl,
       importedAt: now,
       claimable: true,
+      // The source named no usable price: 'free' above is only the form default, so the review
+      // must check the price before anything is approved.
+      ...(CONTRIBUTIONS.includes(str(x.contribution)) ? {} : { priceUnknown: true }),
     },
   };
 }
