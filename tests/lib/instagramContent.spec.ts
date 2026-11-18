@@ -201,6 +201,20 @@ describe('instagram content', () => {
       expect(caption).not.toContain('wiederholt sich');
     });
 
+    it('adds the own time to a custom date that has one', () => {
+      const caption = buildCaption(
+        {
+          ...base,
+          recurrence: 'custom',
+          customDates: ['2026-11-02', '2026-11-09'],
+          customTimes: { '2026-11-09': { time: '19:00', endTime: '' } },
+        },
+        null,
+        now
+      );
+      expect(caption).toContain('🗓 die Termine: 26. Okt; 2. Nov; 9. Nov 19:00 Uhr\n');
+    });
+
     it('lists exactly 20 dates but leaves the line out with more than 20', () => {
       const twenty = buildCaption(
         { ...base, recurrenceEndDate: '2027-03-08' }, // 20 Mondays

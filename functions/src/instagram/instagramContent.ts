@@ -89,6 +89,7 @@ export interface InstagramEventInput {
   recurrence?: unknown;
   recurrenceEndDate?: unknown;
   customDates?: unknown;
+  customTimes?: unknown;
   exceptionDates?: unknown;
   cancelled?: unknown;
   cancelledDates?: unknown;
@@ -629,7 +630,7 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
       .join('\n'),
     [
       dates.length > 0 && dates.length <= MAX_CAPTION_DATES
-        ? `🗓 die Termine: ${dates.map((o) => formatDayMonth(asString(o.date))).join('; ')}`
+        ? `🗓 die Termine: ${dates.map((o) => formatCaptionDate(event, o)).join('; ')}`
         : '',
       pattern && `🔁 Der Event wiederholt sich ${pattern}.`,
     ]
@@ -638,6 +639,16 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
   ]
     .filter(Boolean)
     .join('\n\n');
+}
+
+/** "12. März", with its own time when a date of the series has one ("12. März 18:00 Uhr"). */
+function formatCaptionDate(event: InstagramEventInput, occurrence: InstagramEventInput): string {
+  const day = formatDayMonth(asString(occurrence.date));
+  if (asString(occurrence.time) === asString(event.time)) {
+    if (asString(occurrence.endTime) === asString(event.endTime)) return day;
+  }
+  const time = formatEventTime(occurrence.time, occurrence.endTime);
+  return time ? `${day} ${time}` : day;
 }
 
 /** "Soundhealing in Altach:" (second line of the caption); '' without a category. */

@@ -24,6 +24,7 @@ import { checkRateLimit, enforceRateLimit, recordRateLimitAttempt } from './rate
 import { requestSiteOrigin } from './siteOrigin';
 import { getUserSiteOrigin } from './userPreferences';
 import { todayInVienna } from './eventCancellation';
+import { customOccurrenceTime } from './instagram/instagramOccurrences';
 import {
   EVENT_REGISTRATION_RATE_LIMITS,
   confirmationMarkerId,
@@ -132,15 +133,17 @@ export const submitEventRegistration = onCall(
       }
     }
 
-    const event = {
-      title: readText(eventData.title) ?? '',
-      slug: readText(eventData.slug),
-      time: readText(eventData.time),
-    };
     // A single event has exactly one date; for a series the guest's chosen date is needed.
     const mailDate =
       input.occurrenceDate ??
       (!eventData.recurrence || eventData.recurrence === 'none' ? readText(eventData.date) : null);
+    // A date of a custom series may have its own time (Trello 6afd86b4).
+    const ownTime = mailDate ? customOccurrenceTime(eventData, mailDate) : null;
+    const event = {
+      title: readText(eventData.title) ?? '',
+      slug: readText(eventData.slug),
+      time: ownTime?.time || readText(eventData.time),
+    };
     const organizerUid = readText(eventData.createdBy);
     const organizerData = (eventData.organizer ?? {}) as Record<string, unknown>;
     const account = await organizerAccount(organizerUid);

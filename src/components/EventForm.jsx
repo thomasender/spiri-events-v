@@ -38,7 +38,12 @@ import {
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
+  buildCustomTimesPayload,
+  invalidCustomTimeDates,
+  moveFormCustomTime,
+  setFormCustomTime,
 } from '../utils/customSeriesUpdates';
+import CustomDateTimeInputs from './CustomDateTimeInputs';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import {
   bezirkLabel,
@@ -105,6 +110,8 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  // Own times of single dates ({ 'YYYY-MM-DD': { time?, endTime? } }), see CustomDateTimeInputs.
+  customTimes: {},
   exceptionDates: [],
   category: '',
   bezirk: '',
@@ -218,6 +225,10 @@ export default function EventForm({ event }) {
         recurrence: event.recurrence || 'none',
         recurrenceEndDate: event.recurrenceEndDate || '',
         customDates: Array.isArray(event.customDates) ? [...event.customDates] : [],
+        customTimes:
+          event.customTimes && typeof event.customTimes === 'object'
+            ? { ...event.customTimes }
+            : {},
         exceptionDates: Array.isArray(event.exceptionDates) ? [...event.exceptionDates] : [],
         category: event.category || '',
         bezirk: event.isOnline ? '' : event.bezirk || '',
@@ -432,11 +443,13 @@ export default function EventForm({ event }) {
         recurrence: 'none',
         recurrenceEndDate: '',
         customDates: [],
+        customTimes: {},
       }));
       setErrors((prev) => ({
         ...prev,
         recurrenceEndDate: null,
         customDates: null,
+        customTimes: null,
       }));
     }
   };
@@ -514,6 +527,17 @@ export default function EventForm({ event }) {
       (!formData.customDates || formData.customDates.length === 0)
     ) {
       newErrors.customDates = 'Bitte mindestens ein Datum hinzufügen';
+    }
+    if (
+      formData.recurrence === 'custom' &&
+      !formData.endDate &&
+      invalidCustomTimeDates(
+        formData.customTimes,
+        (formData.customDates || []).filter((d) => d !== formData.date),
+        formData
+      ).length > 0
+    ) {
+      newErrors.customTimes = 'Die Endzeit muss nach der Startzeit liegen';
     }
     if (!isValidLink(formData.link)) {
       newErrors.link = 'Bitte gib eine gültige URL ein';
@@ -663,6 +687,8 @@ export default function EventForm({ event }) {
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
       // A Bezirk / Landkreis chosen in the select belongs to the region of the form.
       ...(name === 'bezirk' ? { placeRegionId: '' } : {}),
+      // Own times of single dates only belong to "An einzelnen Terminen".
+      ...(name === 'recurrence' && value !== 'custom' ? { customTimes: {} } : {}),
       // A new region has its own Bezirke / Landkreise (and Orte): drop what no longer fits.
       ...(name === 'regionId'
         ? {
@@ -756,19 +782,39 @@ export default function EventForm({ event }) {
   };
 
   const handleRemoveCustomDate = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).filter((_, i) => i !== index),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).filter((_, i) => i !== index);
+      const removed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, removed, '', customDates),
+      };
+    });
   };
 
   const handleCustomDateChange = (index, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).map((d, i) => (i === index ? value : d)),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).map((d, i) => (i === index ? value : d));
+      const changed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, changed, value, customDates),
+      };
+    });
     if (errors.customDates) {
       setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
+  const handleCustomTimeChange = (date, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      customTimes: setFormCustomTime(prev.customTimes, date, field, value),
+    }));
+    if (errors.customTimes) {
+      setErrors((prev) => ({ ...prev, customTimes: null }));
     }
   };
 
@@ -871,6 +917,16 @@ export default function EventForm({ event }) {
             ),
           ].sort()
         : [],
+    // Only the dates whose time differs from the one above (Trello 6afd86b4); times of
+    // dates no longer in the series fall away.
+    customTimes:
+      formData.recurrence === 'custom'
+        ? buildCustomTimesPayload(
+            formData.customTimes,
+            (formData.customDates || []).filter((d) => d !== formData.date),
+            formData
+          )
+        : {},
     exceptionDates: seriesExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
@@ -1694,7 +1750,7 @@ export default function EventForm({ event }) {
                 <label>Termine</label>
                 <span className="input-info">
                   <Info size={14} />
-                  <span>Füge einzelne Termine hinzu</span>
+                  <span>Füge einzelne Termine hinzu, die Uhrzeit kannst du pro Termin ändern</span>
                 </span>
               </div>
               <div className="custom-dates-list" data-testid="custom-dates-list">
@@ -1706,6 +1762,19 @@ export default function EventForm({ event }) {
                       onChange={(e) => handleCustomDateChange(index, e.target.value)}
                       data-testid={`custom-date-input-${index}`}
                       aria-label={`Termin ${index + 1}`}
+                    />
+                    <CustomDateTimeInputs
+                      index={index}
+                      date={date}
+                      customTimes={formData.customTimes}
+                      defaults={formData}
+                      fixed={Boolean(date) && date === formData.date}
+                      invalid={
+                        !formData.endDate &&
+                        date !== formData.date &&
+                        invalidCustomTimeDates(formData.customTimes, [date], formData).length > 0
+                      }
+                      onChange={handleCustomTimeChange}
                     />
                     <button
                       type="button"
@@ -1731,6 +1800,11 @@ export default function EventForm({ event }) {
               {errors.customDates && (
                 <span className="error-text" data-testid="custom-dates-error">
                   {errors.customDates}
+                </span>
+              )}
+              {errors.customTimes && (
+                <span className="error-text" data-testid="custom-times-error">
+                  {errors.customTimes}
                 </span>
               )}
             </div>

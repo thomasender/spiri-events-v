@@ -406,7 +406,7 @@ service cloud.firestore {
       // Everything else in this list is saved without a new review (Trello
       // 6af0678b): date / time, place, price, link, contact (+ messengers), registration,
       // category, the whole series (recurrence, end date, more or fewer
-      // customDates, exceptions), the organizer's name, the cover crop
+      // customDates and their own times in customTimes, exceptions), the organizer's name, the cover crop
       // (focal point / zoom), Instagram settings incl. the own Instagram photo
       // and cancelling single dates or the event. The list is kept in sync
       // with OWNER_APPROVED_PATCH_FIELDS in src/utils/eventReviewFields.js
@@ -418,7 +418,7 @@ service cloud.firestore {
                                 'contribution', 'fee', 'feeMax', 'priceCurrency', 'feeNote',
                                 'firstSessionFree',
                                 'link', 'kontakt', 'kontaktMessenger', 'registration', 'category', 'organizer',
-                                'recurrence', 'recurrenceEndDate', 'customDates', 'exceptionDates',
+                                'recurrence', 'recurrenceEndDate', 'customDates', 'customTimes', 'exceptionDates',
                                 'imageFocalPoint', 'imageZoom',
                                 'instagramConsent', 'instagramHandleOverride', 'instagramExtraHandles', 'instagramImage',
                                 'cancelled', 'cancelledDates',
@@ -426,6 +426,7 @@ service cloud.firestore {
           && !changed.hasAny(['title', 'description', 'imageUrl', 'imageThumbUrl'])
           && (!changed.hasAny(['instagramImage']) || isInstagramPhotoKept(before, after))
           && (!changed.hasAny(['customDates']) || after.customDates is list)
+          && (!changed.hasAny(['customTimes']) || after.customTimes is map)
           && (!changed.hasAny(['recurrenceEndDate']) || after.recurrenceEndDate is string)
           && (!changed.hasAny(['organizer']) || isOwnerOrganizerNameChange(before, after));
       }

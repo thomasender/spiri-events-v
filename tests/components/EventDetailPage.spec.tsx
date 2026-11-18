@@ -1063,6 +1063,24 @@ describe('EventDetailPage — recurrence dates list (4bVW6i7o)', () => {
       expect(currentItems).toHaveLength(1);
       expect(currentItems[0]).toHaveTextContent('1. September 2026');
     });
+
+    it('shows the own time of a date next to it and as Uhrzeit of that date (6afd86b4)', async () => {
+      mockFirestoreDoc.getDocResult = {
+        id: customDatesEvent.id,
+        data: {
+          ...customDatesEvent,
+          customTimes: { '2026-08-18': { time: '09:00', endTime: '' } },
+        },
+      };
+      renderCustomDatesEventPage('2026-08-18');
+      expect(await screen.findByText('Individuelle Termine')).toBeInTheDocument();
+
+      const times = screen.getAllByTestId('event-detail-date-time');
+      expect(times).toHaveLength(1);
+      expect(times[0]).toHaveTextContent('09:00 Uhr');
+      expect(times[0].closest('li')).toHaveTextContent('18. August 2026');
+      expect(screen.getByTestId('event-detail-time')).toHaveTextContent('09:00 Uhr');
+    });
   });
 
   describe('weekly series', () => {
