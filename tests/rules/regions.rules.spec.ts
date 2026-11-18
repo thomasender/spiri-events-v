@@ -364,6 +364,24 @@ describe('event import (import_* collections, events.curation)', () => {
     await assertSucceeds(deleteDoc(doc(db, 'import_runs/r1')));
   });
 
+  it('the preview log is readable by Super-Admins only and written by nobody', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'import_organizers/org1/previewViews/v1'), {
+        at: 1,
+        imageUrls: ['https://yoga-tirol.at/kakao.jpg'],
+        eventCount: 1,
+      });
+    });
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(getDoc(doc(admin, 'import_organizers/org1/previewViews/v1')));
+    await assertFails(setDoc(doc(admin, 'import_organizers/org1/previewViews/v2'), { at: 2 }));
+    await assertFails(deleteDoc(doc(admin, 'import_organizers/org1/previewViews/v1')));
+    for (const db of [env.unauthenticatedContext().firestore(), ctx('member'), ctx('mod')]) {
+      await assertFails(getDoc(doc(db, 'import_organizers/org1/previewViews/v1')));
+      await assertFails(setDoc(doc(db, 'import_organizers/org1/previewViews/v3'), { at: 3 }));
+    }
+  });
+
   it('even a Super-Admin cannot break the privacy rules', async () => {
     const db = env.authenticatedContext('admin').firestore();
     // Plain preview token, consent record from the client, unknown enum values.

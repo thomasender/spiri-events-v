@@ -111,7 +111,13 @@ export function regionSlugFromPath(pathname) {
  * (or combined view) of the page the visitor came from: neutral header, and the
  * footer's region links ("Über uns") still lead back to that region.
  */
-export const NEUTRAL_PAGE_PATHS = ['/impressum', '/datenschutz', '/nutzungsbedingungen', '/login'];
+export const NEUTRAL_PAGE_PATHS = [
+  '/impressum',
+  '/datenschutz',
+  '/datenschutz-import',
+  '/nutzungsbedingungen',
+  '/login',
+];
 
 export const isNeutralPagePath = (pathname) => NEUTRAL_PAGE_PATHS.includes(pathname);
 

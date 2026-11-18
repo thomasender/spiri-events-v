@@ -56,7 +56,14 @@ function GateInner({ user }) {
   };
 
   // The profile page has the full form already; the moderator invitation has its own wizard.
-  if (pathname.startsWith('/profil') || pathname.startsWith('/einladung')) return null;
+  // The import preview (/vorschau) is for organizers who may not want an account at all.
+  if (
+    pathname.startsWith('/profil') ||
+    pathname.startsWith('/einladung') ||
+    pathname.startsWith('/vorschau')
+  ) {
+    return null;
+  }
 
   return (
     <>

@@ -1,0 +1,218 @@
+.import-preview-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4) var(--space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.import-preview-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--fs-event-title);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.import-preview-heading {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-heading);
+  font-size: var(--text-130);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.import-preview-notice {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-calendar);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.import-preview-events {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.import-preview-event {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-calendar);
+  box-shadow: var(--shadow-sm);
+}
+
+.import-preview-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background-color: var(--bg-secondary);
+}
+
+.import-preview-image--placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-85);
+}
+
+.import-preview-event-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-4);
+}
+
+.import-preview-category {
+  margin: 0;
+  font-size: var(--text-80);
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.import-preview-event-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-125);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.import-preview-meta {
+  margin: 0;
+  font-size: var(--text-90);
+  color: var(--text-secondary);
+}
+
+.import-preview-description {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-95);
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.import-preview-more {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-primary);
+  font-size: var(--text-90);
+  cursor: pointer;
+}
+
+.import-preview-link {
+  margin-top: var(--space-2);
+  font-size: var(--text-90);
+  color: var(--accent-primary);
+  overflow-wrap: anywhere;
+}
+
+.import-preview-published {
+  margin: 0;
+  font-size: var(--text-85);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.import-preview-decision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-calendar);
+}
+
+.import-preview-decline-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+}
+
+.import-preview-decline-box p {
+  margin: 0;
+}
+
+.import-preview-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-95);
+  line-height: 1.55;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.import-preview-check input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
+}
+
+.import-preview-small {
+  margin: 0;
+  font-size: var(--text-85);
+  color: var(--text-secondary);
+}
+
+.import-preview-error {
+  margin: 0;
+  color: var(--error);
+}
+
+.import-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.import-preview-actions .btn {
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.import-preview-decline {
+  color: var(--error);
+}
+
+.import-preview-privacy p {
+  margin: 0;
+  font-size: var(--text-90);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 480px) {
+  .import-preview-page {
+    padding: var(--space-6) var(--space-3) var(--space-12);
+  }
+
+  .import-preview-decision {
+    padding: var(--space-4);
+  }
+
+  .import-preview-events {
+    grid-template-columns: 1fr;
+  }
+}

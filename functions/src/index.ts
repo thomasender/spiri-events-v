@@ -231,3 +231,10 @@ export {
   onDirectMessageMailNotify,
   onKerzenraumMailNotify,
 } from './chat';
+export {
+  createPreviewLink,
+  getImportPreview,
+  submitImportConsent,
+  sendOutreachMail,
+  purgeExpiredImportData,
+} from './importConsentFunctions';
