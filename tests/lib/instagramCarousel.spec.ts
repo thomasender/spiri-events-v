@@ -107,6 +107,9 @@ describe('isCarouselEligible', () => {
     expect(isCarouselEligible(ev({ instagramConsent: undefined }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ instagramConsent: false }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ instagramConsent: 'true' }), WINDOW)).toBe(false);
+    expect(isCarouselEligible(ev({ curation: { organizerRef: 'o1' } } as never), WINDOW)).toBe(
+      false
+    );
     expect(isCarouselEligible(ev({ date: '2026-10-04' }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ date: '2026-10-12' }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ bezirk: '' }), WINDOW)).toBe(false);

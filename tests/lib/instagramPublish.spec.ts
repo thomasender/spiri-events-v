@@ -336,6 +336,28 @@ describe('publishApprovedEvent', () => {
       expect(h.generateImage).not.toHaveBeenCalled();
     });
 
+    it('does not post a curated event before the organizer consented', async () => {
+      const h = makeHarness();
+      const curation = { organizerRef: 'o1', claimable: true };
+      const outcome = await publishApprovedEvent(
+        h.deps,
+        'e1',
+        { status: 'pending' },
+        { ...futureEvent, curation }
+      );
+      expect(outcome).toBe('no-consent');
+      expect(h.posts.size).toBe(0);
+      expect(h.fetchMock).not.toHaveBeenCalled();
+      expect(
+        await publishApprovedEvent(
+          h.deps,
+          'e1',
+          { status: 'pending' },
+          { ...futureEvent, curation: { ...curation, consentAt: new Date() } }
+        )
+      ).toBe('published');
+    });
+
     it('does not post a cancelled event and writes no dedupe doc', async () => {
       const h = makeHarness();
       const outcome = await publishApprovedEvent(

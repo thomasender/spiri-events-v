@@ -7,6 +7,7 @@
  * ../instagramWeeklyCarousel.ts.
  */
 
+import { isCuratedWithoutConsent } from '../eventImport';
 import { DEFAULT_REGION_ID, isInstagramRegion } from '../regions';
 import {
   BASE_HASHTAGS,
@@ -137,6 +138,7 @@ export function isCarouselEligible(
 ): boolean {
   if (event.status !== 'approved') return false;
   if (event.instagramConsent !== true) return false;
+  if (isCuratedWithoutConsent(event)) return false;
   if (!isInstagramRegion(event, [regionId])) return false;
   if (isCancelledOccurrence(event)) return false;
   const date = asString(event.date);
