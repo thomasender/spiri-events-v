@@ -194,6 +194,9 @@ two-line "read this when".
 - Read `docs/guest-event-draft.md` ONLY when you touch who may open `/admin/new`, the wizard's
   draft storage (`wizardDraftStorage.js`, `wizardDraftFiles.js`), its end page for guests /
   unconfirmed e-mails, or the `next` of the confirmation mail (`AuthActionPage`).
+- Read `docs/push-notifications.md` ONLY when you touch Web Push (`public/push-sw.js`,
+  `src/lib/pushMessaging.js`, `functions/src/push.ts` / `pushRouting.ts`, `pushTokens`, the push
+  part of the profile) or set up the VAPID key.
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 

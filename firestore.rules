@@ -701,6 +701,13 @@ service cloud.firestore {
         && (!('notifyOnEventChat' in data) || data.notifyOnEventChat is bool);
     }
 
+    // Push switches (docs/push-notifications.md); missing means off.
+    function isValidPushPrefs(data) {
+      return (!('pushOnEventStatus' in data) || data.pushOnEventStatus is bool)
+        && (!('pushOnReviewMessage' in data) || data.pushOnReviewMessage is bool)
+        && (!('pushStaffReview' in data) || data.pushStaffReview is bool);
+    }
+
     match /users/{uid} {
       allow read: if isAuthenticated() && request.auth.uid == uid;
 
@@ -714,6 +721,7 @@ service cloud.firestore {
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                        'notifyOnDirectMessage', 'notifyOnEventChat',
+                       'pushOnEventStatus', 'pushOnReviewMessage', 'pushStaffReview',
                        'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
                        'eventFormDefaults', 'savedVenues',
                        'siteOrigin', 'termsAcceptedAt', 'termsVersion', 'createdAt', 'updatedAt']
@@ -732,6 +740,7 @@ service cloud.firestore {
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
                     && isValidChatMailPrefs(request.resource.data)
+                    && isValidPushPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
                     && isValidEventFormMemory(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
@@ -757,6 +766,7 @@ service cloud.firestore {
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
                     && isValidChatMailPrefs(request.resource.data)
+                    && isValidPushPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
                     && isValidEventFormMemory(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
@@ -774,6 +784,7 @@ service cloud.firestore {
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                                   'notifyOnDirectMessage', 'notifyOnEventChat',
+                                  'pushOnEventStatus', 'pushOnReviewMessage', 'pushStaffReview',
                                   'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
                                   'eventFormDefaults', 'savedVenues',
                                   'termsAcceptedAt', 'termsVersion', 'updatedAt']);
@@ -813,6 +824,23 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
                       && request.resource.data.read == true;
         allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
+
+      // Push tokens of this person's devices (docs/push-notifications.md). Doc id =
+      // SHA-256 (hex) of the token. Owner only; the functions read them (Admin SDK)
+      // and delete tokens FCM no longer knows.
+      match /pushTokens/{tokenHash} {
+        allow read, delete: if isAuthenticated() && request.auth.uid == uid;
+        allow create, update: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && tokenHash.size() == 64
+                      && request.resource.data.keys().hasOnly(['token', 'platform', 'createdAt', 'lastSeenAt'])
+                      && request.resource.data.token is string
+                      && request.resource.data.token.size() > 0
+                      && request.resource.data.token.size() <= 4096
+                      && (!('platform' in request.resource.data)
+                          || (request.resource.data.platform is string
+                              && request.resource.data.platform.size() <= 40));
       }
 
       // "Last opened" markers for staff notification dots (vX7TgrWN): which

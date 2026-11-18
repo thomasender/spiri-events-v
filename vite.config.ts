@@ -39,6 +39,10 @@ export default defineConfig({
         // so precaching the .woff fallbacks just downloaded ~1 MB nobody uses.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
         globIgnores: ['**/index.html'],
+        // Web Push (docs/push-notifications.md): `push` + `notificationclick`
+        // handlers live in public/push-sw.js and are pulled into the generated
+        // worker, so there is one service worker and autoUpdate stays as it is.
+        importScripts: ['/push-sw.js'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,

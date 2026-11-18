@@ -41,6 +41,7 @@ import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
 import { auth, db, callable, getStorageInstance } from '../lib/firebase';
 import { readPendingRegistration } from '../lib/eventRegistration';
+import { disablePushOnDevice } from '../lib/pushMessaging';
 import { hasGuestWizardDraft } from '../utils/wizardDraftStorage';
 import {
   checkRateLimit,
@@ -394,7 +395,9 @@ export function useAuth() {
   };
 
   const logout = async () => {
-    await dropHeartbeats(auth.currentUser?.uid);
+    const uid = auth.currentUser?.uid;
+    // Push: this device stops getting the account's notifications (shared devices).
+    await Promise.all([dropHeartbeats(uid), uid ? disablePushOnDevice(uid) : null]);
     return signOut(auth);
   };
 
@@ -623,6 +626,8 @@ export function useAuth() {
       mentions.forEach((mention) => batch.delete(mention.ref));
       const adminAlerts = await getDocs(collection(db, 'users', uid, 'adminAlerts'));
       adminAlerts.forEach((alert) => batch.delete(alert.ref));
+      const pushTokens = await getDocs(collection(db, 'users', uid, 'pushTokens'));
+      pushTokens.forEach((token) => batch.delete(token.ref));
       batch.delete(doc(db, 'users', uid, 'seen', 'review'));
       batch.delete(doc(db, 'users', uid, 'publicProfile', 'data'));
       batch.delete(doc(db, 'users', uid));

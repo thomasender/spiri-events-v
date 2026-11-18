@@ -32,6 +32,9 @@ export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnDirectMessage',
   'notifyOnEventChat',
   'notifyNewsletter',
+  'pushOnEventStatus',
+  'pushOnReviewMessage',
+  'pushStaffReview',
 ];
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
@@ -44,6 +47,10 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   notifyOnDirectMessage: true,
   notifyOnEventChat: true,
   notifyNewsletter: false,
+  // Push (docs/push-notifications.md): opt-in.
+  pushOnEventStatus: false,
+  pushOnReviewMessage: false,
+  pushStaffReview: false,
 };
 
 const EMPTY_PROFILE = {

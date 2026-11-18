@@ -24,6 +24,9 @@ describe('normalizePreferences', () => {
       notifyOnFavoriteCancelled: true,
       notifyOnDirectMessage: true,
       notifyOnEventChat: true,
+      pushOnEventStatus: false,
+      pushOnReviewMessage: false,
+      pushStaffReview: false,
     });
   });
 
@@ -44,6 +47,9 @@ describe('normalizePreferences', () => {
       notifyOnFavoriteCancelled: true,
       notifyOnDirectMessage: true,
       notifyOnEventChat: true,
+      pushOnEventStatus: false,
+      pushOnReviewMessage: false,
+      pushStaffReview: false,
     });
   });
 
@@ -59,6 +65,9 @@ describe('normalizePreferences', () => {
         notifyOnFavoriteCancelled: false,
         notifyOnDirectMessage: false,
         notifyOnEventChat: false,
+        pushOnEventStatus: true,
+        pushOnReviewMessage: true,
+        pushStaffReview: true,
       })
     ).toEqual({
       notifyOnSubmitted: false,
@@ -70,6 +79,9 @@ describe('normalizePreferences', () => {
       notifyOnFavoriteCancelled: false,
       notifyOnDirectMessage: false,
       notifyOnEventChat: false,
+      pushOnEventStatus: true,
+      pushOnReviewMessage: true,
+      pushStaffReview: true,
     });
   });
 
@@ -102,5 +114,25 @@ describe('chat mail preferences', () => {
     const prefs = normalizePreferences({ notifyOnDirectMessage: false, notifyOnEventChat: 'no' });
     expect(prefs.notifyOnDirectMessage).toBe(false);
     expect(prefs.notifyOnEventChat).toBe(true);
+  });
+});
+
+describe('push preferences', () => {
+  it('are off by default (opt-in)', () => {
+    expect(DEFAULT_NOTIFICATION_PREFERENCES.pushOnEventStatus).toBe(false);
+    expect(DEFAULT_NOTIFICATION_PREFERENCES.pushOnReviewMessage).toBe(false);
+    expect(DEFAULT_NOTIFICATION_PREFERENCES.pushStaffReview).toBe(false);
+    expect(normalizePreferences({ notifyOnPublished: true }).pushStaffReview).toBe(false);
+  });
+
+  it('only an explicit boolean switches them on', () => {
+    const prefs = normalizePreferences({
+      pushOnEventStatus: true,
+      pushOnReviewMessage: 'yes',
+      pushStaffReview: 1,
+    });
+    expect(prefs.pushOnEventStatus).toBe(true);
+    expect(prefs.pushOnReviewMessage).toBe(false);
+    expect(prefs.pushStaffReview).toBe(false);
   });
 });

@@ -507,6 +507,27 @@
   line-height: 1.4;
 }
 
+.notification-push {
+  margin-top: var(--space-8);
+}
+
+.notification-push-title {
+  font-size: var(--text-105);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-1);
+}
+
+.notification-push-note {
+  font-size: var(--text-85);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  padding: var(--space-3) var(--space-3-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin: 0 0 var(--space-4);
+}
+
 .notification-preference-saved {
   font-size: var(--text-80);
   color: var(--free-text);

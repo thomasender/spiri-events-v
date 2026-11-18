@@ -425,3 +425,69 @@ describe('users/{uid}.eventFormDefaults / savedVenues', () => {
     await assertFails(updateDoc(doc(db, 'users/alice'), { savedVenues: [venue(1)] }));
   });
 });
+
+// Push (docs/push-notifications.md): opt-in switches on the user doc and the
+// device tokens in users/{uid}/pushTokens/{sha256(token)}, owner only.
+describe('push switches and tokens', () => {
+  const hash = 'a'.repeat(64);
+  const token = {
+    token: 'fcm-token',
+    platform: 'android',
+    createdAt: serverTimestamp(),
+    lastSeenAt: serverTimestamp(),
+  };
+
+  it('the owner can set the push switches, only as booleans', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/alice'), {
+        pushOnEventStatus: true,
+        pushOnReviewMessage: false,
+        pushStaffReview: true,
+      })
+    );
+    await assertFails(updateDoc(doc(db, 'users/alice'), { pushOnEventStatus: 'yes' }));
+    await assertSucceeds(
+      setDoc(doc(env.authenticatedContext('carol').firestore(), 'users/carol'), {
+        ...base,
+        pushOnReviewMessage: true,
+      })
+    );
+  });
+
+  it('the owner can store, refresh, read and delete her device token', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    const ref = doc(db, `users/alice/pushTokens/${hash}`);
+    await assertSucceeds(setDoc(ref, token));
+    await assertSucceeds(updateDoc(ref, { lastSeenAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('nobody else can read, write or delete someone elses tokens', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `users/alice/pushTokens/${hash}`), { token: 'fcm-token' });
+    });
+    const bob = env.authenticatedContext('bob').firestore();
+    const ref = doc(bob, `users/alice/pushTokens/${hash}`);
+    await assertFails(getDoc(ref));
+    await assertFails(setDoc(doc(bob, `users/alice/pushTokens/${'b'.repeat(64)}`), token));
+    await assertFails(deleteDoc(ref));
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), `users/alice/pushTokens/${hash}`))
+    );
+  });
+
+  it('rejects other fields, a missing token and ids that are not a hash', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(db, `users/alice/pushTokens/${hash}`), { ...token, email: 'x' }));
+    await assertFails(setDoc(doc(db, `users/alice/pushTokens/${hash}`), { platform: 'ios' }));
+    await assertFails(setDoc(doc(db, 'users/alice/pushTokens/short'), token));
+  });
+
+  it('the rate-limit markers are server-only', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(getDoc(doc(db, 'push_throttle/ev1_alice')));
+    await assertFails(setDoc(doc(db, 'push_throttle/ev1_alice'), { at: serverTimestamp() }));
+  });
+});
