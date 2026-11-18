@@ -11,7 +11,7 @@
 //      do not carry `categoryColor`; they read their color from the
 //      registry via the `useCategoryRegistry` hook.
 
-import { slugify } from '../lib/slug-helpers';
+import { slugify } from '../lib/slug-helpers.js';
 
 export const FALLBACK_CATEGORY_COLOR = '#605e5e';
 

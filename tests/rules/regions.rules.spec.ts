@@ -353,6 +353,14 @@ describe('event import (import_* collections, events.curation)', () => {
     await assertSucceeds(setDoc(doc(db, 'import_organizers/org1/outreach/m2'), { status: 'sent' }));
     await assertSucceeds(setDoc(doc(db, 'import_candidates/c2'), candidate));
     await assertSucceeds(updateDoc(doc(db, 'import_candidates/c1'), { status: 'reviewed' }));
+    // Fields the ingest script adds (pilotExcluded, duplicateOf, ...) are not refused.
+    await assertSucceeds(
+      setDoc(doc(db, 'import_candidates/c3'), {
+        ...candidate,
+        pilotExcluded: true,
+        duplicateOf: { kind: 'event', id: 'e1' },
+      })
+    );
     await assertSucceeds(setDoc(doc(db, 'import_runs/r2'), { region: 'tirol', counts: {} }));
     await assertSucceeds(
       setDoc(doc(db, `import_blocklist/${'c'.repeat(64)}`), {

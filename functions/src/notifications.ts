@@ -37,6 +37,7 @@ import {
   resolveOwnerRegionContact,
 } from './adminEventRouting';
 import { REGION_MODERATOR_ROLE, parseStaffRole } from './staffRoles';
+import { isCuratedEvent } from './eventImport';
 import { isRegionId, regionNameOf } from './regions';
 import {
   MODERATION_LOG_COLLECTION,
@@ -133,6 +134,7 @@ function snapshotToEventSnapshot(data: FirebaseFirestore.DocumentData | undefine
     trashReason: readString(data.trashReason),
     trashKind: readString(data.trashKind),
     contentKey: eventContentKey(data),
+    curated: isCuratedEvent(data),
   };
 }
 

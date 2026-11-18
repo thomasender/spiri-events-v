@@ -188,6 +188,7 @@ export {
   inviteModeratorApplicant,
 } from './moderatorInvites';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
+export { importAcceptCandidate, importRejectCandidate } from './eventImportAdmin';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { adminFunFacts } from './adminFunFacts';
 export { adminMailgunUsage } from './adminMailgun';
