@@ -26,8 +26,8 @@ Ground rules (product decisions and legal research):
   production unless `--allow-prod` is given; nothing of this runs on production yet.
 
 Ticket 1 (this state) is the data model, rules, helpers, leak guards and the curator account.
-Crawling, the review UI, the preview page, the outreach mail and the consent callable follow in
-later tickets.
+Ticket 3 adds the ingest script and the accept / reject callables (below). The review UI, the
+preview page, the outreach mail and the consent callable follow in later tickets.
 
 ## Code
 
@@ -35,6 +35,10 @@ later tickets.
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `functions/src/eventImport.ts`       | Pure module (no Firebase): constants/enums, `fingerprint`, `blocklistId` / `blocklistKind` / `isBlocked`, `isCuratedEvent`, `isCuratedWithoutConsent`, `countsForActivation`, `isImageUrlAllowed`, `candidateToEventData` |
 | `src/utils/eventImport.js`           | Synced copy of the constants and the two predicates (for scripts such as `prerender.mjs` and a later admin UI) plus the pure core of the curator script. `tests/lib/eventImport.spec.ts` fails on drift.                  |
+| `src/utils/eventImportIngest.js`     | Pure core of the ingest script: validation, category mapping, fuzzy dedupe, `planIngest`, CLI options                                                                                                                     |
+| `src/utils/eventImportServer.js`     | Node-only synced copy of `fingerprint`, blocklist and `isImageUrlAllowed` from `eventImport.ts` (Node cannot load the TS module); drift test in `tests/lib/eventImportIngest.spec.ts`                                     |
+| `scripts/import-curated-events.mjs`  | Ingest script (see "Ingest")                                                                                                                                                                                              |
+| `functions/src/eventImportAdmin.ts`  | Callables `importAcceptCandidate`, `importRejectCandidate`                                                                                                                                                                |
 | `scripts/ensure-curator-account.mjs` | Curator account (see below)                                                                                                                                                                                               |
 | `firestore.rules`                    | `import_*` blocks, `events` (`isCurationUntouched`, `isCuratedApprovalWithoutConsent`), `app_settings/import` read                                                                                                        |
 | `tests/lib/eventImport.spec.ts`      | Helper tests                                                                                                                                                                                                              |
@@ -220,10 +224,83 @@ inactive import regions with curated events. It is computed **client-side** from
 `fetchImportProgress`), not by `adminListRegionActivation`, and does not change the activation
 conditions. The **Review** tab marks curated events "importiert" (and "ohne Consent").
 
+## Ingest (`scripts/import-curated-events.mjs`)
+
+```bash
+D=path/to/discovery
+node scripts/import-curated-events.mjs --file $D/zuerich.json --file $D/tirol.json   # dry run, offline
+node scripts/import-curated-events.mjs --file $D/tirol.json --dry-run --remote       # dry run against staging data (credentials)
+node scripts/import-curated-events.mjs --file $D/tirol.json --apply                  # write to tribe-vbg-staging
+```
+
+- Input: discovery JSON (`{ region, organizers[], candidates[], notes }`), one region per file.
+- Default project `tribe-vbg-staging`; anything else is refused (production only with
+  `--allow-prod`, like the curator script). **Dry run is the default** and needs no credentials: it
+  plans against empty state (no existing events / candidates / blocklist) and writes nothing.
+  `--remote` lets a dry run read staging (ADC) so dedupe and blocklist are real. `--apply` always
+  reads first and needs `app_settings/import.curatorUid` (else: run `ensure-curator-account.mjs`).
+- Writes only `import_organizers`, `import_candidates` (status `found`, or `duplicate`) and one
+  `import_runs` doc per file (counts, skip reasons, errors, source `file:<name>`). **No events.**
+- Organizer: id = website host (`www.` stripped, non-alphanumerics -> `-`), `consent: none`,
+  `syncMode: curated_once`, `legalForm` from the file. **`contactEmail` is never set for
+  `legalForm: individual`.** Existing organizers only get new `sourceUrls` (and a missing mail);
+  consent / syncMode / legalForm are never touched.
+- Candidate id = first 40 hex chars of `fingerprint(sourceUrl, date, title)`, created with
+  "must not exist": a second run on the same file writes nothing new (and leaves no run doc).
+  Individuals' candidates are `found` but carry `pilotExcluded: true`.
+- Candidate fields beyond the table above: `pilotExcluded`, `duplicateOf: { kind: 'event' |
+'candidate', id }`; `rawExtract` additionally holds `bezirk` and `contribution: 'unknown'`
+  where the page named no price. The rules do not restrict extra candidate keys.
+
+### Validation (per candidate, reason in the summary)
+
+| Reason                               | Rule                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| `missing-title`, `missing-dateQuote` | title and a verbatim date quote are required                                         |
+| `invalid-sourceUrl`                  | https page, never Instagram / Facebook                                               |
+| `invalid-date`, `past-date`          | real `YYYY-MM-DD`, strictly after today (Vienna)                                     |
+| `unknown-organizer`                  | `organizerKey` not in the file's organizers (or the organizer has no usable website) |
+| `blocked`                            | organizer mail, mail domain or website domain (incl. parent domains) is blocklisted  |
+| `exists`                             | fingerprint / id already imported (idempotency, also the same event twice in a file) |
+| (not a skip) bad `imageUrl`          | fails `isImageUrlAllowed` (other host, http, Instagram/Facebook CDN): stored as null |
+
+### Dedupe
+
+1. **Exact:** same fingerprint (source URL without tracking/www/fragment + date + normalised
+   title) -> skipped as `exists`.
+2. **Fuzzy:** same date, normalised titles with Dice bigram similarity >= 0.8 (or one title
+   contained in the other, >= 10 characters), and no two different start times, against events of
+   the same region, existing candidates (not marked duplicate) and candidates accepted earlier in
+   the run -> the candidate is written with status `duplicate` and `duplicateOf` (reviewable, not
+   published). It is counted as "Duplikat", not as imported.
+
+### Category and district
+
+`categoryGuess` is mapped to an **existing** name of `CATEGORY_COLORS` (exact, then keywords of
+the guess, then keywords of the title), else `Sonstiges`; a category is never created. The district
+(`bezirk`) comes from `placeAssignment` (offline place list) and is set only when the place lies in
+the file's region. `lat`/`lng` are not set (no geocoding).
+
+## Callables (Super-Admin only, `functions/src/eventImportAdmin.ts`)
+
+| Callable                                         | Effect                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `importAcceptCandidate({ candidateId, force? })` | Writes the `pending` event (`candidateToEventData`, slug from `generateEventSlug` + `findFreeSlug`, `createdBy` = curator, `curation` without `consentAt`, no image, empty organizer mail), sets the candidate to `published` + `eventId`, adds an `admin_audit_log` entry (one transaction). Accepting twice returns the existing event. |
+| `importRejectCandidate({ candidateId, reason })` | Candidate -> `rejected` (+ `rejectReason`), audit entry.                                                                                                                                                                                                                                                                                  |
+
+Refusals (`failed-precondition`, `details.reason`): `blocked` (also with `force`), `organizer-declined`,
+`organizer-missing`, `pilot-excluded` (candidate flagged or organizer `individual`, unless
+`force: true`), `no-curator`, `status` (candidate not `found` / `reviewed` / `duplicate`).
+The candidate is `published` only together with the event (same transaction).
+
+**No submission mails for curated events:** `onEventCreated` / `onEventStatusChanged` would send
+"neues Event eingereicht" for any new `pending` event (when `ADMIN_EVENT_EMAILS_ENABLED` is on).
+`decideCreatedEventNotification` / `decideEventStatusNotification` now return nothing when the
+event carries `curation` (`EventSnapshot.curated`, set in `notifications.ts`), so neither admins
+nor organizers are mailed, independent of the flag.
+
 ## Open points
 
-- Each curated event written as `pending` triggers the usual "neues Event eingereicht" mail to
-  the admins (`onEventCreated`). A bulk import may want to suppress it.
 - The public JSON (`toPublicEvent`) passes `curation` through for consented events
   (`organizerRef`, `sourceUrl`); strip it if the UI does not need it.
 - Region moderators can read curated pending events of their region (as every pending event) but

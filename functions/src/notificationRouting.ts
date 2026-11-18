@@ -14,6 +14,8 @@ export interface EventSnapshot {
   trashKind?: string | null;
   /** Stable key of the content an owner edits (see eventContentKey). */
   contentKey?: string | null;
+  /** True for events imported by the curation team (they carry `curation`, docs/event-import.md). */
+  curated?: boolean;
 }
 
 // Fields an owner can change on an approved event (src/utils/eventReviewFields.js).
@@ -199,6 +201,8 @@ export function decideEventStatusNotification(
   }
 
   if (afterStatus === 'pending') {
+    // Curated events are written by the import (accept callable), nobody submitted them.
+    if (after.curated) return null;
     return {
       type: 'submitted',
       event: buildEventFor(eventId, after, eventTitle, slug),
@@ -218,6 +222,9 @@ export function decideCreatedEventNotification(
   const afterStatus = isStatus(after.status) ? after.status : null;
   if (afterStatus !== 'pending') return null;
   if (after.lastNotifiedStatus === 'pending') return null;
+  // Curated events are written by the import (accept callable), nobody submitted
+  // them: no "new event submitted" mail (docs/event-import.md).
+  if (after.curated) return null;
   return {
     type: 'submitted',
     event: buildEventFor(eventId, after, eventTitle, slug),
