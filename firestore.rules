@@ -177,6 +177,16 @@ service cloud.firestore {
                 && d.termsVersion.size() <= 20));
     }
 
+    // Remembered answers of the event form (src/utils/eventFormDefaults.js): the last
+    // organizer / contact / place / category / fee as a small map, and up to 10 earlier
+    // venues. Only the owner writes them (users/{uid}); both are optional.
+    function isValidEventFormMemory(d) {
+      return (!('eventFormDefaults' in d)
+              || (d.eventFormDefaults is map && d.eventFormDefaults.size() <= 30))
+        && (!('savedVenues' in d)
+            || (d.savedVenues is list && d.savedVenues.size() <= 10));
+    }
+
     function isValidFireplaceLabel(d) {
       return !('fireplaceLabel' in d)
         || (d.fireplaceLabel is string
@@ -704,6 +714,7 @@ service cloud.firestore {
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                        'notifyOnDirectMessage', 'notifyOnEventChat',
                        'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
+                       'eventFormDefaults', 'savedVenues',
                        'siteOrigin', 'termsAcceptedAt', 'termsVersion', 'createdAt', 'updatedAt']
                     )
                     && isValidTermsAcceptance(request.resource.data, request.resource.data.keys())
@@ -721,6 +732,7 @@ service cloud.firestore {
                         || request.resource.data.allowMentions is bool)
                     && isValidChatMailPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
+                    && isValidEventFormMemory(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
                     && (!('onboardingCompleted' in request.resource.data)
@@ -745,6 +757,7 @@ service cloud.firestore {
                         || request.resource.data.allowMentions is bool)
                     && isValidChatMailPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
+                    && isValidEventFormMemory(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
                     && (!('onboardingCompleted' in request.resource.data)
@@ -761,6 +774,7 @@ service cloud.firestore {
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                                   'notifyOnDirectMessage', 'notifyOnEventChat',
                                   'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
+                                  'eventFormDefaults', 'savedVenues',
                                   'termsAcceptedAt', 'termsVersion', 'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;

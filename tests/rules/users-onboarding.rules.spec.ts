@@ -372,3 +372,56 @@ describe('users/{uid}.termsAcceptedAt / termsVersion', () => {
     await assertFails(setDoc(doc(db, 'users/dave'), { ...base, ...terms() }));
   });
 });
+
+// Remembered answers of the create-event wizard on the own user doc (Trello 6afd8505).
+describe('users/{uid}.eventFormDefaults / savedVenues', () => {
+  const venue = (n: number) => ({ place: `Weg ${n}`, city: 'Dornbirn', cityPicked: true });
+
+  it('the owner can write both on update', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/alice'), {
+        eventFormDefaults: { organizerName: 'Alice', city: 'Dornbirn' },
+        savedVenues: [venue(1)],
+      })
+    );
+  });
+
+  it('the owner can write both when the doc is created', async () => {
+    const db = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'users/carol'), {
+        ...base,
+        eventFormDefaults: { organizerName: 'Carol' },
+        savedVenues: [venue(1)],
+      })
+    );
+  });
+
+  it('rejects a wrong type or more than ten venues', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(db, 'users/alice'), { eventFormDefaults: 'x' }));
+    await assertFails(updateDoc(doc(db, 'users/alice'), { savedVenues: 'x' }));
+    await assertFails(
+      updateDoc(doc(db, 'users/alice'), {
+        savedVenues: Array.from({ length: 11 }, (_, i) => venue(i)),
+      })
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/alice'), {
+        savedVenues: Array.from({ length: 10 }, (_, i) => venue(i)),
+      })
+    );
+  });
+
+  it('rejects an oversized defaults map', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    const big = Object.fromEntries(Array.from({ length: 31 }, (_, i) => [`k${i}`, 'x']));
+    await assertFails(updateDoc(doc(db, 'users/alice'), { eventFormDefaults: big }));
+  });
+
+  it('nobody else can write them', async () => {
+    const db = env.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(db, 'users/alice'), { savedVenues: [venue(1)] }));
+  });
+});
