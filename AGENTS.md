@@ -197,6 +197,9 @@ two-line "read this when".
 - Read `docs/push-notifications.md` ONLY when you touch Web Push (`public/push-sw.js`,
   `src/lib/pushMessaging.js`, `functions/src/push.ts` / `pushRouting.ts`, `pushTokens`, the push
   part of the profile) or set up the VAPID key.
+- Read `docs/event-import.md` ONLY when you touch curated/imported events: the `import_*`
+  collections, `events.curation`, `eventImport.ts` / `eventImport.js`, the curator account script,
+  or a public event path (JSON list, ICS, prerender/sitemap, Instagram) that must hide them.
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 
