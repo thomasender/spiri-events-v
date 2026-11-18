@@ -378,6 +378,16 @@ describe('consent input and state machine', () => {
       kind: 'refuse',
       reason: 'claimed',
     });
+    // Claiming is not consent: a claimed organizer may still approve (once).
+    expect(decideConsent(org('claimed'), 'approve_once', scopes)).toEqual({ kind: 'apply' });
+    expect(decideConsent(org('claimed'), 'self_manage', scopes)).toEqual({ kind: 'unchanged' });
+    expect(
+      decideConsent(
+        org('claimed', { consentRecord: { action: 'approve_once', scopes } }),
+        'approve_once',
+        scopes
+      )
+    ).toEqual({ kind: 'unchanged' });
     const ok = org('manual_ok', { consentRecord: { scopes } });
     expect(decideConsent(ok, 'approve_once', scopes)).toEqual({ kind: 'unchanged' });
     expect(decideConsent(ok, 'approve_once', { ...scopes, images: true })).toEqual({
@@ -533,6 +543,22 @@ describe('submitImportConsent', () => {
     expect(w.organizers.get('org1')!.consent).toBe('declined');
   });
 
+  it('a claimed organizer who approves stays claimed; events get consent and go public', async () => {
+    const w = makeWorld({
+      organizer: baseOrganizer({ consent: 'claimed', syncMode: 'self_managed' }),
+    });
+    const result = await submitImportConsentHandler({ data: approve() }, w.deps);
+    expect(result).toMatchObject({
+      consent: 'claimed',
+      syncMode: 'self_managed',
+      approvedEvents: 1,
+    });
+    const org = w.organizers.get('org1')!;
+    expect(org.consent).toBe('claimed');
+    expect((org.consentRecord as Doc).action).toBe('approve_once');
+    expect((w.eventDocs.get('ev1')!.curation as Doc).consentAt).toEqual(new Date(NOW));
+  });
+
   it('self_manage only notes the intent', async () => {
     const w = makeWorld();
     const result = await submitImportConsentHandler(
@@ -542,6 +568,8 @@ describe('submitImportConsent', () => {
     expect(result).toMatchObject({ consent: 'asked', syncMode: 'self_managed', approvedEvents: 0 });
     expect(w.eventDocs.get('ev1')!.status).toBe('pending');
     expect(w.organizers.get('org1')!.selfManageRequestedAt).toEqual(new Date(NOW));
+    // Not consent: no consent record, nothing approved.
+    expect(w.organizers.get('org1')!.consentRecord).toBeNull();
   });
 });
 

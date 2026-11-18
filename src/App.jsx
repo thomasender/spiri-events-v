@@ -61,6 +61,7 @@ const ChatPage = lazyWithReload(() => import('./pages/ChatPage'));
 const MessengerPage = lazyWithReload(() => import('./pages/MessengerPage'));
 const ModeratorOnboardingPage = lazyWithReload(() => import('./pages/ModeratorOnboardingPage'));
 const ImportPreviewPage = lazyWithReload(() => import('./pages/ImportPreviewPage'));
+const ClaimEventsPage = lazyWithReload(() => import('./pages/ClaimEventsPage'));
 
 // Helmet updates document.title on the next animation frame; wait a moment so
 // page_view carries the new page's title rather than the previous one.
@@ -199,6 +200,7 @@ function AppLayout() {
               <Route path="/auth-action" element={<AuthActionPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/einladung" element={<ModeratorOnboardingPage />} />
+              <Route path="/uebernehmen" element={<ClaimEventsPage />} />
               <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
               <Route path="/impressum" element={<LegalPage page="impressum" />} />
               <Route path="/datenschutz-import" element={<LegalPage page="datenschutz-import" />} />

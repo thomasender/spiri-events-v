@@ -23,6 +23,13 @@ export const CONSENT_TEXTS = Object.freeze({
 export const PREVIEW_PATH_PREFIX = '/vorschau';
 export const IMPORT_PRIVACY_PATH = '/datenschutz-import';
 export const PREVIEW_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+/** Claim flow of ticket 7 (src/pages/ClaimEventsPage.jsx) for "Selbst verwalten". */
+export const CLAIM_PATH = '/uebernehmen';
+
+export function claimPathFor(token) {
+  return `${CLAIM_PATH}?claim=${encodeURIComponent(token)}`;
+}
+
 /** `?aktion=ablehnen` (the decline link of the mail). */
 export const DECLINE_PARAM = 'aktion';
 export const DECLINE_VALUE = 'ablehnen';

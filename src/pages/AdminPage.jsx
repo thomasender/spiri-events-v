@@ -27,6 +27,7 @@ import {
   ScrollText,
   Sparkles,
   Bell,
+  Download,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -47,6 +48,7 @@ import FunFactsTab from '../components/FunFactsTab';
 import ModerationTab from '../components/ModerationTab';
 import ModerationLogTab from '../components/ModerationLogTab';
 import RegionsTab from '../components/RegionsTab';
+import ImportTab from '../components/ImportTab';
 import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
@@ -54,6 +56,7 @@ import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
 import StaffNotificationsTab from '../components/StaffNotificationsTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
+import ClaimableEventsBanner from '../components/ClaimableEventsBanner';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -122,6 +125,7 @@ const TAB_GROUPS = [
       { id: 'team', label: 'Team-Hinweise', Icon: Bell },
       { id: 'moderation', label: 'Moderation', Icon: ShieldCheck },
       { id: 'regions', label: 'Regionen', Icon: MapPin },
+      { id: 'import', label: 'Import', Icon: Download },
       { id: 'about', label: 'Über uns', Icon: Info },
     ],
   },
@@ -150,6 +154,7 @@ const PANELS = {
   team: StaffNotificationsTab,
   moderation: ModerationTab,
   regions: RegionsTab,
+  import: ImportTab,
   about: RegionAboutTab,
 };
 
@@ -216,6 +221,7 @@ export default function AdminPage() {
       team: allowedTabs.has('team'),
       moderation: isAdmin,
       regions: isAdmin,
+      import: isAdmin,
       about: allowedTabs.has('about'),
       mailgun: isAdmin,
       ledger: isAdmin,
@@ -315,6 +321,9 @@ export default function AdminPage() {
       </header>
 
       {!canCreateEvents && <EmailVerificationBanner />}
+
+      {/* Curated events waiting for this account's confirmed address (docs/event-import.md). */}
+      {activeTab === 'events' && <ClaimableEventsBanner />}
 
       {hashEventId && <EventStatusMismatchBanner key={hashEventId} eventId={hashEventId} />}
 

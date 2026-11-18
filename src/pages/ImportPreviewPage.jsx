@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ImageOff } from 'lucide-react';
 import { callable } from '../lib/firebase';
@@ -7,6 +7,7 @@ import {
   CONSENT_TEXTS,
   CONSENT_WORDING_VERSION,
   DECLINE_PARAM,
+  claimPathFor,
   DECLINE_VALUE,
   IMPORT_PRIVACY_PATH,
   PREVIEW_TOKEN_PATTERN,
@@ -93,6 +94,14 @@ function StatusNotice({ consent }) {
       </div>
     );
   }
+  if (consent === 'claimed') {
+    return (
+      <div className="import-preview-notice" role="status">
+        <strong>Du hast deine Veranstaltungen in dein Konto übernommen.</strong> Damit wir sie
+        zeigen dürfen, stimme bitte unten zu.
+      </div>
+    );
+  }
   if (consent === 'declined') {
     return (
       <div className="import-preview-notice" role="status">
@@ -109,7 +118,7 @@ function StatusNotice({ consent }) {
   );
 }
 
-function Decision({ preview, declinePreselected, onSubmit, busy, error, selfManaged }) {
+function Decision({ preview, declinePreselected, onSubmit, busy, error }) {
   const [scopes, setScopes] = useState({
     event: preview.scopes?.event ?? false,
     images: preview.scopes?.images ?? false,
@@ -118,10 +127,11 @@ function Decision({ preview, declinePreselected, onSubmit, busy, error, selfMana
   const toggle = (key) => setScopes((s) => ({ ...s, [key]: !s[key] }));
   const submit = (action) => onSubmit(action, scopes);
   const approved = preview.consent === 'manual_ok' || preview.consent === 'sync_ok';
+  const claimed = preview.consent === 'claimed';
 
   return (
     <section className="import-preview-decision" aria-labelledby="import-decision-title">
-      {declinePreselected && !approved && (
+      {declinePreselected && !approved && !claimed && (
         <div className="import-preview-decline-box" data-testid="decline-preselected">
           <p>Du möchtest nicht, dass wir deine Veranstaltungen zeigen?</p>
           <button
@@ -198,26 +208,28 @@ function Decision({ preview, declinePreselected, onSubmit, busy, error, selfMana
         >
           Zustimmen und neue Veranstaltungen von meiner Website regelmäßig übernehmen
         </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={busy || selfManaged}
-          onClick={() => submit('self_manage')}
-          data-testid="action-self-manage"
-        >
-          {selfManaged
-            ? 'Vorgemerkt: du trägst deine Veranstaltungen selbst ein'
-            : 'Ich trage meine Veranstaltungen lieber selbst ein'}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary import-preview-decline"
-          disabled={busy}
-          onClick={() => submit('decline')}
-          data-testid="action-decline"
-        >
-          Ablehnen und Angaben löschen
-        </button>
+        {!claimed && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() => submit('self_manage')}
+            data-testid="action-self-manage"
+          >
+            Ich verwalte meine Veranstaltungen selbst (Konto anlegen und übernehmen)
+          </button>
+        )}
+        {!claimed && (
+          <button
+            type="button"
+            className="btn btn-secondary import-preview-decline"
+            disabled={busy}
+            onClick={() => submit('decline')}
+            data-testid="action-decline"
+          >
+            Ablehnen und Angaben löschen
+          </button>
+        )}
       </div>
     </section>
   );
@@ -235,7 +247,7 @@ export default function ImportPreviewPage() {
   const [loadError, setLoadError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
-  const [done, setDone] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => applyPrivatePageMeta(document), []);
 
@@ -263,12 +275,16 @@ export default function ImportPreviewPage() {
         scopes,
         wordingVersion: CONSENT_WORDING_VERSION,
       });
-      setDone(action);
+      // "Selbst verwalten" is no consent: it continues in the claim flow (ticket 7).
+      if (action === 'self_manage') {
+        navigate(claimPathFor(token));
+        return;
+      }
       setPreview((p) => ({
         ...p,
         consent: result.data.consent,
         syncMode: result.data.syncMode,
-        scopes: action === 'decline' || action === 'self_manage' ? p.scopes : scopes,
+        scopes: action === 'decline' ? p.scopes : scopes,
         events: action === 'decline' ? [] : p.events,
       }));
     } catch (err) {
@@ -289,17 +305,11 @@ export default function ImportPreviewPage() {
   } else if (!preview) {
     body = <div className="loading-spinner" />;
   } else {
-    const final = preview.consent === 'declined' || preview.consent === 'claimed';
+    const final = preview.consent === 'declined';
     body = (
       <>
         <h1 className="import-preview-title">Vorschau für {preview.organizer.name}</h1>
         <StatusNotice consent={preview.consent} />
-        {done === 'self_manage' && (
-          <div className="import-preview-notice" role="status">
-            Danke. Wir melden uns, sobald du deine Veranstaltungen selbst eintragen kannst. Bis
-            dahin zeigen wir nichts.
-          </div>
-        )}
         {preview.events.length > 0 && (
           <section aria-labelledby="import-events-title">
             <h2 id="import-events-title" className="import-preview-heading">
@@ -319,7 +329,6 @@ export default function ImportPreviewPage() {
             onSubmit={submit}
             busy={busy}
             error={actionError}
-            selfManaged={preview.syncMode === 'self_managed'}
           />
         )}
         <section className="import-preview-privacy" aria-labelledby="import-privacy-title">

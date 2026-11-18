@@ -505,6 +505,7 @@ const OTHER_INTERNAL = new Set([
   'einladung',
   'vorschau',
   'datenschutz-import',
+  'uebernehmen',
   'datenschutz',
   'impressum',
   'nutzungsbedingungen',

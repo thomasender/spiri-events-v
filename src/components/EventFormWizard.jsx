@@ -10,6 +10,7 @@ import { canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
+import CuratedMatchHint from './CuratedMatchHint';
 import { useProfile } from '../hooks/useProfile';
 import {
   uploadImage,
@@ -1584,6 +1585,14 @@ export default function EventFormWizard() {
           {errors.endTime && <span className="error-text">{errors.endTime}</span>}
         </div>
       </div>
+
+      {/* Already entered by the curation team? Offer to take it over (docs/event-import.md). */}
+      <CuratedMatchHint
+        enabled={Boolean(user) && canCreateEvents}
+        title={formData.title}
+        date={formData.date}
+        regionId={eventRegionId}
+      />
 
       <div className="form-group">
         <div className="input-label-row">

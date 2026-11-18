@@ -18,8 +18,10 @@ describe('getReturnPath', () => {
 });
 
 describe('afterVerifyPath (where the e-mail confirmation link leads)', () => {
-  it('allows only the whitelisted event wizard', () => {
+  it('allows only the whitelisted event wizard and claim page', () => {
     expect(afterVerifyPath('/admin/new')).toBe('/admin/new');
+    expect(afterVerifyPath('/uebernehmen')).toBe('/uebernehmen');
+    expect(afterVerifyPath('/uebernehmen?claim=x')).toBe('/');
   });
 
   it('sends everything else home, so the link is no open redirect', () => {

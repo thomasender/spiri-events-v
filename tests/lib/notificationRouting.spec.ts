@@ -206,6 +206,18 @@ describe('decideCreatedEventNotification', () => {
     expect(decision?.event.slug).toBe('neues-event');
   });
 
+  it('sends no "submitted" mail for a curated (imported) event, on create or on resubmit', () => {
+    const curated: EventSnapshot = { status: 'pending', organizer: organizer(null), curated: true };
+    expect(decideCreatedEventNotification('evt1', curated, 'Importiert', 'importiert')).toBeNull();
+    expect(
+      decideEventStatusNotification('evt1', { status: 'draft', curated: true }, curated)
+    ).toBeNull();
+    // A normal submission still notifies the admins.
+    expect(
+      decideEventStatusNotification('evt1', { status: 'draft' }, { ...curated, curated: false })
+    ).toMatchObject({ type: 'submitted' });
+  });
+
   it('returns null when a new event is created as a draft', () => {
     const after: EventSnapshot = { status: 'draft', organizer: organizer() };
     expect(decideCreatedEventNotification('evt1', after)).toBeNull();

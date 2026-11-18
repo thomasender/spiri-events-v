@@ -31,12 +31,13 @@
  *   recipient is required and the subject starts with "[TEST]". On production
  *   the mail is switched off entirely (OUTREACH_ENABLED_IN_PRODUCTION).
  */
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { assertSuperAdmin, type RoleDocReader } from './staffRoles';
 import type { enforceRateLimit as EnforceRateLimit } from './rateLimit';
 import {
   blocklistId,
+  hashPreviewToken,
   isBlocked,
   isImageUrlAllowed,
   normalizeBlocklistValue,
@@ -144,10 +145,8 @@ export function generatePreviewToken(): string {
   return randomBytes(32).toString('base64url');
 }
 
-/** `previewTokenHash`: hex SHA-256 of the token. */
-export function hashPreviewToken(token: string): string {
-  return createHash('sha256').update(token, 'utf8').digest('hex');
-}
+/** `previewTokenHash`: the one implementation lives in eventImport.ts (also used by the claim). */
+export { hashPreviewToken };
 
 /** The one error for a malformed, unknown or expired link. */
 export function invalidLinkError(): HttpsError {
@@ -369,7 +368,17 @@ export function decideConsent(
   scopes: ConsentScopes
 ): ConsentDecision {
   const { consent } = organizer;
-  if (consent === 'claimed') return { kind: 'refuse', reason: 'claimed' };
+  if (consent === 'claimed') {
+    // The organizer took the events over (ticket 7). Claiming is not consent, so
+    // approving stays possible (and needed for the events to go public); a
+    // claimed organizer deletes their own events instead of declining here.
+    if (action === 'decline') return { kind: 'refuse', reason: 'claimed' };
+    if (action === 'self_manage') return { kind: 'unchanged' };
+    return sameScopes(storedScopes(organizer as OrganizerRecord), scopes) &&
+      organizer.consentRecord?.action === action
+      ? { kind: 'unchanged' }
+      : { kind: 'apply' };
+  }
   if (consent === 'declined') {
     return action === 'decline' ? { kind: 'unchanged' } : { kind: 'refuse', reason: 'declined' };
   }
@@ -462,7 +471,9 @@ export function planConsent({
   const record = { at: now, wordingVersion, scopes, action };
 
   if (action === 'self_manage') {
-    // Intent only; the claim flow (ticket 7) takes the events over.
+    // Intent only, NOT consent: no consentRecord, events stay pending. The page
+    // then opens the claim flow (/uebernehmen?claim=<token>, ticket 7), which
+    // moves the events into the organizer's own account.
     plan.organizerPatch.syncMode = 'self_managed';
     plan.organizerPatch.selfManageRequestedAt = now;
     return plan;
@@ -494,12 +505,19 @@ export function planConsent({
   }
 
   // approve_once / approve_sync (parseConsentInput guarantees scopes.event).
-  Object.assign(plan.organizerPatch, {
-    consent: action === 'approve_sync' ? 'sync_ok' : 'manual_ok',
-    syncMode: action === 'approve_sync' ? 'sync_consented' : 'curated_once',
-    consentRecord: record,
-    deleteAfter: null,
-  });
+  // A claimed organizer stays `claimed` / `self_managed`; only the record and
+  // the events change.
+  Object.assign(
+    plan.organizerPatch,
+    organizer.consent === 'claimed'
+      ? { consentRecord: record, deleteAfter: null }
+      : {
+          consent: action === 'approve_sync' ? 'sync_ok' : 'manual_ok',
+          syncMode: action === 'approve_sync' ? 'sync_consented' : 'curated_once',
+          consentRecord: record,
+          deleteAfter: null,
+        }
+  );
   if (!scopes.event) return plan;
   for (const event of events) {
     const status = event.data.status;

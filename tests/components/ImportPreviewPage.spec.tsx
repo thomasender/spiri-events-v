@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 
 const calls = vi.hoisted(() => ({
@@ -62,12 +62,18 @@ const preview = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+function ClaimLanding() {
+  const location = useLocation();
+  return <div data-testid="claim-landing">{`${location.pathname}${location.search}`}</div>;
+}
+
 async function renderAt(url: string) {
   render(
     <HelmetProvider>
       <MemoryRouter initialEntries={[url]}>
         <Routes>
           <Route path="/vorschau/:token" element={<ImportPreviewPage />} />
+          <Route path="/uebernehmen" element={<ClaimLanding />} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>
@@ -154,20 +160,33 @@ describe('ImportPreviewPage', () => {
     expect(screen.queryByTestId('action-decline')).toBeNull();
   });
 
-  it('calls self_manage and decline with their own actions', async () => {
-    calls.handlers.submitImportConsent = (data) =>
-      data.action === 'self_manage'
-        ? { consent: 'asked', syncMode: 'self_managed' }
-        : { consent: 'declined', syncMode: 'declined' };
+  it('"selbst verwalten" records the intent (no consent) and opens the claim flow', async () => {
+    calls.handlers.submitImportConsent = () => ({ consent: 'asked', syncMode: 'self_managed' });
     await renderAt(`/vorschau/${TOKEN}`);
     await act(async () => {
       fireEvent.click(screen.getByTestId('action-self-manage'));
     });
-    expect(calls.log[1].data.action).toBe('self_manage');
+    expect(calls.log[1].data).toMatchObject({ action: 'self_manage', token: TOKEN });
+    expect(screen.getByTestId('claim-landing').textContent).toBe(`/uebernehmen?claim=${TOKEN}`);
+  });
+
+  it('decline calls its own action', async () => {
+    calls.handlers.submitImportConsent = () => ({ consent: 'declined', syncMode: 'declined' });
+    await renderAt(`/vorschau/${TOKEN}`);
     await act(async () => {
       fireEvent.click(screen.getByTestId('action-decline'));
     });
-    expect(calls.log[2].data.action).toBe('decline');
+    expect(calls.log[1].data.action).toBe('decline');
+  });
+
+  it('a claimed organizer can still consent, but not decline or claim again', async () => {
+    calls.handlers.getImportPreview = () =>
+      preview({ consent: 'claimed', syncMode: 'self_managed' });
+    await renderAt(`/vorschau/${TOKEN}`);
+    expect(screen.getByText(/in dein Konto übernommen/)).toBeInTheDocument();
+    expect(screen.getByTestId('action-approve-once')).toBeInTheDocument();
+    expect(screen.queryByTestId('action-decline')).toBeNull();
+    expect(screen.queryByTestId('action-self-manage')).toBeNull();
   });
 
   it('a wrong link shows the generic message and calls nothing for a malformed token', async () => {

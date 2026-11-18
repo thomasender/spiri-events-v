@@ -153,6 +153,9 @@ vi.mock('../../src/components/FunFactsTab', () => ({
 vi.mock('../../src/components/RegionsTab', () => ({
   default: () => <div data-testid="regions-tab-stub">Regionen</div>,
 }));
+vi.mock('../../src/components/ImportTab', () => ({
+  default: () => <div data-testid="import-tab-stub">Import</div>,
+}));
 const mockTeamNotes = vi.hoisted(() => ({ unread: 0 }));
 vi.mock('../../src/hooks/useStaffNotifications', () => ({
   useStaffNotifications: (_uid: string, enabled: boolean) => ({
@@ -723,6 +726,7 @@ describe('AdminPage access per role', () => {
     'moderation',
     'protokoll',
     'regions',
+    'import',
     'funfacts',
   ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {
     asModerator();
