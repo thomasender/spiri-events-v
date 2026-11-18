@@ -8,7 +8,17 @@
  * a new version.
  */
 
+import { isCuratedWithoutConsent } from './eventImport';
+
 export const EVENTS_VERSION_DOC = 'app_settings/eventsVersion';
+
+/**
+ * Whether an event is in the public list: approved, and for a curated event
+ * also consented by its organizer (docs/event-import.md).
+ */
+export function isPubliclyListed(data: Record<string, unknown> | undefined): boolean {
+  return data?.status === 'approved' && !isCuratedWithoutConsent(data);
+}
 
 const VERSION_PARAM = /^\d{1,16}$/;
 
@@ -63,8 +73,8 @@ export function changesPublicList(
   before: Record<string, unknown> | undefined,
   after: Record<string, unknown> | undefined
 ): boolean {
-  const wasListed = before?.status === 'approved';
-  const isListed = after?.status === 'approved';
+  const wasListed = isPubliclyListed(before);
+  const isListed = isPubliclyListed(after);
   if (!wasListed && !isListed) return false;
   if (wasListed !== isListed) return true;
   return (

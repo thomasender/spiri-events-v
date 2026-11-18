@@ -9,6 +9,7 @@ import {
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -249,5 +250,238 @@ describe('moderator_applications and staff_notifications', () => {
       setDoc(doc(mod, 'staff_notifications/forged'), { recipientUid: 'mod', readAt: null })
     );
     await assertFails(deleteDoc(doc(mod, 'staff_notifications/modNote')));
+  });
+});
+
+// Event import (docs/event-import.md): curation data is Super-Admin only, and a
+// curated event never goes public from the client before the organizer consented.
+describe('event import (import_* collections, events.curation)', () => {
+  const hash = 'a'.repeat(64);
+  const organizer = {
+    name: 'Yogaverein Tirol',
+    website: 'https://yoga-tirol.at',
+    contactEmail: 'info@yoga-tirol.at',
+    legalForm: 'verein',
+    regionId: 'tirol',
+    consent: 'none',
+    syncMode: 'curated_once',
+  };
+  const candidate = {
+    regionId: 'tirol',
+    organizerRef: 'org1',
+    sourceUrl: 'https://yoga-tirol.at/kakao',
+    sourceType: 'jsonld',
+    status: 'found',
+    imageUrl: 'https://yoga-tirol.at/kakao.jpg',
+  };
+  const curation = {
+    organizerRef: 'org1',
+    sourceUrl: 'https://yoga-tirol.at/kakao',
+    importedAt: 1,
+    claimable: true,
+  };
+  const event = (over: Record<string, unknown> = {}) => ({
+    title: 'Kakao',
+    description: 'd',
+    regionId: 'tirol',
+    slug: 'kakao',
+    ...over,
+  });
+  const ctx = (uid: string) => env.authenticatedContext(uid, { email_verified: true }).firestore();
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore();
+      await setDoc(doc(db, 'import_organizers/org1'), organizer);
+      await setDoc(doc(db, 'import_organizers/org1/outreach/m1'), { status: 'sent' });
+      await setDoc(doc(db, 'import_candidates/c1'), candidate);
+      await setDoc(doc(db, 'import_runs/r1'), { region: 'tirol', source: 'jsonld' });
+      await setDoc(doc(db, `import_blocklist/${hash}`), { kind: 'email', createdAt: 1 });
+      await setDoc(doc(db, 'app_settings/import'), { curatorUid: 'curator' });
+      await setDoc(
+        doc(db, 'events/curated'),
+        event({ status: 'pending', createdBy: 'curator', curation })
+      );
+      await setDoc(doc(db, 'events/own'), event({ status: 'pending', createdBy: 'owner' }));
+    });
+  });
+
+  const paths = [
+    'import_organizers/org1',
+    'import_organizers/org1/outreach/m1',
+    'import_candidates/c1',
+    'import_runs/r1',
+    `import_blocklist/${hash}`,
+    'app_settings/import',
+  ];
+
+  it('anonymous users, members, owners and region moderators neither read nor write', async () => {
+    const dbs = [
+      env.unauthenticatedContext().firestore(),
+      ctx('member'),
+      ctx('owner'),
+      ctx('curator'),
+      ctx('mod'),
+    ];
+    for (const db of dbs) {
+      for (const path of paths) {
+        await assertFails(getDoc(doc(db, path)));
+        await assertFails(updateDoc(doc(db, path), { touched: true }));
+        await assertFails(deleteDoc(doc(db, path)));
+      }
+      await assertFails(getDocs(collection(db, 'import_organizers')));
+      await assertFails(getDocs(collection(db, 'import_candidates')));
+      await assertFails(setDoc(doc(db, 'import_organizers/new'), organizer));
+      await assertFails(setDoc(doc(db, 'import_candidates/new'), candidate));
+      await assertFails(setDoc(doc(db, 'import_runs/new'), { region: 'tirol' }));
+      await assertFails(setDoc(doc(db, `import_blocklist/${'b'.repeat(64)}`), { kind: 'domain' }));
+    }
+  });
+
+  it('a Super-Admin reads and writes all four collections', async () => {
+    const db = env.authenticatedContext('admin').firestore();
+    for (const path of paths) await assertSucceeds(getDoc(doc(db, path)));
+    await assertSucceeds(getDocs(collection(db, 'import_candidates')));
+    await assertSucceeds(setDoc(doc(db, 'import_organizers/org2'), organizer));
+    await assertSucceeds(
+      updateDoc(doc(db, 'import_organizers/org1'), {
+        consent: 'asked',
+        previewTokenHash: 'b'.repeat(64),
+        previewTokenExpiresAt: 5,
+      })
+    );
+    await assertSucceeds(setDoc(doc(db, 'import_organizers/org1/outreach/m2'), { status: 'sent' }));
+    await assertSucceeds(setDoc(doc(db, 'import_candidates/c2'), candidate));
+    await assertSucceeds(updateDoc(doc(db, 'import_candidates/c1'), { status: 'reviewed' }));
+    await assertSucceeds(setDoc(doc(db, 'import_runs/r2'), { region: 'tirol', counts: {} }));
+    await assertSucceeds(
+      setDoc(doc(db, `import_blocklist/${'c'.repeat(64)}`), {
+        kind: 'domain',
+        reason: 'declined',
+        createdAt: 1,
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(db, 'import_runs/r1')));
+  });
+
+  it('even a Super-Admin cannot break the privacy rules', async () => {
+    const db = env.authenticatedContext('admin').firestore();
+    // Plain preview token, consent record from the client, unknown enum values.
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { previewToken: 'secret' }));
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { previewTokenHash: 'abc' }));
+    await assertFails(
+      updateDoc(doc(db, 'import_organizers/org1'), { consentRecord: { at: 1, scopes: {} } })
+    );
+    await assertFails(
+      setDoc(doc(db, 'import_organizers/org3'), { ...organizer, consentRecord: { at: 1 } })
+    );
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { legalForm: 'gmbh' }));
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { consent: 'yes' }));
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { regionId: 'atlantis' }));
+    // Candidates keep a source URL only, never a storage copy.
+    await assertFails(
+      updateDoc(doc(db, 'import_candidates/c1'), {
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/x/o/a.jpg',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'import_candidates/c1'), { imageUrl: 'http://a.at/a.jpg' })
+    );
+    await assertFails(updateDoc(doc(db, 'import_candidates/c1'), { imageStoragePath: 'a/b.jpg' }));
+    await assertFails(updateDoc(doc(db, 'import_candidates/c1'), { status: 'live' }));
+    // Blocklist: hashed id, minimal fields.
+    await assertFails(setDoc(doc(db, 'import_blocklist/info@yoga-tirol.at'), { kind: 'email' }));
+    await assertFails(
+      setDoc(doc(db, `import_blocklist/${'d'.repeat(64)}`), {
+        kind: 'email',
+        email: 'info@yoga-tirol.at',
+      })
+    );
+    await assertFails(setDoc(doc(db, `import_blocklist/${'d'.repeat(64)}`), { kind: 'person' }));
+    // app_settings/import is written by the script only.
+    await assertFails(updateDoc(doc(db, 'app_settings/import'), { curatorUid: 'x' }));
+  });
+
+  it('a Super-Admin reads curated pending events (the region moderator too), nobody else', async () => {
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('admin').firestore(), 'events/curated'))
+    );
+    await assertSucceeds(getDoc(doc(ctx('mod'), 'events/curated')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'events/curated')));
+    await assertFails(getDoc(doc(ctx('member'), 'events/curated')));
+  });
+
+  it('owners cannot add, change or remove curation, nor change createdBy', async () => {
+    const owner = ctx('owner');
+    await assertFails(updateDoc(doc(owner, 'events/own'), { curation }));
+    await assertFails(
+      setDoc(doc(owner, 'events/new'), event({ status: 'pending', createdBy: 'owner', curation }))
+    );
+    await assertSucceeds(
+      setDoc(doc(owner, 'events/new2'), event({ status: 'pending', createdBy: 'owner' }))
+    );
+    const curator = ctx('curator');
+    await assertFails(
+      updateDoc(doc(curator, 'events/curated'), { curation: { ...curation, consentAt: 1 } })
+    );
+    await assertFails(updateDoc(doc(curator, 'events/curated'), { 'curation.claimable': false }));
+    await assertFails(updateDoc(doc(curator, 'events/curated'), { curation: deleteField() }));
+    await assertFails(updateDoc(doc(curator, 'events/curated'), { createdBy: 'owner' }));
+    await assertFails(updateDoc(doc(owner, 'events/own'), { createdBy: 'curator' }));
+    // Ordinary edits without touching curation still work.
+    await assertSucceeds(updateDoc(doc(curator, 'events/curated'), { title: 'Kakao-Abend' }));
+  });
+
+  it('nobody approves a curated event from the client before consent', async () => {
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertFails(
+      updateDoc(doc(admin, 'events/curated'), { curation: { ...curation, consentAt: 1 } })
+    );
+    await assertFails(
+      updateDoc(doc(admin, 'events/curated'), {
+        status: 'approved',
+        approvedBy: 'admin',
+        approvedAt: serverTimestamp(),
+      })
+    );
+    const mod = ctx('mod');
+    await assertFails(
+      updateDoc(doc(mod, 'events/curated'), {
+        status: 'approved',
+        approvedBy: 'mod',
+        approvedAt: serverTimestamp(),
+      })
+    );
+    // Other review actions stay possible (editing, rejecting).
+    await assertSucceeds(updateDoc(doc(admin, 'events/curated'), { title: 'Kakao (geprüft)' }));
+    await assertSucceeds(
+      updateDoc(doc(mod, 'events/curated'), {
+        status: 'trashed',
+        trashedBy: 'mod',
+        trashedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it('after consent (set by the backend) the event can be approved', async () => {
+    await env.withSecurityRulesDisabled((c) =>
+      updateDoc(doc(c.firestore(), 'events/curated'), { 'curation.consentAt': 2 })
+    );
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(
+      updateDoc(doc(admin, 'events/curated'), {
+        status: 'approved',
+        approvedBy: 'admin',
+        approvedAt: serverTimestamp(),
+      })
+    );
+    // An ordinary event is unaffected.
+    await assertSucceeds(
+      updateDoc(doc(ctx('mod'), 'events/own'), {
+        status: 'approved',
+        approvedBy: 'mod',
+        approvedAt: serverTimestamp(),
+      })
+    );
   });
 });

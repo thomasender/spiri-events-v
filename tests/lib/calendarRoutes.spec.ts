@@ -332,6 +332,14 @@ describe('selectSingleEvent', () => {
     expect(selectSingleEvent(ev({ date: '2026-09-01' }), TODAY)).toEqual([]);
   });
 
+  it('returns nothing for a curated event before the organizer consented', () => {
+    const curation = { organizerRef: 'o1', claimable: true };
+    expect(selectSingleEvent(ev({ curation } as never), TODAY)).toEqual([]);
+    expect(
+      selectSingleEvent(ev({ curation: { ...curation, consentAt: '2026-10-01' } } as never), TODAY)
+    ).toHaveLength(1);
+  });
+
   it('returns all upcoming occurrences of a series', () => {
     const out = selectSingleEvent(
       ev({ date: '2026-10-14', recurrence: 'weekly', recurrenceEndDate: '2027-01-01' }),

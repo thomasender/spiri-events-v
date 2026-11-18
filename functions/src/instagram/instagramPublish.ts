@@ -6,6 +6,7 @@
  * ../instagramPostOnApproval.ts.
  */
 
+import { isCuratedWithoutConsent } from '../eventImport';
 import { isInstagramRegion } from '../regions';
 import { buildCaption, buildFirstComment, type InstagramEventInput } from './instagramContent';
 
@@ -402,6 +403,13 @@ export async function publishApprovedEvent(
 ): Promise<TriggerOutcome> {
   const log = deps.log ?? (() => undefined);
   if (!isApprovalTransition(before, after)) return 'ignored';
+
+  // A curated event is never announced before its organizer consented
+  // (docs/event-import.md). No dedupe doc, like a missing Instagram consent.
+  if (isCuratedWithoutConsent(after)) {
+    log('Curated event without organizer consent; skipping Instagram post', { eventId });
+    return 'no-consent';
+  }
 
   // The Instagram account belongs to Vorarlberg. Not an error: no dedupe doc,
   // no admin mail, the event simply is not posted.

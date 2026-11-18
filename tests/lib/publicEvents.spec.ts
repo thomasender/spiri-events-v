@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   changesOnlineListing,
   changesPublicList,
+  isPubliclyListed,
   nextVersion,
   parseVersionParam,
   toPublicEvent,
@@ -53,6 +54,15 @@ describe('changesPublicList', () => {
     expect(changesPublicList('e', approved, { ...approved, title: 'B' })).toBe(true);
     expect(changesPublicList('e', approved, { ...approved, createdBy: 'other' })).toBe(false);
     expect(changesPublicList('e', approved, { ...approved })).toBe(false);
+  });
+  it('lists a curated event only once its organizer consented (event import)', () => {
+    const curated = { ...approved, curation: { organizerRef: 'o1', claimable: true } };
+    const consented = { ...approved, curation: { organizerRef: 'o1', consentAt: '2026-11-01' } };
+    expect(isPubliclyListed(approved)).toBe(true);
+    expect(isPubliclyListed(curated)).toBe(false);
+    expect(isPubliclyListed(consented)).toBe(true);
+    expect(changesPublicList('e', { status: 'pending' }, curated)).toBe(false);
+    expect(changesPublicList('e', curated, consented)).toBe(true);
   });
 });
 

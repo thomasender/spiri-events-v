@@ -7,6 +7,7 @@ import {
   EVENTS_VERSION_DOC,
   changesOnlineListing,
   changesPublicList,
+  isPubliclyListed,
   nextVersion,
   parseVersionParam,
   toPublicEvent,
@@ -74,12 +75,14 @@ export const publicEvents = onRequest(
           const regions = mergeFeedRegions(
             (await db.collection('regions').get()).docs.map((d) => ({ ...d.data(), id: d.id }))
           );
+          // Curated events only once the organizer consented (docs/event-import.md).
+          const docs = snap.docs.filter((doc) => isPubliclyListed(doc.data()));
           const annotated = await annotateOnlineEvents(
             db,
-            snap.docs.map((doc) => doc.data() as Record<string, unknown>),
+            docs.map((doc) => doc.data() as Record<string, unknown>),
             regions
           );
-          const events = annotated.map((data, i) => toPublicEvent(snap.docs[i].id, data));
+          const events = annotated.map((data, i) => toPublicEvent(docs[i].id, data));
           snapshot = { version: current, body: JSON.stringify(events) };
         }
       }
