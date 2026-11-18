@@ -44,9 +44,30 @@ preview page, the outreach mail and the consent callable follow in later tickets
 | `tests/lib/eventImport.spec.ts`      | Helper tests                                                                                                                                                                                                              |
 | `tests/rules/regions.rules.spec.ts`  | Rules tests ("event import")                                                                                                                                                                                              |
 
+Ticket 1 is the data model, rules, helpers, leak guards and the curator account. Ticket 7 adds
+the **claim** (an organizer takes the curated events over into an own account, see "Claim"
+below). Crawling, the review UI, the preview page, the outreach mail and the consent callable
+follow in other tickets.
+
+## Code
+
+| Where                                                                        | What                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `functions/src/eventImport.ts`                                               | Pure module (no Firebase): constants/enums, `fingerprint`, `blocklistId` / `blocklistKind` / `isBlocked`, `isCuratedEvent`, `isCuratedWithoutConsent`, `countsForActivation`, `isImageUrlAllowed`, `candidateToEventData`, `hashPreviewToken`, `claimTitleSimilarity` |
+| `src/utils/eventImport.js`                                                   | Synced copy of the constants and the two predicates (for scripts such as `prerender.mjs` and a later admin UI) plus the pure core of the curator script. `tests/lib/eventImport.spec.ts` fails on drift.                                                              |
+| `scripts/ensure-curator-account.mjs`                                         | Curator account (see below)                                                                                                                                                                                                                                           |
+| `firestore.rules`                                                            | `import_*` blocks, `events` (`isCurationUntouched`, `isCuratedApprovalWithoutConsent`), `app_settings/import` read                                                                                                                                                    |
+| `functions/src/eventImportClaim.ts`                                          | Claim callables `claimCuratedEvents`, `approveClaimRequest`, `listMyClaimableEvents`, `findCuratedMatches` (pure decision helpers, handlers with injected deps, wiring)                                                                                               |
+| `src/utils/eventClaim.js`, `src/lib/eventClaim.js`                           | Claim token storage and German messages; callable wrappers (inert stand-in in `tests/vitest.setup.ts`)                                                                                                                                                                |
+| `src/pages/ClaimEventsPage.jsx`                                              | `/uebernehmen?claim=<token>`                                                                                                                                                                                                                                          |
+| `src/components/ClaimableEventsBanner.jsx`, `CuratedMatchHint.jsx`           | Banner in Verwaltung -> "Meine Events"; hint in step 3 of the event wizard                                                                                                                                                                                            |
+| `tests/lib/eventImportClaim.spec.ts`, `tests/components/eventClaim.spec.tsx` | Claim logic (in-memory world) and claim UI                                                                                                                                                                                                                            |
+| `tests/lib/eventImport.spec.ts`                                              | Helper tests                                                                                                                                                                                                                                                          |
+| `tests/rules/regions.rules.spec.ts`                                          | Rules tests ("event import")                                                                                                                                                                                                                                          |
+
 ## Collections
 
-All four collections (and the `outreach` subcollection) are **Super-Admin only** in
+All `import_*` collections (and the `outreach` subcollection) are **Super-Admin only** in
 `firestore.rules`: no access for anyone else, Regions-Moderator:innen included. Import scripts
 and functions write with the Admin SDK (no rules), so the value checks in the rules guard the
 Super-Admin client only; the backend must follow the same rules.
@@ -299,9 +320,109 @@ The candidate is `published` only together with the event (same transaction).
 event carries `curation` (`EventSnapshot.curated`, set in `notifications.ts`), so neither admins
 nor organizers are mailed, independent of the flag.
 
+## Claim
+
+An organizer takes the curated events of their `import_organizers` doc over into an own
+account. Callables in `functions/src/eventImportClaim.ts` (App Check observed like the other
+callables, rate-limited per uid; account checks read Firebase Auth itself, not the possibly
+stale ID token):
+
+| Callable                                         | Who              | What                                                                                    |
+| ------------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------- |
+| `claimCuratedEvents({ organizerId?, token? })`   | signed-in member | Claim, or create a claim request                                                        |
+| `approveClaimRequest({ requestId, approve })`    | Super-Admin      | Decide a request; approving runs the same claim (actor = the admin in the audit log)    |
+| `listMyClaimableEvents()`                        | signed-in member | `{ events: [{ title, date }], total }` waiting for the account's exact verified address |
+| `findCuratedMatches({ title, date, regionId? })` | signed-in member | Wizard hint: up to 3 `{ organizerId, title, date }`, never contact data                 |
+
+The account always needs a **confirmed e-mail address** (`email-not-verified` otherwise).
+
+### Proofs
+
+| Proof    | Condition                                                                                                                                                                                                                                          | Result                 |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `token`  | `hashPreviewToken(token)` (sha256 hex, the helper ticket 5 uses as well) equals `previewTokenHash`, `previewTokenExpiresAt` not passed                                                                                                             | automatic claim        |
+| `email`  | Verified account address equals `contactEmail` (case-insensitive)                                                                                                                                                                                  | automatic claim        |
+| `domain` | Same registrable domain (`registrableHost`) as the website or the contact address, and the account address is **not** free-mail (`FREE_MAIL_DOMAINS`: gmail, gmx.\*, web.de, outlook, hotmail, icloud, yahoo, proton, aon, bluewin, t-online, ...) | claim **request** only |
+| `none`   | anything else (only with an `organizerId`, e.g. from the wizard hint)                                                                                                                                                                              | claim **request** only |
+
+Without `organizerId` and token the call claims every organizer whose `contactEmail` is the
+account's exact address (`no-organizer` if there is none).
+
+### Refusals (`HttpsError.details.reason`)
+
+`curator` (the curator account itself), `declined` (`consent` or `syncMode` declined),
+`blocked` (blocklist: address, its domain, website domain and parents), `already-claimed`
+(`linkedUid` is another account), `invalid-token`, `token-expired`, `no-organizer`,
+`request-decided`. The client turns them into German sentences (`claimErrorMessage`).
+
+### What the claim writes
+
+- Every event with `curation.organizerRef == organizerId` whose `createdBy` is the curator (or
+  already the claimer): `createdBy` = uid, `organizer.name` (kept, else the organizer's name),
+  `organizer.email` = the verified address, `curation.claimable = false`, `curation.claimedAt`,
+  `curation.claimedBy`. An event owned by anybody else is never taken.
+- The organizer: `consent: 'claimed'`, `syncMode: 'self_managed'`, `linkedUid`, `claimedAt`.
+  `consentRecord` is not touched.
+- One `admin_audit_log` entry `claimCuratedEvents` (`proof`, `via: self | request`, `requestId`,
+  `eventCount`); a rejected request writes `rejectClaimRequest`.
+- **Claiming is not consent.** `curation.consentAt` and the event `status` stay as they are: a
+  pending curated event without consent stays pending (and no client can approve it) until the
+  consent callable (ticket 5) records consent. A token claim with consent already recorded
+  changes nothing about consent either.
+- Organizer, audit entry and the first `CLAIM_CHUNK_SIZE` (400) events go into **one
+  transaction**; more events follow in further transactions of 400. Each step is idempotent: a
+  repeated call by the same account (or approving an approved request again) resumes an
+  interrupted claim without a second audit entry.
+- The client rules are unchanged: an owner still cannot change `createdBy` or `curation`
+  (rules tests "after a claim the new owner ...").
+
+### `import_claim_requests/{organizerId}_{uid}`
+
+`{ uid, organizerId, userEmail, proof: 'domain' | 'none', status: 'pending' | 'approved' |
+'rejected', createdAt, decidedAt?, decidedBy? }`. Written only by the callables; the rules give
+Super-Admins read and delete, nobody (Super-Admins included) create or update from the client.
+One request per organizer and account: a pending one is returned again, a rejected one answers
+`request-rejected`. There is no admin UI for the requests yet (admin tab, ticket 4).
+
+### UI
+
+- **`/uebernehmen?claim=<token>`** (`ClaimEventsPage`, lazy, `noindex`, `referrer:
+no-referrer`). The page reads the token once, removes it from the address bar
+  (`history.replaceState`) and keeps it in `localStorage` (`pendingClaimToken`, 14 days), so it
+  is never in `from`, a Referer, GA (page views drop the query anyway) or the confirmation mail.
+  Guests get "Konto anlegen" / "Ich habe schon ein Konto" (`/login` with `from: '/uebernehmen'`).
+  `register()` sends `afterVerify: 'claimEvents'` while a token waits, so the confirmation link
+  leads back with `next=/uebernehmen` (`AFTER_VERIFY_PATHS` on both sides). An unconfirmed
+  account sees the verification banner (re-checked on focus and every 15 s). Then the page
+  calls `claimCuratedEvents({ token })` and shows the result in German. Ticket 5's preview page
+  ("self_manage") links here. `uebernehmen` is a reserved username.
+- **Banner** in Verwaltung -> "Meine Events" (`ClaimableEventsBanner`): for confirmed accounts
+  when `listMyClaimableEvents` finds events; "Events übernehmen" or "Später" (both hide it for
+  good in this browser, `claimBannerDismissed:{uid}`).
+- **Wizard hint** (`CuratedMatchHint`, step 3 under date/time): only signed-in members with a
+  confirmed address, 800 ms debounce, errors ignored. "Übernehmen" calls
+  `claimCuratedEvents({ organizerId })` (exact address: claim, else a request).
+
+### Mails before and after the claim
+
+| Mail                                                  | Recipient                                      | Before the claim                                                                | After      |
+| ----------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------- | ---------- |
+| Status mails (approved, rejected, Rückfrage, trashed) | `organizer.email` (`notificationRouting.ts`)   | empty on curated events: no mail                                                | new owner  |
+| Kerzenraum message to the organizer (`chat.ts`)       | account of `createdBy`                         | curator mailbox; only possible for approved (= consented) events                | new owner  |
+| "Zum Event anmelden" (`eventRegistration.ts`)         | account of `createdBy`, else `organizer.email` | **curator mailbox** for consented, approved, unclaimed events (see open points) | new owner  |
+| Favorite cancelled (`eventCancellationNotify.ts`)     | favoriters, never `createdBy`                  | unaffected                                                                      | unaffected |
+
 ## Open points
 
 - The public JSON (`toPublicEvent`) passes `curation` through for consented events
   (`organizerRef`, `sourceUrl`); strip it if the UI does not need it.
 - Region moderators can read curated pending events of their region (as every pending event) but
   cannot approve them before consent.
+- Claim: a consented, approved curated event that is not claimed yet sends "Zum Event anmelden"
+  registrations and Kerzenraum mails to the curator mailbox (`createdBy`). Either hide the
+  registration button on unclaimed curated events or forward those mails before going live.
+- Claim: the Admin-SDK update of the events is seen by the event triggers as an ordinary edit
+  (revision / moderation log). Not verified against a real project.
+- Claim: `contactEmail` should be stored lower-case by the import (ticket 3); the lookup asks
+  the exact and the lower-cased spelling only.
+- Claim requests have no admin UI and no mail to the Super-Admins yet.

@@ -492,4 +492,58 @@ describe('event import (import_* collections, events.curation)', () => {
       })
     );
   });
+
+  it('claim requests: Super-Admins read them, nobody writes them from the client', async () => {
+    const request = { uid: 'member', organizerId: 'org1', status: 'pending', createdAt: 1 };
+    await env.withSecurityRulesDisabled((c) =>
+      setDoc(doc(c.firestore(), 'import_claim_requests/org1_member'), request)
+    );
+    const path = 'import_claim_requests/org1_member';
+    // The requester included: the callable answers them, the doc stays staff data.
+    for (const db of [env.unauthenticatedContext().firestore(), ctx('member'), ctx('mod')]) {
+      await assertFails(getDoc(doc(db, path)));
+      await assertFails(getDocs(collection(db, 'import_claim_requests')));
+      await assertFails(setDoc(doc(db, 'import_claim_requests/org1_x'), request));
+      await assertFails(updateDoc(doc(db, path), { status: 'approved' }));
+      await assertFails(deleteDoc(doc(db, path)));
+    }
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(getDoc(doc(admin, path)));
+    await assertSucceeds(getDocs(collection(admin, 'import_claim_requests')));
+    // Approving goes through approveClaimRequest (it moves the events).
+    await assertFails(updateDoc(doc(admin, path), { status: 'approved' }));
+    await assertFails(setDoc(doc(admin, 'import_claim_requests/org1_y'), request));
+    await assertSucceeds(deleteDoc(doc(admin, path)));
+  });
+
+  it('after a claim the new owner edits the event but cannot hand it on or touch curation', async () => {
+    const claimed = {
+      ...curation,
+      claimable: false,
+      claimedAt: 2,
+      claimedBy: 'claimer',
+    };
+    await env.withSecurityRulesDisabled((c) =>
+      setDoc(
+        doc(c.firestore(), 'events/claimed'),
+        event({
+          status: 'pending',
+          createdBy: 'claimer',
+          organizer: { name: 'Yogaverein Tirol', email: 'info@yoga-tirol.at' },
+          curation: claimed,
+        })
+      )
+    );
+    const owner = ctx('claimer');
+    await assertSucceeds(updateDoc(doc(owner, 'events/claimed'), { title: 'Kakao im Advent' }));
+    await assertFails(updateDoc(doc(owner, 'events/claimed'), { createdBy: 'curator' }));
+    await assertFails(updateDoc(doc(owner, 'events/claimed'), { createdBy: 'mallory' }));
+    await assertFails(
+      updateDoc(doc(owner, 'events/claimed'), { curation: { ...claimed, consentAt: 3 } })
+    );
+    // The curator account lost the event with the claim.
+    await assertFails(updateDoc(doc(ctx('curator'), 'events/claimed'), { title: 'x' }));
+    // Nobody else takes it over from the client either.
+    await assertFails(updateDoc(doc(ctx('member'), 'events/claimed'), { createdBy: 'member' }));
+  });
 });

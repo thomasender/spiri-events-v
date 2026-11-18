@@ -195,7 +195,8 @@ two-line "read this when".
   draft storage (`wizardDraftStorage.js`, `wizardDraftFiles.js`), its end page for guests /
   unconfirmed e-mails, or the `next` of the confirmation mail (`AuthActionPage`).
 - Read `docs/event-import.md` ONLY when you touch curated/imported events: the `import_*`
-  collections, `events.curation`, `eventImport.ts` / `eventImport.js`, the curator account script,
+  collections, `events.curation`, `eventImport.ts` / `eventImport.js`, the claim
+  (`eventImportClaim.ts`, `/uebernehmen`, "Meine Events" banner, wizard hint), the curator account script,
   or a public event path (JSON list, ICS, prerender/sitemap, Instagram) that must hide them.
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.

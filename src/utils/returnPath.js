@@ -12,7 +12,7 @@ export function getReturnPath(state) {
 // /auth-action). Same list as AFTER_VERIFY_PATHS in
 // functions/src/sendVerificationEmail.ts; anything else falls back to '/', so
 // the link cannot send anybody to a foreign site.
-export const AFTER_VERIFY_PATHS = ['/admin/new'];
+export const AFTER_VERIFY_PATHS = ['/admin/new', '/uebernehmen'];
 
 export function afterVerifyPath(next) {
   return typeof next === 'string' && AFTER_VERIFY_PATHS.includes(next) ? next : '/';

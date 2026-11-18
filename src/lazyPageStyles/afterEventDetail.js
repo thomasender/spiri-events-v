@@ -59,3 +59,6 @@ import '../components/OnlineDot.css';
 // ModeratorOnboardingPage
 import '../components/ModeratorOnboardingWizard.css';
 import '../pages/ModeratorOnboardingPage.css';
+
+// ClaimEventsPage (also the claim banner in AdminPage and the hint in the event wizard)
+import '../components/EventClaim.css';
