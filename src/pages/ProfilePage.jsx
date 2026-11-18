@@ -1,6 +1,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useRegion } from '../hooks/useRegion';
+import { usePushDevice } from '../hooks/usePushDevice';
 import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import ProfileForm from '../components/ProfileForm';
 import ChangeEmailForm from '../components/ChangeEmailForm';
@@ -22,6 +23,8 @@ export default function ProfilePage() {
   // The chat e-mail switches only appear while Postfach / Event Chat are open for this person.
   const { available: messengerAvailable } = useMessengerAccess();
   const { available: chatAvailable } = useChatAccess();
+  // Push on this device; hidden entirely while no VAPID key is configured.
+  const push = usePushDevice(user?.uid);
 
   const handleProfileSave = async (updates) => {
     const newSlug = await save(updates);
@@ -77,6 +80,7 @@ export default function ProfilePage() {
           isAdmin={isAdmin}
           messengerAvailable={messengerAvailable}
           chatAvailable={chatAvailable}
+          push={push}
           onSave={handlePreferencesSave}
         />
 

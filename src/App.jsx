@@ -24,6 +24,7 @@ import NoAccess from './components/NoAccess';
 import RegionProvider from './components/RegionProvider';
 import RegionChooser from './components/RegionChooser';
 import PlaceSelectionSync from './components/PlaceSelectionSync';
+import PushTokenRefresh from './components/PushTokenRefresh';
 import {
   RegionAboutRoute,
   RegionDirectoryRoute,
@@ -176,6 +177,7 @@ function AppLayout() {
       <ScrollToTop />
       <AnalyticsRouteTracker />
       <PlaceSelectionSync />
+      <PushTokenRefresh />
       <Header />
       <NetworkBanner />
       <RegionChooser />

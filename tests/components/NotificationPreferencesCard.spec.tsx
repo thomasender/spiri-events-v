@@ -206,3 +206,112 @@ describe('NotificationPreferencesCard', () => {
     });
   });
 });
+
+describe('NotificationPreferencesCard push section', () => {
+  const pushOf = (state: string, enable = vi.fn().mockResolvedValue({ ok: true })) => ({
+    state,
+    enable,
+    disable: vi.fn().mockResolvedValue(undefined),
+  });
+
+  it('shows nothing about push while no key is configured', () => {
+    render(
+      <NotificationPreferencesCard preferences={allOn} push={pushOf('disabled')} onSave={vi.fn()} />
+    );
+    expect(screen.queryByTestId('notification-push')).not.toBeInTheDocument();
+    render(<NotificationPreferencesCard preferences={allOn} onSave={vi.fn()} />);
+    expect(screen.queryByTestId('notification-push')).not.toBeInTheDocument();
+  });
+
+  it('tells iPhone users in a Safari tab to add the app to the home screen', () => {
+    render(
+      <NotificationPreferencesCard preferences={allOn} push={pushOf('ios-tab')} onSave={vi.fn()} />
+    );
+    expect(screen.getByTestId('push-ios-hint')).toHaveTextContent('Zum Home-Bildschirm');
+    expect(screen.queryByTestId('push-device-toggle')).not.toBeInTheDocument();
+  });
+
+  it('explains a blocked permission and offers no switch', () => {
+    render(
+      <NotificationPreferencesCard preferences={allOn} push={pushOf('denied')} onSave={vi.fn()} />
+    );
+    expect(screen.getByTestId('push-denied')).toBeInTheDocument();
+    expect(screen.queryByTestId('push-device-toggle')).not.toBeInTheDocument();
+  });
+
+  it('says so when the browser cannot do push', () => {
+    render(
+      <NotificationPreferencesCard
+        preferences={allOn}
+        push={pushOf('unsupported')}
+        onSave={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('push-unsupported')).toBeInTheDocument();
+  });
+
+  it('switching on the first device also switches the topics on', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const push = pushOf('available');
+    render(<NotificationPreferencesCard preferences={allOn} push={push} onSave={onSave} />);
+    const toggle = screen.getByTestId('push-device-toggle');
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByTestId('notification-pref-pushOnEventStatus')).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(push.enable).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith({ pushOnEventStatus: true, pushOnReviewMessage: true })
+    );
+  });
+
+  it('keeps the chosen topics when a further device is switched on', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const push = pushOf('available');
+    render(
+      <NotificationPreferencesCard
+        preferences={{ ...allOn, pushOnEventStatus: true, pushOnReviewMessage: false }}
+        push={push}
+        onSave={onSave}
+      />
+    );
+    fireEvent.click(screen.getByTestId('push-device-toggle'));
+    await waitFor(() => expect(push.enable).toHaveBeenCalledTimes(1));
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('saves nothing when the person declines the browser prompt', async () => {
+    const onSave = vi.fn();
+    const push = pushOf(
+      'available',
+      vi.fn().mockResolvedValue({ ok: false, permission: 'denied' })
+    );
+    render(<NotificationPreferencesCard preferences={allOn} push={push} onSave={onSave} />);
+    fireEvent.click(screen.getByTestId('push-device-toggle'));
+    await waitFor(() => expect(push.enable).toHaveBeenCalled());
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('an active device shows the topics and can be switched off', async () => {
+    const push = pushOf('active');
+    render(
+      <NotificationPreferencesCard
+        preferences={{ ...allOn, pushOnEventStatus: true }}
+        push={push}
+        onSave={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('push-device-toggle')).toBeChecked();
+    expect(screen.getByTestId('notification-pref-pushOnEventStatus')).toBeChecked();
+    expect(screen.getByTestId('notification-pref-pushOnReviewMessage')).not.toBeChecked();
+    fireEvent.click(screen.getByTestId('push-device-toggle'));
+    await waitFor(() => expect(push.disable).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows an error when switching on fails', async () => {
+    const push = pushOf('available', vi.fn().mockRejectedValue(new Error('boom')));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<NotificationPreferencesCard preferences={allOn} push={push} onSave={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('push-device-toggle'));
+    expect(await screen.findByTestId('notification-pref-error')).toBeInTheDocument();
+  });
+});

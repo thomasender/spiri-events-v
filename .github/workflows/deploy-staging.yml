@@ -59,6 +59,11 @@ jobs:
           " "$RUNNER_TEMP/sdkconfig.json" >> "$GITHUB_ENV"
 
       - name: Build (staging, no prerender)
+        env:
+          # Public Web Push key (VAPID) of tribe-vbg-staging: a GitHub *variable* of its own,
+          # the production key does not work for another project. Empty = push stays
+          # invisible (docs/push-notifications.md).
+          VITE_FIREBASE_VAPID_KEY: ${{ vars.STAGING_VITE_FIREBASE_VAPID_KEY }}
         run: |
           npx vite build --mode staging
           # The bundle must not know the production project id.

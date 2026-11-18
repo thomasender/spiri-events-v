@@ -61,6 +61,8 @@ import {
   PreferenceKey,
   NotificationPreferenceMap,
 } from './userPreferences';
+import { ownerReviewMessagePush, ownerStatusPush } from './pushRouting';
+import { sendPushPlan } from './push';
 
 const REGION = 'europe-west3';
 const ADMINS_RECIPIENT = 'admins' as const;
@@ -581,6 +583,20 @@ export const onEventStatusChanged = onDocumentUpdated(
       return;
     }
 
+    // Push goes out on its own, before and independent of the mail (never throws).
+    const afterData = event.data?.after.data();
+    await sendPushPlan(
+      ownerStatusPush({
+        decision,
+        beforeStatus: before.status,
+        ownerUid: after.createdBy,
+        actorUid: readString(
+          decision.type === 'published' ? afterData?.approvedBy : afterData?.trashedBy
+        ),
+      }),
+      { eventId, type: decision.type }
+    );
+
     const dryRun = isMailgunDryRun(process.env);
     const secrets = safeSecrets(dryRun);
     if (!secrets) {
@@ -689,6 +705,15 @@ export const onAdminMessageCreated = onDocumentCreated(
       logger.debug('No admin message notification needed', { eventId, messageId });
       return;
     }
+
+    await sendPushPlan(
+      ownerReviewMessagePush({
+        decision,
+        ownerUid: eventSnapshot.createdBy,
+        authorUid: snapshot.authorUid,
+      }),
+      { eventId, messageId, type: 'changes_requested' }
+    );
 
     const dryRun = isMailgunDryRun(process.env);
     const secrets = safeSecrets(dryRun);
