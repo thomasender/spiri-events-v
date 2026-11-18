@@ -18,6 +18,8 @@ const mockEvents = vi.hoisted(() => ({
 
 const mockFirestore = vi.hoisted(() => ({ updateDoc: vi.fn(async () => {}) }));
 
+const mockDuplicates = vi.hoisted(() => ({ findDuplicates: vi.fn(async () => [] as unknown[]) }));
+
 const mockNavigate = vi.fn();
 
 const mockConfetti = vi.hoisted(() => Object.assign(vi.fn(), { reset: vi.fn() }));
@@ -57,6 +59,10 @@ vi.mock('../../src/hooks/useEvents', () => ({
   useAllEvents: () => ({ events: [], loading: false, error: null }),
   KATEGORIEN: ['Yoga', 'Breathwork', 'Meditation', 'Tanz', 'Singen', 'Soundhealing', 'Sonstiges'],
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
+}));
+
+vi.mock('../../src/hooks/useDuplicateCheck', () => ({
+  useDuplicateCheck: () => mockDuplicates,
 }));
 
 vi.mock('../../src/hooks/useCategories', () => ({
@@ -179,6 +185,8 @@ beforeEach(() => {
   mockEvents.addEvent.mockClear();
   mockFirestore.updateDoc.mockClear();
   mockNavigate.mockClear();
+  mockDuplicates.findDuplicates.mockReset();
+  mockDuplicates.findDuplicates.mockResolvedValue([]);
 });
 
 describe('EventFormWizard remembered answers (Trello 6afd8505)', () => {
@@ -265,5 +273,79 @@ describe('EventFormWizard remembered answers (Trello 6afd8505)', () => {
     fireEvent.click(await screen.findByTestId('save-as-draft-button'));
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/admin'));
     expect(mockEvents.addEvent).toHaveBeenCalled();
+  });
+});
+
+describe('EventFormWizard duplicate check (Trello 6afdc0ce)', () => {
+  const HIT = {
+    event: {
+      id: 'old-1',
+      slug: 'mein-entwurf-in-feldkirch-20261205',
+      title: 'Mein Entwurf',
+      date: FUTURE_DATE,
+      time: '10:00',
+      city: 'Feldkirch',
+    },
+    score: 2,
+    day: FUTURE_DATE,
+  };
+
+  it('opens the confirm dialog as before when nothing similar exists', async () => {
+    seedDraft({ ...DRAFT, currentStep: 4 });
+    renderWizard();
+    fireEvent.click(await screen.findByTestId('submit-event-button'));
+    expect(await screen.findByText('Event zur Genehmigung einreichen')).toBeInTheDocument();
+    expect(screen.queryByText('Gibt es dieses Event schon?')).not.toBeInTheDocument();
+    expect(mockDuplicates.findDuplicates).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the duplicate dialog and saves a draft only after the choice', async () => {
+    mockDuplicates.findDuplicates.mockResolvedValue([HIT]);
+    seedDraft({ ...DRAFT, currentStep: 4 });
+    renderWizard();
+    fireEvent.click(await screen.findByTestId('save-as-draft-button'));
+    expect(await screen.findByText('Gibt es dieses Event schon?')).toBeInTheDocument();
+    expect(mockEvents.addEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByText('Als Entwurf speichern', { selector: '.duplicate-actions *' })
+    );
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalled());
+    expect(mockEvents.addEvent.mock.calls[0][1]).toBe('draft');
+  });
+
+  it('submits anyway into the normal review', async () => {
+    mockDuplicates.findDuplicates.mockResolvedValue([HIT]);
+    seedDraft({ ...DRAFT, currentStep: 4 });
+    renderWizard();
+    fireEvent.click(await screen.findByTestId('submit-event-button'));
+    fireEvent.click(await screen.findByText('Mein Event ist anders, trotzdem einreichen'));
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalled());
+    expect(mockEvents.addEvent.mock.calls[0][1]).toBe('pending');
+  });
+
+  it('goes back without saving', async () => {
+    mockDuplicates.findDuplicates.mockResolvedValue([HIT]);
+    seedDraft({ ...DRAFT, currentStep: 4 });
+    renderWizard();
+    fireEvent.click(await screen.findByTestId('submit-event-button'));
+    fireEvent.click(await screen.findByText('Zurück und ändern'));
+    expect(screen.queryByText('Gibt es dieses Event schon?')).not.toBeInTheDocument();
+    expect(mockEvents.addEvent).not.toHaveBeenCalled();
+  });
+
+  it('asks before discarding and then only drops the wizard draft', async () => {
+    mockDuplicates.findDuplicates.mockResolvedValue([HIT]);
+    seedDraft({ ...DRAFT, currentStep: 4 });
+    renderWizard();
+    fireEvent.click(await screen.findByTestId('submit-event-button'));
+    fireEvent.click(await screen.findByText('Mein Event verwerfen'));
+    expect(await screen.findByText('Event verwerfen?')).toBeInTheDocument();
+    expect(localStorage.getItem('eventWizardDraft:user-uid')).not.toBeNull();
+
+    fireEvent.click(screen.getByText('Ja, verwerfen'));
+    expect(localStorage.getItem('eventWizardDraft:user-uid')).toBeNull();
+    expect(mockNavigate).toHaveBeenCalledWith('/admin');
+    expect(mockEvents.addEvent).not.toHaveBeenCalled();
   });
 });
