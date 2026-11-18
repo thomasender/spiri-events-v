@@ -46,6 +46,8 @@ import {
   Plus,
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import DuplicateEventDialog from './DuplicateEventDialog';
+import { useDuplicateCheck } from '../hooks/useDuplicateCheck';
 import SuccessDialog from './SuccessDialog';
 import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
@@ -391,6 +393,10 @@ export default function EventFormWizard() {
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  // Similar approved events found before saving (Trello 6afdc0ce); [] = dialog closed.
+  const [duplicateCandidates, setDuplicateCandidates] = useState([]);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const { findDuplicates } = useDuplicateCheck();
   const [showMultiDayRecurrenceConfirm, setShowMultiDayRecurrenceConfirm] = useState(false);
   const [endDateConflictMarked, setEndDateConflictMarked] = useState(false);
   const [successState, setSuccessState] = useState(null);
@@ -1316,6 +1322,22 @@ export default function EventFormWizard() {
     return true;
   };
 
+  // Similar approved events for the event as it would be saved; [] when none or the check
+  // failed (never blocks saving). The event being retried after a failed save is left out.
+  const lookUpDuplicates = async () => {
+    setLoading(true);
+    try {
+      const data = buildEventData('pending');
+      const hits = await findDuplicates({
+        ...data,
+        id: eventIdRef.current ?? createdEventRef.current?.id,
+      });
+      return hits.map((hit) => hit.event);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (currentStep < 4) {
@@ -1323,13 +1345,43 @@ export default function EventFormWizard() {
     }
     if (!canCreateEvents) return;
     if (!validateBeforeSave('submit')) return;
+    const duplicates = await lookUpDuplicates();
+    if (duplicates.length > 0) {
+      setDuplicateCandidates(duplicates);
+      return;
+    }
     setShowConfirmModal(true);
   };
 
   const handleSaveAsDraft = async () => {
     if (!canCreateEvents) return;
     if (!validateBeforeSave('draft')) return;
+    const duplicates = await lookUpDuplicates();
+    if (duplicates.length > 0) {
+      setDuplicateCandidates(duplicates);
+      return;
+    }
     await saveEvent(buildEventData('draft'));
+  };
+
+  const handleDuplicateSubmitAnyway = () => {
+    setDuplicateCandidates([]);
+    saveEvent(buildEventData('pending'));
+  };
+
+  const handleDuplicateSaveDraft = () => {
+    setDuplicateCandidates([]);
+    saveEvent(buildEventData('draft'));
+  };
+
+  // Drops only the wizard draft (saved answers and files); nothing is written to Firestore.
+  const handleDuplicateDiscard = () => {
+    setShowDiscardConfirm(false);
+    setDuplicateCandidates([]);
+    draftDoneRef.current = true;
+    clearWizardDraft(draftOwner);
+    clearWizardDraftFiles(draftOwner);
+    navigate('/admin');
   };
 
   // Guest at the end of the wizard: check the draft, keep it, then log in or
@@ -2616,6 +2668,27 @@ export default function EventFormWizard() {
         onConfirm={confirmSubmit}
         onCancel={() => setShowConfirmModal(false)}
         loading={loading}
+      />
+
+      <DuplicateEventDialog
+        isOpen={duplicateCandidates.length > 0 && !showDiscardConfirm}
+        candidates={duplicateCandidates}
+        loading={loading}
+        onSubmitAnyway={handleDuplicateSubmitAnyway}
+        onSaveDraft={handleDuplicateSaveDraft}
+        onBack={() => setDuplicateCandidates([])}
+        onDiscard={() => setShowDiscardConfirm(true)}
+      />
+
+      <ConfirmDialog
+        isOpen={showDiscardConfirm}
+        title="Event verwerfen?"
+        message="Dein Entwurf wird gelöscht. Das kann nicht rückgängig gemacht werden."
+        confirmLabel="Ja, verwerfen"
+        cancelLabel="Abbrechen"
+        danger
+        onConfirm={handleDuplicateDiscard}
+        onCancel={() => setShowDiscardConfirm(false)}
       />
 
       <ConfirmDialog

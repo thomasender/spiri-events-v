@@ -42,6 +42,10 @@ vi.mock('../../src/hooks/useEvents', () => ({
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
+vi.mock('../../src/hooks/useDuplicateCheck', () => ({
+  useDuplicateCheck: () => ({ findDuplicates: async () => [] }),
+}));
+
 vi.mock('../../src/hooks/useCategories', () => ({
   useCategories: () => [
     'Yoga',
@@ -336,8 +340,8 @@ describe('EventFormWizard — monthly on the n-th weekday (6adca49e)', () => {
     const noText = screen.queryByTestId('instagram-no-text-checkbox');
     if (noText && !(noText as HTMLInputElement).checked) fireEvent.click(noText);
     fireEvent.click(screen.getByTestId('submit-event-button'));
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog') as HTMLElement;
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
     await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalled());
     const saved = (mockEvents.addEvent.mock.calls[0] as unknown[])[0] as Record<string, unknown>;

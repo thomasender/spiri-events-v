@@ -48,6 +48,10 @@ vi.mock('../../src/hooks/useEvents', () => ({
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
+vi.mock('../../src/hooks/useDuplicateCheck', () => ({
+  useDuplicateCheck: () => ({ findDuplicates: async () => [] }),
+}));
+
 vi.mock('../../src/hooks/useCategories', () => ({
   useCategories: () => [
     'Yoga',
@@ -160,8 +164,8 @@ describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO re
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
 
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => {
@@ -178,8 +182,8 @@ describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO re
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
 
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => {
@@ -205,8 +209,8 @@ describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO re
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
 
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => {
@@ -222,8 +226,8 @@ describe('EventFormWizard confetti celebration', () => {
     renderWizard();
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => expect(screen.getByTestId('success-dialog')).toBeInTheDocument());

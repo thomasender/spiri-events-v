@@ -42,6 +42,10 @@ vi.mock('../../src/hooks/useEvents', () => ({
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
+vi.mock('../../src/hooks/useDuplicateCheck', () => ({
+  useDuplicateCheck: () => ({ findDuplicates: async () => [] }),
+}));
+
 vi.mock('../../src/hooks/useCategories', () => ({
   useCategories: () => [
     'Yoga',
@@ -145,8 +149,8 @@ async function submitAndGetSavedEvent() {
   const noText = screen.queryByTestId('instagram-no-text-checkbox');
   if (noText && !(noText as HTMLInputElement).checked) fireEvent.click(noText);
   fireEvent.click(screen.getByTestId('submit-event-button'));
+  await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
   const confirmDialog = document.querySelector('.confirm-dialog') as HTMLElement;
-  await waitFor(() => expect(confirmDialog).toBeTruthy());
   fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
   await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalled());
   // Let the save finish (it clears the draft photos) before the next test seeds new ones.
