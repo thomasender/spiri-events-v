@@ -22,6 +22,7 @@ import { resolveRegionId } from '../utils/regions';
 import { buildRejectUpdate, buildTrashUpdate } from '../utils/trashUpdates';
 import { rejectionReasonFromMessage } from '../utils/rejectionTemplates';
 import EventAdminListRow from './EventAdminListRow';
+import { isCuratedEvent, isCuratedWithoutConsent } from '../utils/eventImport';
 import AdminCoverPreview from './AdminCoverPreview';
 import { AdminInstagramPreview } from './InstagramPostPreview';
 import ConfirmDialog from './ConfirmDialog';
@@ -111,6 +112,17 @@ function ReviewImageCheck({ event }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Badges for imported (curated) events; shown next to the row, behaviour unchanged.
+function CurationBadges({ event }) {
+  if (!isCuratedEvent(event)) return null;
+  return (
+    <p className="review-curation-badges" data-testid={`review-curation-${event.id}`}>
+      <span className="badge">importiert</span>
+      {isCuratedWithoutConsent(event) && <span className="badge">ohne Consent</span>}
+    </p>
   );
 }
 
@@ -441,6 +453,7 @@ export default function ReviewTab() {
                         onReject={openReject}
                         onDeleteClick={(evt) => openDelete(evt)}
                       />
+                      <CurationBadges event={event} />
                       {canEdit(event) && <ReviewImageCheck event={event} />}
                     </div>
                   ))}
@@ -502,6 +515,7 @@ export default function ReviewTab() {
                           onReject={openReject}
                           onDeleteClick={(evt) => openDelete(evt)}
                         />
+                        <CurationBadges event={event} />
                         {canEdit(event) && <ReviewImageCheck event={event} />}
                       </div>
                     ))}
@@ -556,6 +570,7 @@ export default function ReviewTab() {
                   showEdit={canEdit(event)}
                   onDeleteClick={(evt) => openDelete(evt)}
                 />
+                <CurationBadges event={event} />
               </div>
             ))}
           </div>

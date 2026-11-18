@@ -116,6 +116,7 @@ export const ADMIN_TABS = [
   'moderation',
   'team',
   'regions',
+  'import',
   'about',
   'faq',
 ];
