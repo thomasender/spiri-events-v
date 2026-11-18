@@ -56,6 +56,7 @@ import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
 import StaffNotificationsTab from '../components/StaffNotificationsTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
+import ClaimableEventsBanner from '../components/ClaimableEventsBanner';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -320,6 +321,9 @@ export default function AdminPage() {
       </header>
 
       {!canCreateEvents && <EmailVerificationBanner />}
+
+      {/* Curated events waiting for this account's confirmed address (docs/event-import.md). */}
+      {activeTab === 'events' && <ClaimableEventsBanner />}
 
       {hashEventId && <EventStatusMismatchBanner key={hashEventId} eventId={hashEventId} />}
 

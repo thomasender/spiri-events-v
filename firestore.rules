@@ -2086,6 +2086,15 @@ service cloud.firestore {
                                     && request.resource.data.reason.size() <= 500));
     }
 
+    // Claim requests (functions/src/eventImportClaim.ts): a member asked to
+    // take over an organizer's curated events without a strong proof. Written
+    // and decided only by the callables (claimCuratedEvents,
+    // approveClaimRequest); Super-Admins read them (and may delete one).
+    match /import_claim_requests/{requestId} {
+      allow read, delete: if isAdminOrEmulatorAdmin();
+      allow create, update: if false;
+    }
+
     // Refreshed Instagram access token (secret!). Written and read only by
     // the Cloud Functions (Admin SDK bypasses rules). No client may ever read
     // or write it, not even admins.

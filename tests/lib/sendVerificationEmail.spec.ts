@@ -60,6 +60,12 @@ describe('buildVerificationButtonUrl', () => {
     expect(url.searchParams.get('oobCode')).toBe('code');
   });
 
+  it('adds next=/uebernehmen (without any token) for an organizer claiming events', () => {
+    const url = new URL(buildVerificationButtonUrl(ORIGIN, 'code', 'claimEvents'));
+    expect(url.searchParams.get('next')).toBe('/uebernehmen');
+    expect(url.search).not.toContain('claim=');
+  });
+
   it('ignores unknown values instead of passing a path through', () => {
     for (const value of ['/admin', 'https://evil.example', '__proto__', 'toString', 42, null]) {
       expect(buildVerificationButtonUrl(ORIGIN, 'code', value)).not.toContain('next=');
