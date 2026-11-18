@@ -119,6 +119,22 @@ export function toFirestoreValue(value) {
   throw new Error(`Unsupported Firestore value: ${typeof value}`);
 }
 
+/** Firestore REST value -> plain JS value (timestamps become Date). */
+export function fromFirestoreValue(value) {
+  if (!value || 'nullValue' in value) return null;
+  if ('stringValue' in value) return value.stringValue;
+  if ('booleanValue' in value) return value.booleanValue;
+  if ('integerValue' in value) return Number(value.integerValue);
+  if ('doubleValue' in value) return value.doubleValue;
+  if ('timestampValue' in value) return new Date(value.timestampValue);
+  if ('arrayValue' in value) return (value.arrayValue.values ?? []).map(fromFirestoreValue);
+  if ('mapValue' in value) return fromFirestoreFields(value.mapValue.fields ?? {});
+  return null;
+}
+
+export const fromFirestoreFields = (fields = {}) =>
+  Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, fromFirestoreValue(v)]));
+
 export const toFirestoreFields = (obj) =>
   Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, toFirestoreValue(v)]));
 
@@ -350,6 +366,66 @@ export async function createAdminRestClient({
     );
   }
 
+  const docId = (name) => name.split('/').pop();
+
+  /** All docs of a top-level collection as `{ id, data }` (paginated). */
+  async function listDocuments(collectionId) {
+    const out = [];
+    let pageToken;
+    do {
+      const query = `?pageSize=300${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+      const response = await request(`${firestoreBase}/${collectionId}${query}`, {
+        method: 'GET',
+        scopes: firestoreScopes,
+      });
+      const payload = await ok(response, `Firestore list ${collectionId}`);
+      for (const d of payload.documents ?? []) {
+        out.push({ id: docId(d.name), data: fromFirestoreFields(d.fields) });
+      }
+      pageToken = payload.nextPageToken;
+    } while (pageToken);
+    return out;
+  }
+
+  /** Docs of a top-level collection where `field == value` as `{ id, data }`. */
+  async function queryEqual(collectionId, field, value) {
+    const payload = await ok(
+      await request(`${firestoreBase}:runQuery`, {
+        scopes: firestoreScopes,
+        body: {
+          structuredQuery: {
+            from: [{ collectionId }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: field },
+                op: 'EQUAL',
+                value: toFirestoreValue(value),
+              },
+            },
+          },
+        },
+      }),
+      `Firestore query ${collectionId}`
+    );
+    return payload
+      .filter((row) => row.document)
+      .map((row) => ({
+        id: docId(row.document.name),
+        data: fromFirestoreFields(row.document.fields),
+      }));
+  }
+
+  /** One doc's data, or null. */
+  async function getDocument(path) {
+    const response = await request(`${firestoreBase}/${path}`, {
+      method: 'GET',
+      scopes: firestoreScopes,
+    });
+    if (response.status === 404) return null;
+    const payload = await ok(response, `Firestore read ${path}`);
+    return fromFirestoreFields(payload.fields);
+  }
+
   async function writeModeratorDoc(uid, email, regionIds, before, actor) {
     const now = new Date().toISOString();
     const fields = {
@@ -409,5 +485,8 @@ export async function createAdminRestClient({
     writeSuperAdminDoc,
     writeModeratorDoc,
     commit,
+    listDocuments,
+    queryEqual,
+    getDocument,
   };
 }

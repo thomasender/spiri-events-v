@@ -114,7 +114,9 @@ export const ADMIN_TABS = [
   'mailgun',
   'ledger',
   'moderation',
+  'team',
   'regions',
+  'import',
   'about',
   'faq',
   'vorab',
@@ -128,6 +130,7 @@ const MODERATOR_TABS = [
   'members',
   'helpers',
   'about',
+  'team',
   // Shown only while app_settings/preEntries.mode is 'all' (AdminPage).
   'vorab',
 ];

@@ -65,6 +65,8 @@ const PreEntryPreviewPage = lazyWithReload(() => import('./pages/PreEntryPreview
 const PioniereDankePage = lazyWithReload(() =>
   import('./pages/PioniereOnboardingPage').then((m) => ({ default: m.PioniereDankePage }))
 );
+const ImportPreviewPage = lazyWithReload(() => import('./pages/ImportPreviewPage'));
+const ClaimEventsPage = lazyWithReload(() => import('./pages/ClaimEventsPage'));
 
 // Helmet updates document.title on the next animation frame; wait a moment so
 // page_view carries the new page's title rather than the previous one.
@@ -206,8 +208,13 @@ function AppLayout() {
               <Route path="/vorschau/:token" element={<PreEntryPreviewPage />} />
               <Route path="/pioniere" element={<PioniereOnboardingPage />} />
               <Route path="/pioniere/danke" element={<PioniereDankePage />} />
+              <Route path="/uebernehmen" element={<ClaimEventsPage />} />
               <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
               <Route path="/impressum" element={<LegalPage page="impressum" />} />
+              <Route path="/datenschutz-import" element={<LegalPage page="datenschutz-import" />} />
+              {/* Private preview of the event import: noindex, never in sitemap/prerender.
+                  /vorschau/:token is the pre-entry preview (both share the same token format). */}
+              <Route path="/vorschau/import/:token" element={<ImportPreviewPage />} />
               <Route
                 path="/nutzungsbedingungen"
                 element={<LegalPage page="nutzungsbedingungen" />}

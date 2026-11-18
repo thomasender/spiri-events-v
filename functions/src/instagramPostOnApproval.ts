@@ -12,6 +12,7 @@ import { buildPublishDeps, resolveInstagramAccessToken } from './instagramDeps';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
 import { DEFAULT_REGION_ID, isInstagramRegion, resolveRegionId } from './regions';
 import { resolveCredentialsForRegion } from './instagramRegionStore';
+import { isCuratedWithoutConsent } from './eventImport';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -42,6 +43,15 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
     // network; the full decision (kill switch, dedupe, date) lives in the
     // tested logic module.
     if (!isApprovalTransition(before, after)) return;
+    // Curated events stay off Instagram until the organizer consented
+    // (curation.consentAt, docs/event-import.md); publishApprovedEvent checks it too.
+    if (isCuratedWithoutConsent(after)) {
+      logger.info('Instagram feed post skipped: curated event without consent', {
+        eventId,
+        outcome: 'no-consent',
+      });
+      return;
+    }
     const regionId = resolveRegionId(after);
     if (regionId !== DEFAULT_REGION_ID) {
       // Another region posts only with its own account from

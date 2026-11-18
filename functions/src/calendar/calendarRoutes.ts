@@ -26,6 +26,7 @@ import {
   STATIC_REGION_BEZIRKE,
 } from '../regions';
 import { onlineEventVisibleIn } from '../onlineEventEligibility';
+import { isCuratedWithoutConsent } from '../eventImport';
 
 export const FEED_HORIZON_DAYS = 180;
 export const SINGLE_EVENT_HORIZON_DAYS = 365;
@@ -159,6 +160,8 @@ export function upcomingOccurrences<T extends PublicEvent>(
   horizonDays: number
 ): T[] {
   if (event.status !== 'approved') return [];
+  // Curated events only once the organizer consented (docs/event-import.md).
+  if (isCuratedWithoutConsent(event)) return [];
   const window = { start: today, end: addDays(today, horizonDays) };
   const found = expandOccurrencesInWindow(event, window);
 

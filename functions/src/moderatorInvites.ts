@@ -7,6 +7,7 @@
  *   adminRevokeModeratorInvite({ inviteId })                     Super-Admin
  *   getModeratorInvite({ token })                                anyone (rate-limited)
  *   acceptModeratorInvite({ token, consents, signatureName, textVersion })  signed in
+ *   inviteModeratorApplicant({ applicationId, regionId? })       staff (Trello 6afc59ed)
  *
  * Security model:
  * - The link carries a random token (32 bytes, base64url, like the calendar
@@ -25,6 +26,13 @@
  *   "Moderator:in hinzufügen" passes the picked member's `uid`, the invite goes
  *   to that account's Auth e-mail, and adminSetRegionModerator refuses to grant
  *   the role to someone who is not a moderator yet.
+ * - "Jetzt <Name> als Moderator hinzufügen" on an application (tab
+ *   "Team-Hinweise") sends the same invitation to the applicant's address. A
+ *   moderator may do so only for applications of her own regions, a
+ *   Super-Admin for every one. The invite only ever grants RegionModerator for
+ *   the application's region; Super-Admin accounts are refused as above.
+ * - Accepting closes the person's open applications and leaves a note
+ *   "Neue:r Moderator:in" for the Super-Admins and the region's moderators.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
@@ -46,11 +54,27 @@ import {
 } from './adminModerators';
 import {
   assertSuperAdmin,
+  parseStaffRole,
   readRoleDoc,
   validateModeratorRegionIds,
   type RoleDocReader,
 } from './staffRoles';
 import { REGION_IDS, isRegionId, regionNameOf } from './regions';
+import {
+  canInviteApplicant,
+  inviteRegionIdFor,
+  newModeratorNotifications,
+  type ApplicationRecord,
+  type StaffDocEntry,
+  type StaffNotificationInput,
+} from './staffNotifications';
+import {
+  closeApplicationsFor,
+  getApplication,
+  loadStaffDocs,
+  markApplicationInvited,
+  writeStaffNotifications,
+} from './staffNotificationsStore';
 import { enforceRateLimit } from './rateLimit';
 import {
   APP_BASE_URL,
@@ -94,6 +118,7 @@ const ADMIN_LIMIT = { maxAttempts: 30, windowMs: 10 * 60 * 1000 };
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const INVITE_ID_PATTERN = /^[0-9a-f]{64}$/;
+const APPLICATION_ID_PATTERN = /^[A-Za-z0-9]{1,40}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const STAGING_PROJECT_ID = 'tribe-vbg-staging';
@@ -215,6 +240,15 @@ export interface InviteDeps {
   /** Addresses of the Super-Admins (for "Einladung angenommen"). */
   getSuperAdminEmails: () => Promise<string[]>;
   enforceRateLimit: typeof enforceRateLimit;
+  /** Moderator applications and team notes (staffNotificationsStore.ts). */
+  getApplication: (id: string) => Promise<ApplicationRecord | null>;
+  markApplicationInvited: (
+    id: string,
+    data: { invitedBy: string; inviteId: string; regionId: string }
+  ) => Promise<void>;
+  closeApplicationsFor: (email: string, uid: string) => Promise<string[]>;
+  loadStaffDocs: () => Promise<StaffDocEntry[]>;
+  addStaffNotifications: (notifications: StaffNotificationInput[]) => Promise<void>;
 }
 
 interface CallableRequest {
@@ -246,6 +280,19 @@ export async function createModeratorInviteHandler(
     regionIds?: unknown;
     sendEmail?: unknown;
   };
+  return issueModeratorInvite(actorUid as string, data, deps);
+}
+
+/**
+ * Creates (and by default mails) an invitation. The caller has checked who
+ * may invite; this refuses Super-Admin accounts and the caller herself, and
+ * only ever grants RegionModerator.
+ */
+async function issueModeratorInvite(
+  actorUid: string,
+  data: { email?: unknown; uid?: unknown; regionIds?: unknown; sendEmail?: unknown },
+  deps: InviteDeps
+): Promise<CreateInviteResult> {
   // "Moderator:in hinzufügen" names a member by uid: the invite goes to the
   // account's own (Auth) e-mail, which is what acceptModeratorInvite compares.
   let existing: TargetUser | null;
@@ -326,6 +373,58 @@ export async function createModeratorInviteHandler(
     expiresAt: new Date(invite.expiresAtMs).toISOString(),
     emailSent,
   };
+}
+
+// ── Staff: invite an applicant (Trello 6afc59ed) ─────────────────────────
+
+export interface InviteApplicantResult {
+  emailSent: boolean;
+  expiresAt: string;
+}
+
+/**
+ * "Jetzt <Name> als Moderator hinzufügen": a moderator of the application's
+ * region or a Super-Admin sends the normal invitation to the applicant's
+ * address. Only RegionModerator for that one region; the link itself is not
+ * returned (it goes to the applicant only).
+ */
+export async function inviteModeratorApplicantHandler(
+  request: CallableRequest,
+  deps: InviteDeps
+): Promise<InviteApplicantResult> {
+  const actorUid = request.auth?.uid;
+  if (!actorUid) throw new HttpsError('unauthenticated', 'Must be signed in.');
+  const role = parseStaffRole(await deps.readRoleDoc(actorUid));
+  if (!role) throw new HttpsError('permission-denied', 'Staff only.');
+  deps.enforceRateLimit(request as never, 'moderatorInviteAdmin', ADMIN_LIMIT);
+
+  const data = (request.data ?? {}) as { applicationId?: unknown; regionId?: unknown };
+  if (typeof data.applicationId !== 'string' || !APPLICATION_ID_PATTERN.test(data.applicationId)) {
+    throw new HttpsError('invalid-argument', 'Invalid application id.');
+  }
+  const applicationId = data.applicationId;
+  const application = await deps.getApplication(applicationId);
+  if (!application) throw new HttpsError('not-found', 'Application not found.');
+  if (!canInviteApplicant(role, application.regionId)) {
+    throw new HttpsError('permission-denied', 'Not your region.');
+  }
+  if (application.status === 'done') {
+    throw new HttpsError('failed-precondition', 'Already a moderator.');
+  }
+  const regionId = inviteRegionIdFor(role, application.regionId, data.regionId);
+  if (!regionId) throw new HttpsError('invalid-argument', 'Choose a region.');
+
+  const result = await issueModeratorInvite(
+    actorUid,
+    { email: application.email, regionIds: [regionId], sendEmail: true },
+    deps
+  );
+  await deps.markApplicationInvited(applicationId, {
+    invitedBy: actorUid,
+    inviteId: result.inviteId,
+    regionId,
+  });
+  return { emailSent: result.emailSent, expiresAt: result.expiresAt };
 }
 
 export interface InviteListEntry {
@@ -526,6 +625,20 @@ export async function acceptModeratorInviteHandler(
     } catch (err) {
       logger.error('Sending the "invitation accepted" mail failed', { inviteId, err });
     }
+    // Best effort too: close the person's applications and tell the team.
+    try {
+      const applicationIds = await deps.closeApplicationsFor(accountEmail, uid);
+      await deps.addStaffNotifications(
+        newModeratorNotifications(await deps.loadStaffDocs(), {
+          uid,
+          name: signatureName,
+          regionIds: inviteRegionIds(outcome.invite),
+          applicationId: applicationIds[0] ?? null,
+        })
+      );
+    } catch (err) {
+      logger.error('Writing the "new moderator" notes failed', { inviteId, err });
+    }
   }
   return { regionIds: outcome.regionIds, alreadyAccepted: outcome.alreadyAccepted };
 }
@@ -675,6 +788,11 @@ function firestoreDeps(): InviteDeps {
     sendMail: sendViaMailgun,
     getSuperAdminEmails: getAdminEmails,
     enforceRateLimit,
+    getApplication,
+    markApplicationInvited,
+    closeApplicationsFor,
+    loadStaffDocs,
+    addStaffNotifications: writeStaffNotifications,
   };
 }
 
@@ -727,6 +845,19 @@ export const acceptModeratorInvite = onCall(
       uid: request.auth?.uid,
       regionIds: result.regionIds,
       alreadyAccepted: result.alreadyAccepted,
+    });
+    return result;
+  }
+);
+
+export const inviteModeratorApplicant = onCall(
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, secrets: MAIL_SECRETS, ...appCheckOptions() },
+  async (request) => {
+    logMissingAppCheck('inviteModeratorApplicant', request);
+    const result = await inviteModeratorApplicantHandler(request, firestoreDeps());
+    logger.info('inviteModeratorApplicant', {
+      actorUid: request.auth?.uid,
+      emailSent: result.emailSent,
     });
     return result;
   }

@@ -10,10 +10,10 @@ import { canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
+import CuratedMatchHint from './CuratedMatchHint';
 import { useProfile } from '../hooks/useProfile';
 import {
   uploadImage,
-  uploadEventCover,
   CoverUploadError,
   COVER_UPLOAD_ERROR,
   deleteImageByUrl,
@@ -46,6 +46,8 @@ import EventCard from './EventCard';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
 import { FAQ_EVENT_GUIDE_PATH } from '../utils/faqs';
+import { newEventId } from '../utils/eventId';
+import { useBackgroundCoverUpload } from '../hooks/useBackgroundCoverUpload';
 import {
   DEFAULT_FOCAL_POINT,
   MAX_IMAGE_ZOOM,
@@ -381,6 +383,7 @@ export default function EventFormWizard() {
       : MIN_IMAGE_ZOOM
   );
   const createdEventRef = useRef(null);
+  const eventIdRef = useRef(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -871,19 +874,21 @@ export default function EventFormWizard() {
     setInstagramImageChoice((prev) => (prev?.source === INSTAGRAM_UPLOAD_SOURCE ? null : prev));
   };
 
+  // The Titelbild starts uploading in the background as soon as it is picked
+  // (or restored from the wizard draft); saving only waits for that upload.
+  const { awaitCover, markCoverSaved } = useBackgroundCoverUpload({
+    file: imageFile,
+    enabled: Boolean(user),
+    getEventId: () => (eventIdRef.current ??= createdEventRef.current?.id ?? newEventId()),
+  });
+
   const handleImageUpload = async (eventId) => {
     if (!imageFile) return null;
 
     setImageUploading(true);
     setImageProgress(0);
     try {
-      return await uploadEventCover(imageFile, {
-        eventId,
-        onProgress: setImageProgress,
-      });
-    } catch (err) {
-      console.error('Image upload failed:', err);
-      throw new CoverUploadError(err);
+      return await awaitCover(imageFile, eventId, setImageProgress);
     } finally {
       setImageUploading(false);
     }
@@ -1277,18 +1282,41 @@ export default function EventFormWizard() {
     setSubmitError('');
 
     try {
-      // A retry after a failed cover upload reuses the event that already exists.
-      let docRef = createdEventRef.current;
-      if (docRef) {
-        await updateEvent(docRef.id, eventData);
-      } else {
-        docRef = await addEvent(eventData, eventData.status || 'pending');
-        createdEventRef.current = docRef;
-      }
-      if (eventData.status !== 'draft') trackEvent(EVENTS.EVENT_CREATE_SUBMIT);
       const instagramSource = eventData.instagramConsent
         ? effectiveInstagramImageChoice?.source
         : null;
+      // The Titelbild is uploaded BEFORE the event is written, so an event never
+      // exists (and is never reviewed / approved) without it (Trello 7iDvAj4U).
+      // A retry after a failed upload reuses the same id / existing event.
+      let docRef = createdEventRef.current;
+      if (!eventIdRef.current) eventIdRef.current = docRef?.id ?? newEventId();
+      const eventId = eventIdRef.current;
+      const data = { ...eventData };
+      if (imageFile) {
+        const { url: newImageUrl, thumbUrl: newThumbUrl } = await handleImageUpload(eventId);
+        data.imageUrl = newImageUrl;
+        data.imageThumbUrl = newThumbUrl;
+        if (!isDefaultFocalPoint(imageFocalPoint)) {
+          data.imageFocalPoint = imageFocalPoint;
+        }
+        if (imageZoom > MIN_IMAGE_ZOOM) {
+          data.imageZoom = imageZoom;
+        }
+        if (instagramSource === COVER_SOURCE) {
+          data.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
+            coverUrl: newImageUrl,
+          });
+        }
+      }
+
+      if (docRef) {
+        await updateEvent(docRef.id, data);
+      } else {
+        docRef = await addEvent(data, data.status || 'pending', eventId);
+        createdEventRef.current = docRef;
+      }
+      if (imageFile) markCoverSaved();
+      if (eventData.status !== 'draft') trackEvent(EVENTS.EVENT_CREATE_SUBMIT);
 
       if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
         const instagramUploadUrl = await uploadImage(instagramFile, { eventId: docRef.id });
@@ -1297,23 +1325,6 @@ export default function EventFormWizard() {
             instagramUploadUrl,
           }),
         });
-      }
-
-      if (imageFile) {
-        const { url: newImageUrl, thumbUrl: newThumbUrl } = await handleImageUpload(docRef.id);
-        const patch = { imageUrl: newImageUrl, imageThumbUrl: newThumbUrl };
-        if (!isDefaultFocalPoint(imageFocalPoint)) {
-          patch.imageFocalPoint = imageFocalPoint;
-        }
-        if (imageZoom > MIN_IMAGE_ZOOM) {
-          patch.imageZoom = imageZoom;
-        }
-        if (instagramSource === COVER_SOURCE) {
-          patch.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
-            coverUrl: newImageUrl,
-          });
-        }
-        await updateEvent(docRef.id, patch);
       }
 
       if (preEntryMode) {
@@ -1704,6 +1715,16 @@ export default function EventFormWizard() {
           {errors.endTime && <span className="error-text">{errors.endTime}</span>}
         </div>
       </div>
+
+      {/* Already entered by the curation team? Offer to take it over (docs/event-import.md). */}
+      {/* Not while pre-entering an event for someone else (Trello 6afb1116): the
+          moderator would take the organizer's curated events over herself. */}
+      <CuratedMatchHint
+        enabled={Boolean(user) && canCreateEvents && !preEntryMode}
+        title={formData.title}
+        date={formData.date}
+        regionId={eventRegionId}
+      />
 
       <div className="form-group">
         <div className="input-label-row">

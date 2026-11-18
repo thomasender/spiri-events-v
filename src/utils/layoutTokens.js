@@ -270,6 +270,24 @@ const SEMANTIC = [
     80,
     'Höhe des Footers.'
   ),
+  px(
+    '--footer-stack-gap',
+    'Footer Handy: Abstand zwischen Zeilen',
+    G_DLG,
+    12,
+    4,
+    32,
+    'Abstand zwischen den Zeilen und Gruppen im Footer am Handy.'
+  ),
+  px(
+    '--footer-link-gap',
+    'Footer Handy: Abstand zwischen Links',
+    G_DLG,
+    24,
+    8,
+    48,
+    'Waagerechter Abstand zwischen den Links einer Zeile im Footer am Handy.'
+  ),
 
   // ── Schrift ────────────────────────────────────────────────────
   fluid(

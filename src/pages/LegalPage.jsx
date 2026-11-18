@@ -623,6 +623,62 @@ Fragen zu diesen Nutzungsbedingungen beantworten wir gerne unter [admin@thetribe
       },
     ],
   },
+  // Art. 14 GDPR information for organizers whose public events we found
+  // (event import, docs/event-import.md). Linked from the outreach mail and
+  // the preview page /vorschau/import/:token. Keep in line with art14Lines() in
+  // functions/src/importOutreachMail.ts.
+  'datenschutz-import': {
+    title: 'Datenschutz: Anfrage an Veranstalter:innen',
+    description:
+      'Datenschutzinformation nach Art. 14 DSGVO für Veranstalter:innen, deren öffentlich angekündigte Veranstaltungen tribe gefunden hat.',
+    lastUpdated: 'November 2026',
+    sections: [
+      {
+        heading: '1. Worum es geht',
+        text: `Wir sammeln Veranstaltungen rund um eine bewusste, ganzheitliche Lebensweise. Dazu sehen wir uns öffentlich angekündigte Veranstaltungen auf Websites von Veranstalter:innen an. Bevor wir etwas davon zeigen, fragen wir die Veranstalter:in einmal per E-Mail, ob sie einverstanden ist. Ohne Zustimmung veröffentlichen wir nichts.`,
+      },
+      {
+        heading: '2. Verantwortlicher',
+        text: `**Tribe Vorarlberg - Verein zur Förderung einer ganzheitlichen Lebensweise und Gesundheitsförderung**
+
+ZVR-Zahl: 1865711062
+Vordere Achmühlerstraße 17C
+A-6850 Dornbirn
+Vorarlberg / Österreich
+
+E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`,
+      },
+      {
+        heading: '3. Welche Daten, woher',
+        text: `- Name der Organisation und Website
+- Eine allgemeine Kontaktadresse (z.B. info@ oder kontakt@) aus dem Impressum bzw. den Kontaktangaben der Website, keine persönliche Adresse
+- Rechtsform (Unternehmen, Verein, Einzelperson), damit wir Namen von Privatpersonen nicht anzeigen
+- Angaben zu den Veranstaltungen: Titel, Datum, Uhrzeit, Ort, Preis, Beschreibung, Link und die Adresse des Bildes auf der Website
+
+Quelle ist jeweils die öffentlich zugängliche Website der Veranstalter:in. Bilder speichern wir vor einer Zustimmung nicht: Die private Vorschau lädt sie direkt von der Website der Veranstalter:in in deren Browser. Wir protokollieren, wann die Vorschau aufgerufen wurde und welche Bildadressen sie gezeigt hat, ohne IP-Adresse.`,
+      },
+      {
+        heading: '4. Zweck und Rechtsgrundlage',
+        text: `Wir fragen einmal an, ob wir die Veranstaltungen in unserem Kalender zeigen dürfen. Rechtsgrundlage für die Anfrage ist unser berechtigtes Interesse, Veranstaltungen sichtbar zu machen (Art. 6 Abs. 1 lit. f DSGVO). Die Veröffentlichung selbst erfolgt nur mit Zustimmung (Art. 6 Abs. 1 lit. a DSGVO).`,
+      },
+      {
+        heading: '5. Empfänger',
+        text: `Google Ireland Limited (Firebase: Datenbank und Hosting) und Mailgun (E-Mail-Versand, EU-Region) als Auftragsverarbeiter, wie in unserer [Datenschutzerklärung](/datenschutz) beschrieben.`,
+      },
+      {
+        heading: '6. Speicherdauer',
+        text: `- Keine Antwort: Wir senden nur diese eine E-Mail, ohne Erinnerung. Nach 90 Tagen löschen wir die Kontaktadresse und alle Angaben zu den Veranstaltungen. Übrig bleibt nur der Vermerk, dass wir angefragt haben (Name der Organisation, Website), damit wir nicht noch einmal schreiben.
+- Ablehnung: Wir löschen die Angaben sofort und behalten nur einen nicht lesbaren Prüfwert (Hash) der E-Mail-Adresse und der Domain, damit wir nie wieder anfragen.
+- Zustimmung: Die Veranstaltung ist sichtbar, solange sie online ist oder bis zum Widerruf.`,
+      },
+      {
+        heading: '7. Deine Rechte',
+        text: `Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung sowie das Recht, der Verarbeitung zu widersprechen (Art. 15 bis 18 und 21 DSGVO). Eine Zustimmung kannst du jederzeit widerrufen. Schreib dafür formlos an [admin@thetribe.at](mailto:admin@thetribe.at).
+
+Du kannst dich bei der Aufsichtsbehörde beschweren: Österreichische Datenschutzbehörde, Barichgasse 40-42, 1030 Wien, [www.dsb.gv.at](https://www.dsb.gv.at).`,
+      },
+    ],
+  },
   impressum: {
     title: 'Impressum',
     description:

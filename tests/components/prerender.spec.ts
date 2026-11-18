@@ -258,6 +258,21 @@ describe('prerender.mjs helpers', () => {
     });
   });
 
+  describe('isIncludedInPrerender', () => {
+    it('drops trashed events and curated events without the organizer consent', async () => {
+      const { isIncludedInPrerender } = await importPrerender();
+      const curation = { organizerRef: 'o1', claimable: true };
+      expect(isIncludedInPrerender({ status: 'approved' })).toBe(true);
+      expect(isIncludedInPrerender({ status: 'trashed' })).toBe(false);
+      expect(isIncludedInPrerender({ status: 'pending', curation })).toBe(false);
+      expect(isIncludedInPrerender({ status: 'approved', curation })).toBe(false);
+      expect(
+        isIncludedInPrerender({ status: 'approved', curation: { ...curation, consentAt: 'x' } })
+      ).toBe(true);
+      expect(isIncludedInPrerender(null)).toBe(false);
+    });
+  });
+
   describe('loadEventsFromExport', () => {
     it('reads events from data-export/firestore-export/events.json', async () => {
       const tmp = await makeFixtureDir('prerender-export-');

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
 import { isCombinedViewSlug } from '../utils/regions';
@@ -184,6 +184,10 @@ export default function RegionChooser() {
         <div className="region-chooser-layout region-chooser-layout--map-only">
           <PlacePicker onApply={apply} applyLabel="Events anzeigen" progressive />
         </div>
+        <p className="region-chooser-legal" data-testid="region-chooser-legal">
+          Rechtliches: <Link to="/impressum">Impressum</Link> und{' '}
+          <Link to="/datenschutz">Datenschutz</Link>
+        </p>
       </section>
     </div>,
     document.body

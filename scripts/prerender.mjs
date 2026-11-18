@@ -8,6 +8,7 @@ import { REGION_MODE_META_MULTI, REGION_MODE_META_NAME, activeRegions } from '..
 import { regionTexts, LEGACY_CALENDAR_TITLE } from '../src/utils/regionTexts.js'
 import { getEventOccurrences } from '../src/utils/eventOccurrences.js'
 import { annotateOnlineRegionIds, onlineEventVisibleIn, onlineOrganizerUids } from '../src/utils/onlineEventEligibility.js'
+import { isCuratedWithoutConsent } from '../src/utils/eventImport.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..')
@@ -957,8 +958,11 @@ export function loadThemeFromExport(exportPath) {
 // never makes it into the messenger preview. SPA reads everywhere use
 // `where('status', '==', 'approved')`, so filtering trashed events here is
 // the matching server-side rule.
-function isIncludedInPrerender(event) {
-  return event && event.status !== 'trashed'
+// Curated (imported) events without the organizer's consent never get a page,
+// a sitemap entry or a calendar listing, whatever their status
+// (docs/event-import.md).
+export function isIncludedInPrerender(event) {
+  return Boolean(event) && event.status !== 'trashed' && !isCuratedWithoutConsent(event)
 }
 
 export async function loadEventsFromFirestore(firebaseConfig) {
@@ -1412,6 +1416,10 @@ export async function prerender({
     }
     source = `${source || 'unknown'} + ${liveSources.map((s) => s.label).join(', ')}`
   }
+
+  // The committed snapshot is not filtered on load: drop curated events
+  // without consent here too, so no source can bring one back.
+  events = events.filter(event => !isCuratedWithoutConsent(event))
 
   if (events.length === 0) {
     console.warn('No events loaded from any source — prerendering without event pages.')

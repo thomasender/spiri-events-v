@@ -67,3 +67,8 @@ import '../components/PioniereAdminSection.css';
 // AdminPage: PreEntriesTab (also used by EventFormPage's wizard), PreEntryPreviewPage
 import '../components/PreEntriesTab.css';
 import '../pages/PreEntryPreviewPage.css';
+
+// ImportPreviewPage
+import '../pages/ImportPreviewPage.css';
+// ClaimEventsPage (also the claim banner in AdminPage and the hint in the event wizard)
+import '../components/EventClaim.css';

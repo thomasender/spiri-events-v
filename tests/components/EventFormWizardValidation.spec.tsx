@@ -56,6 +56,8 @@ vi.mock('../../src/hooks/useCategories', () => ({
 }));
 
 vi.mock('../../src/lib/imageUpload', () => ({
+  COVER_UPLOAD_ERROR: 'Das Titelbild konnte nicht hochgeladen werden.',
+  CoverUploadError: class CoverUploadError extends Error {},
   uploadImage: vi.fn(async () => 'https://example.com/test.jpg'),
   uploadEventCover: vi.fn(async () => ({ url: 'https://example.com/test.jpg', thumbUrl: null })),
   deleteImageByUrl: vi.fn(async () => {}),
@@ -65,6 +67,7 @@ vi.mock('../../src/lib/imageUpload', () => ({
 }));
 
 import EventFormWizard from '../../src/components/EventFormWizard';
+import { uploadEventCover } from '../../src/lib/imageUpload';
 import { clearWizardDraftFiles, saveWizardDraftFiles } from '../../src/utils/wizardDraftFiles';
 
 // The Titelbild of a seeded draft (kept in memory by wizardDraftFiles); a save
@@ -136,6 +139,7 @@ beforeEach(() => {
   mockProfile.value = null;
   mockNavigate.mockClear();
   mockEvents.addEvent.mockClear();
+  mockEvents.updateEvent.mockClear();
 });
 
 describe('EventFormWizard step validation', () => {
@@ -302,6 +306,65 @@ describe('EventFormWizard Titelbild check on submit', () => {
     expect(screen.getByTestId('summary-image-preview')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('submit-event-button'));
     await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
+  });
+
+  // Trello 7iDvAj4U: the event used to be written first and the photo added
+  // afterwards, so a failed / interrupted upload left a submitted event with
+  // the fallback picture.
+  async function submitStep4() {
+    seedDraft({ currentStep: 4, rightsConfirmed: true });
+    renderWizard();
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    const dialog = await waitFor(() => {
+      const el = document.querySelector('.confirm-dialog') as HTMLElement | null;
+      if (!el) throw new Error('no dialog');
+      return el;
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /^einreichen$/i }));
+  }
+
+  it('writes the event together with its Titelbild, uploaded under the same event id', async () => {
+    await submitStep4();
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledTimes(1));
+    const [saved, status, eventId] = mockEvents.addEvent.mock.calls[0] as unknown as [
+      { imageUrl: string },
+      string,
+      string,
+    ];
+    expect(saved.imageUrl).toBe('https://example.com/test.jpg');
+    expect(status).toBe('pending');
+    expect(eventId).toMatch(/^[A-Za-z0-9]{20}$/);
+    expect(vi.mocked(uploadEventCover).mock.calls.at(-1)?.[1]).toMatchObject({ eventId });
+  });
+
+  it('uploads the restored Titelbild in the background and submitting reuses that upload', async () => {
+    vi.mocked(uploadEventCover).mockClear();
+    seedDraft({ currentStep: 4, rightsConfirmed: true });
+    renderWizard();
+    await waitFor(() => expect(uploadEventCover).toHaveBeenCalledTimes(1));
+    const bgEventId = (vi.mocked(uploadEventCover).mock.calls[0][1] as { eventId: string }).eventId;
+
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    const dialog = await waitFor(() => {
+      const el = document.querySelector('.confirm-dialog') as HTMLElement | null;
+      if (!el) throw new Error('no dialog');
+      return el;
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /^einreichen$/i }));
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledTimes(1));
+    expect(mockEvents.addEvent.mock.calls[0][2]).toBe(bgEventId);
+    expect(uploadEventCover).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not save the event at all when the Titelbild upload fails', async () => {
+    // Fails in the background and again on the retry when submitting.
+    vi.mocked(uploadEventCover)
+      .mockRejectedValueOnce(new Error('storage/retry-limit-exceeded'))
+      .mockRejectedValueOnce(new Error('storage/retry-limit-exceeded'));
+    await submitStep4();
+    expect(await screen.findByText(/Titelbild konnte nicht hochgeladen werden/)).toBeTruthy();
+    expect(mockEvents.addEvent).not.toHaveBeenCalled();
+    expect(mockEvents.updateEvent).not.toHaveBeenCalled();
   });
 });
 

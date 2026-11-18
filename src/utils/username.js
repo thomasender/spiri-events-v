@@ -53,6 +53,8 @@ export const RESERVED_USERNAMES = new Set([
   'einladung',
   'pioniere',
   'vorschau',
+  'datenschutz-import',
+  'uebernehmen',
   // Profile of the system account "Dein Tribe" (pre-entered events, Trello 6afb1116).
   'dein-tribe',
   'login-anleitungen',

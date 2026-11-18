@@ -27,6 +27,8 @@ import {
   ScrollText,
   Sparkles,
   CalendarPlus,
+  Bell,
+  Download,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -47,13 +49,16 @@ import FunFactsTab from '../components/FunFactsTab';
 import ModerationTab from '../components/ModerationTab';
 import ModerationLogTab from '../components/ModerationLogTab';
 import RegionsTab from '../components/RegionsTab';
+import ImportTab from '../components/ImportTab';
 import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
 import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
 import PreEntriesTab from '../components/PreEntriesTab';
+import StaffNotificationsTab from '../components/StaffNotificationsTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
+import ClaimableEventsBanner from '../components/ClaimableEventsBanner';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -62,6 +67,7 @@ import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessage
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
 import { usePreEntryAccess } from '../hooks/usePreEntries';
+import { useStaffNotifications } from '../hooks/useStaffNotifications';
 import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
 import './AdminPage.css';
 
@@ -120,8 +126,10 @@ const TAB_GROUPS = [
     label: 'Regionen',
     Icon: MapPin,
     tabs: [
+      { id: 'team', label: 'Team-Hinweise', Icon: Bell },
       { id: 'moderation', label: 'Moderation', Icon: ShieldCheck },
       { id: 'regions', label: 'Regionen', Icon: MapPin },
+      { id: 'import', label: 'Import', Icon: Download },
       { id: 'about', label: 'Über uns', Icon: Info },
     ],
   },
@@ -148,8 +156,10 @@ const PANELS = {
   ledger: LedgerTab,
   faq: FaqTab,
   vorab: PreEntriesTab,
+  team: StaffNotificationsTab,
   moderation: ModerationTab,
   regions: RegionsTab,
+  import: ImportTab,
   about: RegionAboutTab,
 };
 
@@ -175,6 +185,11 @@ export default function AdminPage() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { hasFeedback } = useHasFeedback(isAdmin);
   const { count: trashedCount } = useTrashedEventsCount();
+  // Team notes (moderator applications, new moderators): staff only (Trello 6afc59ed).
+  const { unreadCount: teamUnreadCount } = useStaffNotifications(
+    user?.uid,
+    allowedTabs.has('team')
+  );
   const { events } = useEvents(user);
   // Pre-entries (Trello 6afb1116): Super-Admins always (to switch the flag on),
   // moderators while the flag allows them.
@@ -211,8 +226,10 @@ export default function AdminPage() {
       instagram: isAdmin,
       analytics: isAdmin,
       funfacts: isAdmin,
+      team: allowedTabs.has('team'),
       moderation: isAdmin,
       regions: isAdmin,
+      import: isAdmin,
       about: allowedTabs.has('about'),
       mailgun: isAdmin,
       ledger: isAdmin,
@@ -292,6 +309,7 @@ export default function AdminPage() {
       count: isAdmin ? unreadFeedbackCount : 0,
       label: `${unreadFeedbackCount} ungelesenes Feedback`,
     },
+    team: { count: teamUnreadCount, label: `${teamUnreadCount} neue Team-Hinweise` },
   };
   const formatCount = (n) => (n > 9 ? '9+' : n);
 
@@ -321,6 +339,9 @@ export default function AdminPage() {
       </header>
 
       {!canCreateEvents && <EmailVerificationBanner />}
+
+      {/* Curated events waiting for this account's confirmed address (docs/event-import.md). */}
+      {activeTab === 'events' && <ClaimableEventsBanner />}
 
       {hashEventId && <EventStatusMismatchBanner key={hashEventId} eventId={hashEventId} />}
 

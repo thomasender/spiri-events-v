@@ -1,5 +1,10 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { ADMIN_MAIL_SECRETS, notifyAdmins } from './adminNotify';
+import { getAdminEmails } from './adminEmails';
+import { inviteBaseUrl } from './moderatorInvites';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { ALLOWED_ORIGINS } from './allowedOrigins';
 import {
@@ -13,9 +18,29 @@ import {
 } from './mailgun';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 import { isRegionId, regionNameOf } from './regions';
+import {
+  APPLICATIONS_COLLECTION,
+  applicationNotifications,
+  buildApplicationReminderMail,
+  isReminderDue,
+  reminderNotifications,
+  type StaffDocEntry,
+  type StaffNotificationInput,
+} from './staffNotifications';
+import {
+  addStaffNotificationsToBatch,
+  loadStaffDocs,
+  toApplicationRecord,
+  writeStaffNotifications,
+} from './staffNotificationsStore';
 
-/** Applications for the role "Regions-Moderator:in" go to the admins' inbox. */
-export const MODERATOR_APPLICATION_INBOX = 'admin@thetribe.at';
+/*
+ * Applications for the role "Regions-Moderator:in" (Trello 6afc59ed): stored
+ * in `moderator_applications`, a note in the admin area ("Team-Hinweise") for
+ * the moderators of the region and the Super-Admins, and a mail (with the
+ * photo) to the Super-Admins. The shared inbox admin@thetribe.at no longer
+ * gets them. Applications older than this change exist only as mails.
+ */
 
 export const NAME_MAX = 80;
 export const MESSAGE_MIN = 20;
@@ -110,7 +135,7 @@ const escapeHtml = (value: string): string =>
 const regionName = (id: string | null): string =>
   (id && regionNameOf(id)) || 'keine bestimmte Region';
 
-/** Subject, plain text and HTML of the mail to the admins. */
+/** Subject, plain text and HTML of the mail to the Super-Admins. */
 export function buildModeratorApplicationEmail(app: ModeratorApplication): {
   subject: string;
   text: string;
@@ -145,6 +170,107 @@ ${photoHtml}
   return { subject, text, html };
 }
 
+/** What the submit handler needs from Firebase / Mailgun (injected for tests). */
+export interface ApplicationDeps {
+  loadStaffDocs: () => Promise<StaffDocEntry[]>;
+  newApplicationId: () => string;
+  /** Writes the application and its notes in one batch. */
+  saveApplication: (
+    id: string,
+    app: Omit<ModeratorApplication, 'photo'> & { hasPhoto: boolean },
+    notifications: StaffNotificationInput[]
+  ) => Promise<void>;
+  getSuperAdminEmails: () => Promise<string[]>;
+  /** Sends one mail; throws on failure. */
+  sendMail: (mail: {
+    to: string;
+    subject: string;
+    text: string;
+    html: string;
+    replyTo: string;
+    inlineImages: MailgunInlineImage[];
+  }) => Promise<void>;
+}
+
+/**
+ * Stores the application, writes one note per recipient and mails the
+ * Super-Admins. The mail is best effort: the application is already saved and
+ * visible in the admin area when it fails.
+ */
+export async function storeModeratorApplication(
+  app: ModeratorApplication,
+  deps: ApplicationDeps
+): Promise<{ applicationId: string; mailed: number }> {
+  const applicationId = deps.newApplicationId();
+  const hasPhoto = Boolean(app.photo);
+  const notifications = applicationNotifications(await deps.loadStaffDocs(), applicationId, {
+    ...app,
+    hasPhoto,
+  });
+  await deps.saveApplication(
+    applicationId,
+    { name: app.name, email: app.email, message: app.message, regionId: app.regionId, hasPhoto },
+    notifications
+  );
+
+  const { subject, text, html } = buildModeratorApplicationEmail(app);
+  const inlineImages: MailgunInlineImage[] = app.photo ? [app.photo] : [];
+  let mailed = 0;
+  try {
+    for (const to of await deps.getSuperAdminEmails()) {
+      await deps.sendMail({ to, subject, text, html, replyTo: app.email, inlineImages });
+      mailed += 1;
+    }
+  } catch (err) {
+    logger.error('Mailing the moderator application failed', { applicationId, err });
+  }
+  return { applicationId, mailed };
+}
+
+async function sendApplicationMail(mail: Parameters<ApplicationDeps['sendMail']>[0]) {
+  if (isMailgunDryRun(process.env)) {
+    logger.info('MAILGUN dry-run: would send moderator application', {
+      to: mail.to,
+      subject: mail.subject,
+      hasPhoto: mail.inlineImages.length > 0,
+    });
+    return;
+  }
+  const apiKey = MAILGUN_API_KEY.value();
+  const domain = MAILGUN_DOMAIN.value();
+  const from = MAILGUN_FROM.value();
+  if (!apiKey || !domain || !from) {
+    throw new Error('Mailgun credentials are not configured.');
+  }
+  await sendMailgunMessage(MAILGUN_EU_BASE, { apiKey, domain, from, ...mail });
+}
+
+function firestoreApplicationDeps(): ApplicationDeps {
+  const db = getFirestore();
+  return {
+    loadStaffDocs,
+    newApplicationId: () => db.collection(APPLICATIONS_COLLECTION).doc().id,
+    async saveApplication(id, app, notifications) {
+      const batch = db.batch();
+      batch.create(db.collection(APPLICATIONS_COLLECTION).doc(id), {
+        ...app,
+        status: 'open',
+        createdAt: FieldValue.serverTimestamp(),
+        reminderSentAt: null,
+        invitedAt: null,
+        invitedBy: null,
+        inviteId: null,
+        doneAt: null,
+        acceptedUid: null,
+      });
+      addStaffNotificationsToBatch(batch, notifications);
+      await batch.commit();
+    },
+    getSuperAdminEmails: getAdminEmails,
+    sendMail: sendApplicationMail,
+  };
+}
+
 export const submitModeratorApplication = onCall(
   {
     region: 'europe-west3',
@@ -157,36 +283,66 @@ export const submitModeratorApplication = onCall(
     enforceRateLimit(request, 'moderatorApplication', RATE_LIMIT_PRESETS.moderatorApplication);
 
     const app = validateModeratorApplication(request.data);
-    const { subject, text, html } = buildModeratorApplicationEmail(app);
-    const inlineImages: MailgunInlineImage[] = app.photo ? [app.photo] : [];
-
-    const apiKey = MAILGUN_API_KEY.value();
-    const domain = MAILGUN_DOMAIN.value();
-    const from = MAILGUN_FROM.value();
-    if (isMailgunDryRun(process.env)) {
-      logger.info('MAILGUN dry-run: would send moderator application', {
-        to: MODERATOR_APPLICATION_INBOX,
-        subject,
-        hasPhoto: Boolean(app.photo),
-      });
-      return { sent: true };
-    }
-    if (!apiKey || !domain || !from) {
-      throw new HttpsError('internal', 'Mailgun credentials are not configured.');
-    }
-
-    await sendMailgunMessage(MAILGUN_EU_BASE, {
-      apiKey,
-      domain,
-      from,
-      to: MODERATOR_APPLICATION_INBOX,
-      subject,
-      text,
-      html,
-      replyTo: app.email,
-      inlineImages,
+    const { applicationId, mailed } = await storeModeratorApplication(
+      app,
+      firestoreApplicationDeps()
+    );
+    logger.info('Stored moderator application', {
+      applicationId,
+      regionId: app.regionId,
+      hasPhoto: !!app.photo,
+      mailed,
     });
-    logger.info('Sent moderator application', { regionId: app.regionId, hasPhoto: !!app.photo });
     return { sent: true };
+  }
+);
+
+/**
+ * Daily: an application nobody has invited for three days reminds the
+ * Super-Admins once (note + mail). `reminderSentAt` is claimed in a
+ * transaction first, so a retried run never sends a second reminder.
+ */
+export const remindOpenModeratorApplications = onSchedule(
+  {
+    region: 'europe-west3',
+    schedule: 'every day 09:15',
+    timeZone: 'Europe/Vienna',
+    secrets: ADMIN_MAIL_SECRETS,
+  },
+  async () => {
+    const db = getFirestore();
+    const now = Date.now();
+    const snap = await db.collection(APPLICATIONS_COLLECTION).where('status', '==', 'open').get();
+    const due = snap.docs.filter((d) => isReminderDue(toApplicationRecord(d.data()), now));
+    if (due.length === 0) return;
+
+    const staffDocs = await loadStaffDocs();
+    const adminUrl = `${inviteBaseUrl()}/admin?tab=team`;
+    let sent = 0;
+    for (const d of due) {
+      const claimed = await db.runTransaction(async (t) => {
+        const fresh = await t.get(d.ref);
+        if (!fresh.exists || !isReminderDue(toApplicationRecord(fresh.data() ?? {}), now)) {
+          return false;
+        }
+        t.update(d.ref, { reminderSentAt: FieldValue.serverTimestamp() });
+        return true;
+      });
+      if (!claimed) continue;
+      const app = toApplicationRecord(d.data());
+      try {
+        await writeStaffNotifications(reminderNotifications(staffDocs, d.id, app));
+        const mail = buildApplicationReminderMail(
+          app,
+          app.regionId ? (regionNameOf(app.regionId) ?? null) : null,
+          adminUrl
+        );
+        await notifyAdmins(mail.subject, mail.text);
+        sent += 1;
+      } catch (err) {
+        logger.error('Moderator application reminder failed', { applicationId: d.id, err });
+      }
+    }
+    logger.info('remindOpenModeratorApplications', { due: due.length, sent });
   }
 );

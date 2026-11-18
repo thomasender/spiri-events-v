@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useRegions } from '../hooks/useRegions';
@@ -19,9 +19,12 @@ import {
   unmetFromError,
 } from '../utils/regionActivation';
 import { regionCanonicalPath } from '../utils/regionRouting';
+import { IMPORT_REGION_IDS } from '../utils/eventImport';
+import { fetchImportProgress } from '../utils/importAdminApi';
 import ConfirmDialog from './ConfirmDialog';
 import './ModerationTab.css';
 import './RegionsTab.css';
+import './ImportTab.css';
 
 function personLabel(person) {
   return person?.displayName || person?.email || 'Unbekannte Person';
@@ -54,6 +57,24 @@ export default function RegionsTab() {
       else next.add(country);
       return next;
     });
+
+  // Curated import progress of the inactive import regions (client-side, bounded reads).
+  const [importProgress, setImportProgress] = useState({});
+  const inactiveImportKey = regions
+    .filter((r) => !r.active && IMPORT_REGION_IDS.includes(r.id))
+    .map((r) => r.id)
+    .join(',');
+  useEffect(() => {
+    if (!isSuperAdmin || !inactiveImportKey) return undefined;
+    let cancelled = false;
+    inactiveImportKey.split(',').forEach(async (id) => {
+      const progress = await fetchImportProgress(id);
+      if (!cancelled && progress) setImportProgress((prev) => ({ ...prev, [id]: progress }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuperAdmin, inactiveImportKey]);
 
   const statusById = useMemo(() => new Map(statuses.map((s) => [s.regionId, s])), [statuses]);
 
@@ -242,6 +263,13 @@ export default function RegionsTab() {
                             <dd data-testid="region-contact">{region.contactEmail || '–'}</dd>
                           </div>
                         </dl>
+                        {!region.active && importProgress[region.id]?.importedEvents > 0 && (
+                          <p className="import-progress" data-testid="region-import-progress">
+                            Import: {importProgress[region.id].importedEvents} von{' '}
+                            {minUpcomingEvents} Events, davon{' '}
+                            {importProgress[region.id].consentedEvents} mit Consent
+                          </p>
+                        )}
                         <div className="moderation-card-actions">
                           {region.active ? (
                             <button

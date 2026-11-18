@@ -6,7 +6,19 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  deleteField,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 // Regions exist only in code: ids come from the static list in firestore.rules and the
@@ -238,5 +250,403 @@ describe('pre-entries', () => {
     await assertSucceeds(
       getDoc(doc(env.unauthenticatedContext().firestore(), 'app_settings/preEntries'))
     );
+  });
+});
+
+// Moderator applications and team notes (Trello 6afc59ed): only the functions write.
+describe('moderator_applications and staff_notifications', () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      const application = { name: 'Maria', email: 'maria@x.at', message: 'Hallo', status: 'open' };
+      await setDoc(doc(db, 'moderator_applications/tirolApp'), {
+        ...application,
+        regionId: 'tirol',
+      });
+      await setDoc(doc(db, 'moderator_applications/vbgApp'), {
+        ...application,
+        regionId: 'vorarlberg',
+      });
+      await setDoc(doc(db, 'moderator_applications/noRegion'), { ...application, regionId: null });
+      const note = { kind: 'application', applicationId: 'tirolApp', name: 'Maria', readAt: null };
+      await setDoc(doc(db, 'staff_notifications/modNote'), { ...note, recipientUid: 'mod' });
+      await setDoc(doc(db, 'staff_notifications/adminNote'), { ...note, recipientUid: 'admin' });
+      await setDoc(doc(db, 'staff_notifications/memberNote'), { ...note, recipientUid: 'member' });
+    });
+  });
+
+  it('applications: Super-Admin reads all, a moderator only those of her regions', async () => {
+    const admin = env.authenticatedContext('admin').firestore();
+    for (const id of ['tirolApp', 'vbgApp', 'noRegion']) {
+      await assertSucceeds(getDoc(doc(admin, `moderator_applications/${id}`)));
+    }
+    const mod = env.authenticatedContext('mod').firestore();
+    await assertSucceeds(getDoc(doc(mod, 'moderator_applications/tirolApp')));
+    await assertFails(getDoc(doc(mod, 'moderator_applications/vbgApp')));
+    await assertFails(getDoc(doc(mod, 'moderator_applications/noRegion')));
+    const member = env.authenticatedContext('member').firestore();
+    await assertFails(getDoc(doc(member, 'moderator_applications/tirolApp')));
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'moderator_applications/tirolApp'))
+    );
+  });
+
+  it('applications: nobody writes from the client', async () => {
+    for (const uid of ['admin', 'mod']) {
+      const db = env.authenticatedContext(uid).firestore();
+      await assertFails(updateDoc(doc(db, 'moderator_applications/tirolApp'), { status: 'done' }));
+      await assertFails(setDoc(doc(db, 'moderator_applications/new'), { regionId: 'tirol' }));
+      await assertFails(deleteDoc(doc(db, 'moderator_applications/tirolApp')));
+    }
+  });
+
+  it('notes: staff read only their own, also as a query', async () => {
+    const mod = env.authenticatedContext('mod').firestore();
+    await assertSucceeds(getDoc(doc(mod, 'staff_notifications/modNote')));
+    await assertFails(getDoc(doc(mod, 'staff_notifications/adminNote')));
+    await assertSucceeds(
+      getDocs(query(collection(mod, 'staff_notifications'), where('recipientUid', '==', 'mod')))
+    );
+    await assertFails(getDocs(collection(mod, 'staff_notifications')));
+    // Someone who is no longer staff cannot read old notes.
+    const member = env.authenticatedContext('member').firestore();
+    await assertFails(getDoc(doc(member, 'staff_notifications/memberNote')));
+  });
+
+  it('notes: the recipient only marks her own as read, once', async () => {
+    const mod = env.authenticatedContext('mod').firestore();
+    await assertFails(updateDoc(doc(mod, 'staff_notifications/modNote'), { readAt: 123 }));
+    await assertFails(
+      updateDoc(doc(mod, 'staff_notifications/modNote'), {
+        readAt: serverTimestamp(),
+        name: 'Eve',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(mod, 'staff_notifications/adminNote'), { readAt: serverTimestamp() })
+    );
+    await assertSucceeds(
+      updateDoc(doc(mod, 'staff_notifications/modNote'), { readAt: serverTimestamp() })
+    );
+    await assertFails(
+      updateDoc(doc(mod, 'staff_notifications/modNote'), { readAt: serverTimestamp() })
+    );
+    await assertFails(
+      setDoc(doc(mod, 'staff_notifications/forged'), { recipientUid: 'mod', readAt: null })
+    );
+    await assertFails(deleteDoc(doc(mod, 'staff_notifications/modNote')));
+  });
+});
+
+// Event import (docs/event-import.md): curation data is Super-Admin only, and a
+// curated event never goes public from the client before the organizer consented.
+describe('event import (import_* collections, events.curation)', () => {
+  const hash = 'a'.repeat(64);
+  const organizer = {
+    name: 'Yogaverein Tirol',
+    website: 'https://yoga-tirol.at',
+    contactEmail: 'info@yoga-tirol.at',
+    legalForm: 'verein',
+    regionId: 'tirol',
+    consent: 'none',
+    syncMode: 'curated_once',
+  };
+  const candidate = {
+    regionId: 'tirol',
+    organizerRef: 'org1',
+    sourceUrl: 'https://yoga-tirol.at/kakao',
+    sourceType: 'jsonld',
+    status: 'found',
+    imageUrl: 'https://yoga-tirol.at/kakao.jpg',
+  };
+  const curation = {
+    organizerRef: 'org1',
+    sourceUrl: 'https://yoga-tirol.at/kakao',
+    importedAt: 1,
+    claimable: true,
+  };
+  const event = (over: Record<string, unknown> = {}) => ({
+    title: 'Kakao',
+    description: 'd',
+    regionId: 'tirol',
+    slug: 'kakao',
+    ...over,
+  });
+  const ctx = (uid: string) => env.authenticatedContext(uid, { email_verified: true }).firestore();
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore();
+      await setDoc(doc(db, 'import_organizers/org1'), organizer);
+      await setDoc(doc(db, 'import_organizers/org1/outreach/m1'), { status: 'sent' });
+      await setDoc(doc(db, 'import_candidates/c1'), candidate);
+      await setDoc(doc(db, 'import_runs/r1'), { region: 'tirol', source: 'jsonld' });
+      await setDoc(doc(db, `import_blocklist/${hash}`), { kind: 'email', createdAt: 1 });
+      await setDoc(doc(db, 'app_settings/import'), { curatorUid: 'curator' });
+      await setDoc(
+        doc(db, 'events/curated'),
+        event({ status: 'pending', createdBy: 'curator', curation })
+      );
+      await setDoc(doc(db, 'events/own'), event({ status: 'pending', createdBy: 'owner' }));
+    });
+  });
+
+  const paths = [
+    'import_organizers/org1',
+    'import_organizers/org1/outreach/m1',
+    'import_candidates/c1',
+    'import_runs/r1',
+    `import_blocklist/${hash}`,
+    'app_settings/import',
+  ];
+
+  it('anonymous users, members, owners and region moderators neither read nor write', async () => {
+    const dbs = [
+      env.unauthenticatedContext().firestore(),
+      ctx('member'),
+      ctx('owner'),
+      ctx('curator'),
+      ctx('mod'),
+    ];
+    for (const db of dbs) {
+      for (const path of paths) {
+        await assertFails(getDoc(doc(db, path)));
+        await assertFails(updateDoc(doc(db, path), { touched: true }));
+        await assertFails(deleteDoc(doc(db, path)));
+      }
+      await assertFails(getDocs(collection(db, 'import_organizers')));
+      await assertFails(getDocs(collection(db, 'import_candidates')));
+      await assertFails(setDoc(doc(db, 'import_organizers/new'), organizer));
+      await assertFails(setDoc(doc(db, 'import_candidates/new'), candidate));
+      await assertFails(setDoc(doc(db, 'import_runs/new'), { region: 'tirol' }));
+      await assertFails(setDoc(doc(db, `import_blocklist/${'b'.repeat(64)}`), { kind: 'domain' }));
+    }
+  });
+
+  it('a Super-Admin reads and writes all four collections', async () => {
+    const db = env.authenticatedContext('admin').firestore();
+    for (const path of paths) await assertSucceeds(getDoc(doc(db, path)));
+    await assertSucceeds(getDocs(collection(db, 'import_candidates')));
+    await assertSucceeds(setDoc(doc(db, 'import_organizers/org2'), organizer));
+    await assertSucceeds(
+      updateDoc(doc(db, 'import_organizers/org1'), {
+        consent: 'asked',
+        previewTokenHash: 'b'.repeat(64),
+        previewTokenExpiresAt: 5,
+      })
+    );
+    await assertSucceeds(setDoc(doc(db, 'import_organizers/org1/outreach/m2'), { status: 'sent' }));
+    await assertSucceeds(setDoc(doc(db, 'import_candidates/c2'), candidate));
+    await assertSucceeds(updateDoc(doc(db, 'import_candidates/c1'), { status: 'reviewed' }));
+    // Fields the ingest script adds (pilotExcluded, duplicateOf, ...) are not refused.
+    await assertSucceeds(
+      setDoc(doc(db, 'import_candidates/c3'), {
+        ...candidate,
+        pilotExcluded: true,
+        duplicateOf: { kind: 'event', id: 'e1' },
+      })
+    );
+    await assertSucceeds(setDoc(doc(db, 'import_runs/r2'), { region: 'tirol', counts: {} }));
+    await assertSucceeds(
+      setDoc(doc(db, `import_blocklist/${'c'.repeat(64)}`), {
+        kind: 'domain',
+        reason: 'declined',
+        createdAt: 1,
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(db, 'import_runs/r1')));
+  });
+
+  it('the preview log is readable by Super-Admins only and written by nobody', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'import_organizers/org1/previewViews/v1'), {
+        at: 1,
+        imageUrls: ['https://yoga-tirol.at/kakao.jpg'],
+        eventCount: 1,
+      });
+    });
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(getDoc(doc(admin, 'import_organizers/org1/previewViews/v1')));
+    await assertFails(setDoc(doc(admin, 'import_organizers/org1/previewViews/v2'), { at: 2 }));
+    await assertFails(deleteDoc(doc(admin, 'import_organizers/org1/previewViews/v1')));
+    for (const db of [env.unauthenticatedContext().firestore(), ctx('member'), ctx('mod')]) {
+      await assertFails(getDoc(doc(db, 'import_organizers/org1/previewViews/v1')));
+      await assertFails(setDoc(doc(db, 'import_organizers/org1/previewViews/v3'), { at: 3 }));
+    }
+  });
+
+  it('even a Super-Admin cannot break the privacy rules', async () => {
+    const db = env.authenticatedContext('admin').firestore();
+    // Plain preview token, consent record from the client, unknown enum values.
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { previewToken: 'secret' }));
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { previewTokenHash: 'abc' }));
+    await assertFails(
+      updateDoc(doc(db, 'import_organizers/org1'), { consentRecord: { at: 1, scopes: {} } })
+    );
+    await assertFails(
+      setDoc(doc(db, 'import_organizers/org3'), { ...organizer, consentRecord: { at: 1 } })
+    );
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { legalForm: 'gmbh' }));
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { consent: 'yes' }));
+    await assertFails(updateDoc(doc(db, 'import_organizers/org1'), { regionId: 'atlantis' }));
+    // Candidates keep a source URL only, never a storage copy.
+    await assertFails(
+      updateDoc(doc(db, 'import_candidates/c1'), {
+        imageUrl: 'https://firebasestorage.googleapis.com/v0/b/x/o/a.jpg',
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'import_candidates/c1'), { imageUrl: 'http://a.at/a.jpg' })
+    );
+    await assertFails(updateDoc(doc(db, 'import_candidates/c1'), { imageStoragePath: 'a/b.jpg' }));
+    await assertFails(updateDoc(doc(db, 'import_candidates/c1'), { status: 'live' }));
+    // Blocklist: hashed id, minimal fields.
+    await assertFails(setDoc(doc(db, 'import_blocklist/info@yoga-tirol.at'), { kind: 'email' }));
+    await assertFails(
+      setDoc(doc(db, `import_blocklist/${'d'.repeat(64)}`), {
+        kind: 'email',
+        email: 'info@yoga-tirol.at',
+      })
+    );
+    await assertFails(setDoc(doc(db, `import_blocklist/${'d'.repeat(64)}`), { kind: 'person' }));
+    // app_settings/import is written by the script only.
+    await assertFails(updateDoc(doc(db, 'app_settings/import'), { curatorUid: 'x' }));
+  });
+
+  it('a Super-Admin reads curated pending events (the region moderator too), nobody else', async () => {
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('admin').firestore(), 'events/curated'))
+    );
+    await assertSucceeds(getDoc(doc(ctx('mod'), 'events/curated')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'events/curated')));
+    await assertFails(getDoc(doc(ctx('member'), 'events/curated')));
+  });
+
+  it('owners cannot add, change or remove curation, nor change createdBy', async () => {
+    const owner = ctx('owner');
+    await assertFails(updateDoc(doc(owner, 'events/own'), { curation }));
+    await assertFails(
+      setDoc(doc(owner, 'events/new'), event({ status: 'pending', createdBy: 'owner', curation }))
+    );
+    await assertSucceeds(
+      setDoc(doc(owner, 'events/new2'), event({ status: 'pending', createdBy: 'owner' }))
+    );
+    const curator = ctx('curator');
+    await assertFails(
+      updateDoc(doc(curator, 'events/curated'), { curation: { ...curation, consentAt: 1 } })
+    );
+    await assertFails(updateDoc(doc(curator, 'events/curated'), { 'curation.claimable': false }));
+    await assertFails(updateDoc(doc(curator, 'events/curated'), { curation: deleteField() }));
+    await assertFails(updateDoc(doc(curator, 'events/curated'), { createdBy: 'owner' }));
+    await assertFails(updateDoc(doc(owner, 'events/own'), { createdBy: 'curator' }));
+    // Ordinary edits without touching curation still work.
+    await assertSucceeds(updateDoc(doc(curator, 'events/curated'), { title: 'Kakao-Abend' }));
+  });
+
+  it('nobody approves a curated event from the client before consent', async () => {
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertFails(
+      updateDoc(doc(admin, 'events/curated'), { curation: { ...curation, consentAt: 1 } })
+    );
+    await assertFails(
+      updateDoc(doc(admin, 'events/curated'), {
+        status: 'approved',
+        approvedBy: 'admin',
+        approvedAt: serverTimestamp(),
+      })
+    );
+    const mod = ctx('mod');
+    await assertFails(
+      updateDoc(doc(mod, 'events/curated'), {
+        status: 'approved',
+        approvedBy: 'mod',
+        approvedAt: serverTimestamp(),
+      })
+    );
+    // Other review actions stay possible (editing, rejecting).
+    await assertSucceeds(updateDoc(doc(admin, 'events/curated'), { title: 'Kakao (geprüft)' }));
+    await assertSucceeds(
+      updateDoc(doc(mod, 'events/curated'), {
+        status: 'trashed',
+        trashedBy: 'mod',
+        trashedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it('after consent (set by the backend) the event can be approved', async () => {
+    await env.withSecurityRulesDisabled((c) =>
+      updateDoc(doc(c.firestore(), 'events/curated'), { 'curation.consentAt': 2 })
+    );
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(
+      updateDoc(doc(admin, 'events/curated'), {
+        status: 'approved',
+        approvedBy: 'admin',
+        approvedAt: serverTimestamp(),
+      })
+    );
+    // An ordinary event is unaffected.
+    await assertSucceeds(
+      updateDoc(doc(ctx('mod'), 'events/own'), {
+        status: 'approved',
+        approvedBy: 'mod',
+        approvedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it('claim requests: Super-Admins read them, nobody writes them from the client', async () => {
+    const request = { uid: 'member', organizerId: 'org1', status: 'pending', createdAt: 1 };
+    await env.withSecurityRulesDisabled((c) =>
+      setDoc(doc(c.firestore(), 'import_claim_requests/org1_member'), request)
+    );
+    const path = 'import_claim_requests/org1_member';
+    // The requester included: the callable answers them, the doc stays staff data.
+    for (const db of [env.unauthenticatedContext().firestore(), ctx('member'), ctx('mod')]) {
+      await assertFails(getDoc(doc(db, path)));
+      await assertFails(getDocs(collection(db, 'import_claim_requests')));
+      await assertFails(setDoc(doc(db, 'import_claim_requests/org1_x'), request));
+      await assertFails(updateDoc(doc(db, path), { status: 'approved' }));
+      await assertFails(deleteDoc(doc(db, path)));
+    }
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(getDoc(doc(admin, path)));
+    await assertSucceeds(getDocs(collection(admin, 'import_claim_requests')));
+    // Approving goes through approveClaimRequest (it moves the events).
+    await assertFails(updateDoc(doc(admin, path), { status: 'approved' }));
+    await assertFails(setDoc(doc(admin, 'import_claim_requests/org1_y'), request));
+    await assertSucceeds(deleteDoc(doc(admin, path)));
+  });
+
+  it('after a claim the new owner edits the event but cannot hand it on or touch curation', async () => {
+    const claimed = {
+      ...curation,
+      claimable: false,
+      claimedAt: 2,
+      claimedBy: 'claimer',
+    };
+    await env.withSecurityRulesDisabled((c) =>
+      setDoc(
+        doc(c.firestore(), 'events/claimed'),
+        event({
+          status: 'pending',
+          createdBy: 'claimer',
+          organizer: { name: 'Yogaverein Tirol', email: 'info@yoga-tirol.at' },
+          curation: claimed,
+        })
+      )
+    );
+    const owner = ctx('claimer');
+    await assertSucceeds(updateDoc(doc(owner, 'events/claimed'), { title: 'Kakao im Advent' }));
+    await assertFails(updateDoc(doc(owner, 'events/claimed'), { createdBy: 'curator' }));
+    await assertFails(updateDoc(doc(owner, 'events/claimed'), { createdBy: 'mallory' }));
+    await assertFails(
+      updateDoc(doc(owner, 'events/claimed'), { curation: { ...claimed, consentAt: 3 } })
+    );
+    // The curator account lost the event with the claim.
+    await assertFails(updateDoc(doc(ctx('curator'), 'events/claimed'), { title: 'x' }));
+    // Nobody else takes it over from the client either.
+    await assertFails(updateDoc(doc(ctx('member'), 'events/claimed'), { createdBy: 'member' }));
   });
 });

@@ -29,6 +29,8 @@ export interface MailgunSendInput {
   replyTo?: string;
   /** Inline images, referenced in the HTML as `cid:<filename>` (sent as multipart). */
   inlineImages?: MailgunInlineImage[];
+  /** false: no open/click tracking (links stay as they are, e.g. private tokens). */
+  tracking?: boolean;
 }
 
 export interface MailgunInlineImage {
@@ -64,6 +66,11 @@ function formBody(input: MailgunSendInput): URLSearchParams {
   const replyTo = input.replyTo?.trim();
   if (replyTo) {
     body.set('h:Reply-To', replyTo);
+  }
+  if (input.tracking === false) {
+    body.set('o:tracking', 'no');
+    body.set('o:tracking-clicks', 'no');
+    body.set('o:tracking-opens', 'no');
   }
   return body;
 }

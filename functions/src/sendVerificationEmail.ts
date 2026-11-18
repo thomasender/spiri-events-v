@@ -81,6 +81,10 @@ export const AFTER_VERIFY_PATHS: Readonly<Record<string, string>> = {
   // A guest filled in "Event erstellen" before creating the account
   // (docs/guest-event-draft.md): back to the wizard's last page.
   createEvent: '/admin/new',
+  // An organizer opened the claim link before creating the account
+  // (docs/event-import.md, "Claim"): back to /uebernehmen. The token stays in
+  // the browser (localStorage), never in this link.
+  claimEvents: '/uebernehmen',
 };
 
 /** The button link of the mail: the action page, plus `next` for a known `afterVerify`. */

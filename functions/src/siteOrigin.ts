@@ -18,6 +18,19 @@ export function resolveSiteOrigin(value: unknown): string {
   return ALLOWED_ORIGINS.includes(origin) ? origin : DEFAULT_SITE_ORIGIN;
 }
 
+const STAGING_PROJECT_ID = 'tribe-vbg-staging';
+
+/**
+ * Site of the project the functions run in, for links in mails that are not
+ * tied to a user's domain: the staging site on tribe-vbg-staging, else the
+ * default production site.
+ */
+export function projectSiteOrigin(env: Record<string, string | undefined> = process.env): string {
+  return env.GCLOUD_PROJECT === STAGING_PROJECT_ID
+    ? `https://${STAGING_PROJECT_ID}.web.app`
+    : DEFAULT_SITE_ORIGIN;
+}
+
 /** The origin of the browser that called a callable function. */
 export function requestSiteOrigin(request: {
   rawRequest?: { headers?: Record<string, unknown> };

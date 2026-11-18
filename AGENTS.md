@@ -197,6 +197,11 @@ two-line "read this when".
 - Read `docs/pre-entries.md` ONLY when you touch pre-entered events ("Vorab eingetragene
   Events": `functions/src/preEntries*.ts`, the system account "Dein Tribe", `/vorschau/:token`,
   `app_settings/preEntries`, `pre_entries` / `pre_entry_tokens`).
+- Read `docs/event-import.md` ONLY when you touch curated/imported events: the `import_*`
+  collections, `events.curation`, `eventImport.ts` / `eventImport.js`, the claim
+  (`eventImportClaim.ts`, `/uebernehmen`, "Meine Events" banner, wizard hint), the preview /
+  consent / outreach mail (`importConsent*.ts`, `/vorschau/import/:token`, `/datenschutz-import`), the curator account script,
+  or a public event path (JSON list, ICS, prerender/sitemap, Instagram) that must hide them.
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 

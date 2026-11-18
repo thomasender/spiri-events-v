@@ -344,6 +344,25 @@ service cloud.firestore {
                    || (d.lng is number && d.lng >= -180 && d.lng <= 180));
       }
 
+      // Curated (imported) events (docs/event-import.md): `curation`
+      // ({ organizerRef, sourceUrl, importedAt, claimable, consentAt }) is
+      // written only by the Admin SDK. No client, not even a Super-Admin, may
+      // add, change or remove it.
+      function isCurationUntouched() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['curation']);
+      }
+
+      // A curated event goes public only after its organizer consented: the
+      // backend sets `curation.consentAt`. Until then no client (Super-Admin
+      // and Regions-Moderator:in included) may move it into 'approved'.
+      function isCuratedApprovalWithoutConsent() {
+        let after = request.resource.data;
+        return after.status == 'approved'
+          && resource.data.get('status', null) != 'approved'
+          && after.get('curation', null) != null
+          && after.curation.get('consentAt', null) == null;
+      }
+
       // Anyone creating an event (including admins) must start it as
       // 'pending' or 'draft'. Approval happens via update. Non-admins
       // additionally need a confirmed email address.
@@ -363,7 +382,8 @@ service cloud.firestore {
                     && isValidFocalPoint()
                     && isValidImageZoom()
                     && isValidEventPosition()
-                    && isValidEventRegionOnCreate();
+                    && isValidEventRegionOnCreate()
+                    && !('curation' in request.resource.data);
 
       // Moderation guard for owners who are not admins (a direct write
       // bypasses the UI): an owner may keep an ALREADY approved event
@@ -459,7 +479,9 @@ service cloud.firestore {
                     && isValidImageZoom()
                     && isValidEventPosition()
                     && isValidCancellation()
-                    && isValidEventRegionOnUpdate();
+                    && isValidEventRegionOnUpdate()
+                    && isCurationUntouched()
+                    && !isCuratedApprovalWithoutConsent();
 
       // Review actions of a region moderator on a (non-draft) event of one
       // of her regions. Only the status change and its bookkeeping fields
@@ -526,7 +548,7 @@ service cloud.firestore {
           );
       }
 
-      allow update: if isModeratorReviewUpdate();
+      allow update: if isModeratorReviewUpdate() && !isCuratedApprovalWithoutConsent();
 
       // While reviewing a pending event of her region, a moderator may adjust
       // the Instagram crop (focal point + zoom, AdminInstagramPreview) of the
@@ -1060,7 +1082,9 @@ service cloud.firestore {
     match /app_settings/{docId} {
       // `instagram` holds the automation kill switch: admin-only, unlike the
       // rest of this collection.
-      allow read: if docId != 'instagram' || isAdminOrEmulatorAdmin();
+      // `import` holds the curator account uid of the event import
+      // (docs/event-import.md): Super-Admin only as well.
+      allow read: if !(docId in ['instagram', 'import']) || isAdminOrEmulatorAdmin();
 
       // Two create paths so an admin is never locked out if the system
       // seeder fails to run:
@@ -2015,6 +2039,98 @@ service cloud.firestore {
       allow delete: if isChatStaff();
     }
 
+    // ── Event import (docs/event-import.md) ───────────────────────────
+    // Curation data for inactive regions. Super-Admins only: no other
+    // client, Regions-Moderator:innen included, reads or writes any of it.
+    // The import scripts and functions use the Admin SDK (no rules). Value
+    // checks guard the privacy rules: only hashes of preview tokens and
+    // blocklist entries, no image copies, consent records only from the
+    // backend.
+
+    // Organizers found on the web. `previewTokenHash` only (never the plain
+    // token); `consentRecord` is written only by the backend.
+    match /import_organizers/{organizerId} {
+      function isValidImportOrganizer(d) {
+        return d.name is string && d.name.size() > 0 && d.name.size() <= 200
+          && d.legalForm in ['company', 'verein', 'individual', 'unknown']
+          && d.consent in ['none', 'asked', 'manual_ok', 'sync_ok', 'declined', 'claimed']
+          && d.syncMode in ['curated_once', 'sync_consented', 'self_managed', 'declined']
+          && isValidRegionId(d.regionId)
+          && !('previewToken' in d)
+          && (!('previewTokenHash' in d) || d.previewTokenHash == null
+              || (d.previewTokenHash is string && d.previewTokenHash.matches('^[0-9a-f]{64}$')));
+      }
+
+      allow read, delete: if isAdminOrEmulatorAdmin();
+      allow create: if isAdminOrEmulatorAdmin()
+                    && isValidImportOrganizer(request.resource.data)
+                    && !('consentRecord' in request.resource.data);
+      allow update: if isAdminOrEmulatorAdmin()
+                    && isValidImportOrganizer(request.resource.data)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['consentRecord']);
+
+      // Outreach log: one doc per mail (sentAt, templateVersion, status).
+      match /outreach/{outreachId} {
+        allow read, write: if isAdminOrEmulatorAdmin();
+      }
+
+      // Preview log (importConsent.ts): when the private preview was opened and
+      // which image URLs it showed, no IP. Written only by the backend;
+      // Super-Admins may read it, nobody may change it.
+      match /previewViews/{viewId} {
+        allow read: if isAdminOrEmulatorAdmin();
+        allow write: if false;
+      }
+    }
+
+    // Events found by an import run. `imageUrl` is the source URL of the
+    // picture (never a copy in our storage before consent).
+    match /import_candidates/{candidateId} {
+      function isValidImportCandidate(d) {
+        return isValidRegionId(d.regionId)
+          && d.status in ['found', 'reviewed', 'published', 'rejected', 'duplicate']
+          && (!('sourceType' in d) || d.sourceType in ['jsonld', 'ical', 'api', 'llm', 'manual'])
+          && !('imagePath' in d) && !('imageStoragePath' in d)
+          && (!('imageUrl' in d) || d.imageUrl == null
+              || (d.imageUrl is string
+                  && d.imageUrl.matches('^https://.*')
+                  && !d.imageUrl.matches('^https://(firebasestorage[.]googleapis[.]com|storage[.]googleapis[.]com)/.*')));
+      }
+
+      allow read, delete: if isAdminOrEmulatorAdmin();
+      allow create, update: if isAdminOrEmulatorAdmin()
+                            && isValidImportCandidate(request.resource.data);
+    }
+
+    // One doc per import run (region, source, counts, errors, costEstimate).
+    match /import_runs/{runId} {
+      allow read, write: if isAdminOrEmulatorAdmin();
+    }
+
+    // Organizers who declined: doc id = sha256 (hex) of the lower-cased
+    // e-mail address or domain (blocklistId in functions/src/eventImport.ts),
+    // so the plain address is never stored.
+    match /import_blocklist/{entryId} {
+      allow read, delete: if isAdminOrEmulatorAdmin();
+      allow create, update: if isAdminOrEmulatorAdmin()
+                            && entryId.matches('^[0-9a-f]{64}$')
+                            && request.resource.data.keys().hasOnly(['kind', 'reason', 'createdAt', 'createdBy'])
+                            && request.resource.data.kind in ['email', 'domain']
+                            && (!('reason' in request.resource.data)
+                                || (request.resource.data.reason is string
+                                    && request.resource.data.reason.size() <= 500));
+    }
+
+    // Claim requests (functions/src/eventImportClaim.ts): a member asked to
+    // take over an organizer's curated events without a strong proof. Written
+    // and decided only by the callables (claimCuratedEvents,
+    // approveClaimRequest); Super-Admins read them (and may delete one).
+    match /import_claim_requests/{requestId} {
+      allow read, delete: if isAdminOrEmulatorAdmin();
+      allow create, update: if false;
+    }
+
     // Refreshed Instagram access token (secret!). Written and read only by
     // the Cloud Functions (Admin SDK bypasses rules). No client may ever read
     // or write it, not even admins.
@@ -2037,6 +2153,34 @@ service cloud.firestore {
     // may read or write them, not even Super-Admins: they use the callables.
     match /moderator_invites/{inviteId} {
       allow read, write: if false;
+    }
+
+    // Moderator applications (Trello 6afc59ed), written only by the functions
+    // (submitModeratorApplication, inviteModeratorApplicant,
+    // acceptModeratorInvite). Super-Admins read all; a moderator reads those
+    // of her regions; an application without region is Super-Admin only.
+    match /moderator_applications/{applicationId} {
+      allow read: if isAdminOrEmulatorAdmin()
+                  || (resource.data.regionId is string
+                      && isRegionModeratorFor(resource.data.regionId));
+      allow write: if false;
+    }
+
+    // One note per recipient for the admin tab "Team-Hinweise", written only
+    // by the functions. The recipient (while still staff) reads her own and
+    // may only mark them read.
+    match /staff_notifications/{notificationId} {
+      function isOwnStaffNotification(data) {
+        return isAuthenticated()
+          && data.recipientUid == request.auth.uid
+          && (isAdminOrEmulatorAdmin() || isRegionModerator());
+      }
+      allow read: if isOwnStaffNotification(resource.data);
+      allow update: if isOwnStaffNotification(resource.data)
+                    && resource.data.readAt == null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+                    && request.resource.data.readAt == request.time;
+      allow create, delete: if false;
     }
 
     // Idempotency/audit records of Instagram posts. Written only by the

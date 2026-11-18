@@ -42,6 +42,7 @@ import { findUniqueProfileSlug } from '../lib/slug';
 import { auth, db, callable, getStorageInstance } from '../lib/firebase';
 import { readPendingRegistration } from '../lib/eventRegistration';
 import { hasGuestWizardDraft } from '../utils/wizardDraftStorage';
+import { hasPendingClaimToken } from '../utils/eventClaim';
 import {
   checkRateLimit,
   recordRateLimitAttempt,
@@ -323,7 +324,13 @@ export function useAuth() {
     const pendingEventId = readPendingRegistration()?.eventId ?? null;
     // A guest filled in "Event erstellen" first: the confirmation link leads back
     // to the wizard's last page (docs/guest-event-draft.md).
-    const afterVerify = hasGuestWizardDraft() ? 'createEvent' : null;
+    // An organizer came from the claim link (/uebernehmen): back there instead
+    // (docs/event-import.md, "Claim"); the token itself stays in the browser.
+    const afterVerify = hasGuestWizardDraft()
+      ? 'createEvent'
+      : hasPendingClaimToken()
+        ? 'claimEvents'
+        : null;
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
       await updateProfile(credential.user, { displayName });
