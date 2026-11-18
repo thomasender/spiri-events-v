@@ -103,6 +103,8 @@ export interface CandidateExtract {
   endDate?: string;
   place?: string;
   city?: string;
+  /** District (Bezirk / Landkreis) of the place as in the register, when known. */
+  bezirk?: string;
   lat?: number | null;
   lng?: number | null;
   isOnline?: boolean;
@@ -123,6 +125,8 @@ export interface ImportCandidate {
   rawExtract?: CandidateExtract;
   /** URL on the organizer's site only; never copied to our storage before consent. */
   imageUrl?: string | null;
+  /** Individuals are excluded from the pilot: accepting needs an explicit `force`. */
+  pilotExcluded?: boolean;
 }
 
 type Doc = Record<string, unknown>;
@@ -466,7 +470,7 @@ export function candidateToEventData(
     endDate: endDate && endDate > date ? endDate : '',
     place: isOnline ? '' : str(x.place, 200),
     city: isOnline ? '' : str(x.city, 120),
-    bezirk: '',
+    bezirk: isOnline ? '' : str(x.bezirk, 80),
     isOnline,
     ...(lat !== null && lng !== null ? { lat, lng } : {}),
     contribution,
