@@ -89,8 +89,9 @@ function StatusNotice({ consent }) {
   if (consent === 'manual_ok' || consent === 'sync_ok') {
     return (
       <div className="import-preview-notice import-preview-notice--ok" role="status">
-        <strong>Danke, du hast zugestimmt.</strong> Deine Veranstaltungen sind auf tribe sichtbar.{' '}
-        {CONSENT_TEXTS.revoke} Schreib uns dafür an admin@thetribe.at.
+        <strong>Danke! Wir haben deine Zustimmung gespeichert.</strong> Deine Veranstaltungen
+        erscheinen im Kalender, sobald die Region startet. {CONSENT_TEXTS.revoke} Schreib uns dafür
+        an admin@thetribe.at.
       </div>
     );
   }
@@ -126,6 +127,7 @@ function Decision({ preview, declinePreselected, onSubmit, busy, error }) {
   });
   const toggle = (key) => setScopes((s) => ({ ...s, [key]: !s[key] }));
   const submit = (action) => onSubmit(action, scopes);
+  const [confirmingDecline, setConfirmingDecline] = useState(false);
   const approved = preview.consent === 'manual_ok' || preview.consent === 'sync_ok';
   const claimed = preview.consent === 'claimed';
 
@@ -219,18 +221,44 @@ function Decision({ preview, declinePreselected, onSubmit, busy, error }) {
             Ich verwalte meine Veranstaltungen selbst (Konto anlegen und übernehmen)
           </button>
         )}
-        {!claimed && (
+        {!claimed && !confirmingDecline && (
           <button
             type="button"
             className="btn btn-secondary import-preview-decline"
             disabled={busy}
-            onClick={() => submit('decline')}
+            onClick={() => setConfirmingDecline(true)}
             data-testid="action-decline"
           >
             Ablehnen und Angaben löschen
           </button>
         )}
       </div>
+      {!claimed && confirmingDecline && (
+        <div className="import-preview-decline-box" data-testid="decline-confirm">
+          <p>
+            Wirklich ablehnen? Wir löschen dann deine Angaben. Das kann nicht rückgängig gemacht
+            werden.
+          </p>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() => submit('decline')}
+            data-testid="action-decline-confirm"
+          >
+            Ja, ablehnen und Angaben löschen
+          </button>{' '}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() => setConfirmingDecline(false)}
+            data-testid="action-decline-cancel"
+          >
+            Abbrechen
+          </button>
+        </div>
+      )}
     </section>
   );
 }

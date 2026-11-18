@@ -226,6 +226,24 @@ describe('Läufe', () => {
     expect(screen.getByTestId('import-run')).toHaveTextContent('found: 3');
     expect(screen.getByTestId('import-run')).toHaveTextContent('timeout');
   });
+
+  it('renders skippedByReason as readable reason: count pairs', () => {
+    state.runs = [
+      {
+        id: 'r2',
+        region: 'zuerich',
+        source: 'jsonld',
+        counts: { found: 5, skippedByReason: { 'past-date': 2, 'odd-reason': 1 } },
+        errors: [],
+      },
+    ];
+    render(<ImportTab />);
+    fireEvent.click(screen.getByTestId('import-view-runs'));
+    const run = screen.getByTestId('import-run');
+    expect(run).not.toHaveTextContent('[object Object]');
+    expect(run).toHaveTextContent('Datum in der Vergangenheit: 2');
+    expect(run).toHaveTextContent('odd-reason: 1');
+  });
 });
 
 describe('blocklist hashing', () => {

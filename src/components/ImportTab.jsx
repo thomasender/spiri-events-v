@@ -24,6 +24,34 @@ function formatTime(value) {
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleString('de-AT') : '–';
 }
 
+const SKIP_REASON_LABELS = {
+  'invalid-organizer': 'ungültiger Veranstalter',
+  'invalid-candidate': 'ungültiger Eintrag',
+  'missing-title': 'Titel fehlt',
+  'missing-dateQuote': 'Datums-Beleg fehlt',
+  'invalid-sourceUrl': 'ungültige Quell-URL',
+  'invalid-date': 'ungültiges Datum',
+  'past-date': 'Datum in der Vergangenheit',
+};
+
+function formatCountValue(value) {
+  if (value && typeof value === 'object') {
+    const pairs = Object.entries(value).map(([k, v]) => `${SKIP_REASON_LABELS[k] ?? k}: ${v}`);
+    return pairs.length ? pairs.join(', ') : '–';
+  }
+  return String(value);
+}
+
+function formatCounts(counts) {
+  return Object.entries(counts)
+    .map(([k, v]) =>
+      k === 'skippedByReason'
+        ? `übersprungen (${formatCountValue(v)})`
+        : `${k}: ${formatCountValue(v)}`
+    )
+    .join(' · ');
+}
+
 function RunsView({ runs, loading, error }) {
   return (
     <div data-testid="import-runs">
@@ -51,11 +79,7 @@ function RunsView({ runs, loading, error }) {
                   )}
                 </div>
                 <p className="import-counts">
-                  {run.counts && typeof run.counts === 'object'
-                    ? Object.entries(run.counts)
-                        .map(([k, v]) => `${k}: ${v}`)
-                        .join(' · ')
-                    : '–'}
+                  {run.counts && typeof run.counts === 'object' ? formatCounts(run.counts) : '–'}
                 </p>
                 {errors.length > 0 && (
                   <ul className="import-errors">

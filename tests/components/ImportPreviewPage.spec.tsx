@@ -144,7 +144,9 @@ describe('ImportPreviewPage', () => {
         wordingVersion: CONSENT_WORDING_VERSION,
       },
     });
-    expect(screen.getByText(/du hast zugestimmt/)).toBeInTheDocument();
+    expect(screen.getByText(/Wir haben deine Zustimmung gespeichert/)).toBeInTheDocument();
+    expect(screen.getByText(/sobald die Region startet/)).toBeInTheDocument();
+    expect(screen.queryByText(/auf tribe sichtbar/)).toBeNull();
   });
 
   it('the decline link preselects declining; one click declines', async () => {
@@ -170,11 +172,17 @@ describe('ImportPreviewPage', () => {
     expect(screen.getByTestId('claim-landing').textContent).toBe(`/uebernehmen?claim=${TOKEN}`);
   });
 
-  it('decline calls its own action', async () => {
+  it('decline needs an explicit confirmation and can be cancelled', async () => {
     calls.handlers.submitImportConsent = () => ({ consent: 'declined', syncMode: 'declined' });
     await renderAt(`/vorschau/import/${TOKEN}`);
+    fireEvent.click(screen.getByTestId('action-decline'));
+    expect(calls.log).toHaveLength(1); // only the preview load, nothing declined yet
+    fireEvent.click(screen.getByTestId('action-decline-cancel'));
+    expect(screen.getByTestId('action-decline')).toBeInTheDocument();
+    expect(calls.log).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('action-decline'));
     await act(async () => {
-      fireEvent.click(screen.getByTestId('action-decline'));
+      fireEvent.click(screen.getByTestId('action-decline-confirm'));
     });
     expect(calls.log[1].data.action).toBe('decline');
   });

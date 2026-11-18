@@ -655,3 +655,47 @@ describe('ReviewTab — image check on pending rows', () => {
     expect(screen.queryByTestId('review-image-check-toggle-p1')).toBeNull();
   });
 });
+
+describe('ReviewTab — imported events without consent', () => {
+  const curated = (consentAt: unknown) => ({
+    id: 'imp1',
+    title: 'Importiertes Event',
+    status: 'pending',
+    regionId: 'vorarlberg',
+    createdBy: 'curator',
+    curation: { sourceUrl: 'https://x.test', consentAt },
+  });
+
+  it('shows the badges inside the card and disables approve without consent', () => {
+    mockUsePendingEvents.pendingEvents = [curated(null)];
+    renderReviewTab();
+    const badges = screen.getByTestId('review-curation-imp1');
+    expect(badges.closest('.event-card-badges')).not.toBeNull();
+    expect(badges).toHaveTextContent('importiert');
+    expect(badges).toHaveTextContent('ohne Consent');
+    const approve = screen.getByRole('button', { name: 'Genehmigen' }) as HTMLButtonElement;
+    expect(approve.disabled).toBe(true);
+    expect(approve.title).toMatch(/noch keine Zustimmung des Veranstalters/);
+  });
+
+  it('allows approve with consent', () => {
+    mockUsePendingEvents.pendingEvents = [curated('TS')];
+    renderReviewTab();
+    expect(screen.getByTestId('review-curation-imp1')).not.toHaveTextContent('ohne Consent');
+    expect((screen.getByRole('button', { name: 'Genehmigen' }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
+  });
+
+  it('shows a clear German message when the rules refuse the approval', async () => {
+    mockUsePendingEvents.pendingEvents = [curated('TS')];
+    mockApproveEvent.mockRejectedValue({ code: 'permission-denied' });
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Genehmigen' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('review-approve-error')).toHaveTextContent(
+        'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.'
+      )
+    );
+  });
+});
