@@ -504,6 +504,8 @@ const OTHER_INTERNAL = new Set([
   'auth-action',
   'einladung',
   'uebernehmen',
+  'vorschau',
+  'datenschutz-import',
   'datenschutz',
   'impressum',
   'nutzungsbedingungen',

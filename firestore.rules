@@ -2046,6 +2046,14 @@ service cloud.firestore {
       match /outreach/{outreachId} {
         allow read, write: if isAdminOrEmulatorAdmin();
       }
+
+      // Preview log (importConsent.ts): when the private preview was opened and
+      // which image URLs it showed, no IP. Written only by the backend;
+      // Super-Admins may read it, nobody may change it.
+      match /previewViews/{viewId} {
+        allow read: if isAdminOrEmulatorAdmin();
+        allow write: if false;
+      }
     }
 
     // Events found by an import run. `imageUrl` is the source URL of the

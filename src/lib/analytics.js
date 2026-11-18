@@ -2,6 +2,7 @@
 // Nothing from firebase/analytics is imported until the visitor consents.
 // Every export is safe to call anywhere: failures never propagate.
 import app from './firebase';
+import { redactPrivatePath, redactPrivateUrl } from '../utils/importConsent';
 
 export const EVENTS = Object.freeze({
   PAGE_VIEW: 'page_view',
@@ -139,11 +140,14 @@ export function setAnalyticsRegion(slug) {
   region = typeof slug === 'string' && /^[a-z0-9-]{1,40}$/.test(slug) ? slug : null;
 }
 
-/** Current page URL without query string or hash (no tokens, no search terms). */
+/**
+ * Current page URL without query string or hash (no tokens, no search terms);
+ * private paths (the import preview /vorschau/<token>) without the token.
+ */
 function currentPageLocation() {
   try {
     const { origin, pathname } = window.location;
-    return origin && pathname ? `${origin}${pathname}` : undefined;
+    return origin && pathname ? redactPrivateUrl(`${origin}${pathname}`) : undefined;
   } catch {
     return undefined;
   }
@@ -180,7 +184,7 @@ export async function trackEvent(name, params) {
  * GA's default (the external referrer, e.g. Instagram).
  */
 export async function trackPageView(path, title) {
-  const clean = String(path ?? '').split(/[?#]/)[0];
+  const clean = redactPrivatePath(String(path ?? '').split(/[?#]/)[0]);
   const location = currentPageLocation();
   const referrer = lastPageLocation && lastPageLocation !== location ? lastPageLocation : undefined;
   if (collecting() && envAllowed()) lastPageLocation = location ?? null;

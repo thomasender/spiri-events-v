@@ -62,3 +62,5 @@ import '../pages/ModeratorOnboardingPage.css';
 
 // ClaimEventsPage (also the claim banner in AdminPage and the hint in the event wizard)
 import '../components/EventClaim.css';
+// ImportPreviewPage
+import '../pages/ImportPreviewPage.css';

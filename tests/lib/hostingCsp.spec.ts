@@ -65,3 +65,22 @@ describe('Permissions-Policy', () => {
     expect(features.payment).toBe('()');
   });
 });
+
+describe('private event-import preview (/vorschau/**)', () => {
+  const rule = config.hosting.headers.find(
+    (h: { source: string }) => h.source === '/vorschau/**'
+  ) as { headers: { key: string; value: string }[] };
+  const header = (key: string) => rule.headers.find((h) => h.key === key)?.value;
+
+  it('is never indexed, never cached and sends no referrer', () => {
+    expect(header('X-Robots-Tag')).toBe('noindex, nofollow');
+    expect(header('Cache-Control')).toBe('private, no-store');
+    expect(header('Referrer-Policy')).toBe('no-referrer');
+  });
+
+  it('is not listed in the prerender / sitemap', () => {
+    const prerender = readFileSync(join(__dirname, '../../scripts/prerender.mjs'), 'utf8');
+    expect(prerender).not.toContain('vorschau');
+    expect(prerender).not.toContain('datenschutz-import');
+  });
+});

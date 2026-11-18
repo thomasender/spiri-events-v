@@ -52,6 +52,8 @@ export const RESERVED_USERNAMES = new Set([
   'auth-action',
   'einladung',
   'uebernehmen',
+  'vorschau',
+  'datenschutz-import',
   'login-anleitungen',
   'api',
   'static',
