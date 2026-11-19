@@ -88,6 +88,16 @@ export function registrationClosedReason(
 }
 
 /**
+ * Admin switch app_settings/eventRegistration { enabled }. A missing doc or
+ * anything but `true` means off, so the feature is dark until an admin turns it on.
+ */
+export function isEventRegistrationEnabled(
+  settings: Record<string, unknown> | null | undefined
+): boolean {
+  return settings?.enabled === true;
+}
+
+/**
  * Where the organizer mail goes: the e-mail of the account that created the
  * event, else the organizer e-mail stored on the event, else an e-mail in the
  * "Kontakt" field. null = we cannot reach the organizer by mail.

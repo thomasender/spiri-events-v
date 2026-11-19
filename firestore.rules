@@ -1656,6 +1656,20 @@ service cloud.firestore {
       allow delete: if isChatStaff();
     }
 
+    // Admin switch for "Zum Event anmelden" (docs/event-registration.md):
+    // app_settings/eventRegistration { enabled: bool }. A missing doc means off.
+    // Read via the app_settings match above; the callable re-checks it server-side.
+    match /app_settings/eventRegistration {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['enabled', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.enabled is bool;
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['enabled', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.enabled is bool;
+      allow delete: if isChatStaff();
+    }
+
     // ---- Private messenger "Postfach" (docs/messenger.md) -------------------
     // Feature flag: app_settings/messenger { mode: 'off' | 'admins' | 'all' },
     // same semantics as the chat flag. A missing doc means off.

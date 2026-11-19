@@ -5,7 +5,11 @@ import EventRegistrationModal from '../../src/components/EventRegistrationModal'
 import EventRegistrationButton from '../../src/components/EventRegistrationButton';
 import { readPendingRegistration } from '../../src/lib/eventRegistration';
 
-const mocks = vi.hoisted(() => ({ call: vi.fn() }));
+const mocks = vi.hoisted(() => ({ call: vi.fn(), enabled: true }));
+
+vi.mock('../../src/hooks/useEventRegistrationSettings', () => ({
+  useEventRegistrationEnabled: () => mocks.enabled,
+}));
 
 vi.mock('../../src/lib/firebase', () => ({
   callable: (name: string) => (data: unknown) => mocks.call(name, data),
@@ -32,6 +36,7 @@ const contactInput = () => screen.getByTestId('event-registration-contact') as H
 
 beforeEach(() => {
   mocks.call.mockReset();
+  mocks.enabled = true;
   sessionStorage.clear();
 });
 
@@ -179,6 +184,12 @@ describe('EventRegistrationButton', () => {
     expect(screen.getByTestId('event-registration-button')).toHaveTextContent(
       'Über Tribe anmelden'
     );
+  });
+
+  it('is hidden while an admin has the feature switched off', () => {
+    mocks.enabled = false;
+    render(<EventRegistrationButton event={event} user={null} />);
+    expect(screen.queryByTestId('event-registration-button')).not.toBeInTheDocument();
   });
 
   it('is hidden for unpublished, cancelled and past events', () => {

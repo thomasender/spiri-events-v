@@ -28,6 +28,7 @@ import { customOccurrenceTime } from './instagram/instagramOccurrences';
 import {
   EVENT_REGISTRATION_RATE_LIMITS,
   confirmationMarkerId,
+  isEventRegistrationEnabled,
   pickOrganizerEmail,
   registrationClosedReason,
   validateEventRegistration,
@@ -88,6 +89,14 @@ export const submitEventRegistration = onCall(
   async (request) => {
     logMissingAppCheck('submitEventRegistration', request);
     enforceRateLimit(request, 'eventRegistration', EVENT_REGISTRATION_RATE_LIMITS.caller);
+
+    // Admin switch (Verwaltung -> Chat -> "Zum Event anmelden"); off unless an admin set it.
+    const settingsSnap = await getFirestore().doc('app_settings/eventRegistration').get();
+    if (!isEventRegistrationEnabled(settingsSnap.exists ? settingsSnap.data() : null)) {
+      throw new HttpsError('failed-precondition', 'Registration is switched off.', {
+        reason: 'disabled',
+      });
+    }
 
     const input = validateEventRegistration(request.data);
     enforceKeyedLimit(

@@ -19,6 +19,7 @@ import {
   useOnboardingSettings,
   useOnlineStatusSettings,
 } from './useChatSettings';
+import { useEventRegistrationEnabled } from './useEventRegistrationSettings';
 import { CHAT_PERMANENT_UNTIL_MS, LAGERFEUER_ROOM_ID } from '../utils/chat';
 import { CANDLE_ROOM_COLLECTION } from '../utils/candleRoom';
 
@@ -41,6 +42,7 @@ export function useChatAdmin(enabled) {
   const { mode: messengerMode } = useMessengerSettings();
   const { mode: onlineStatusMode } = useOnlineStatusSettings();
   const { mode: onboardingMode } = useOnboardingSettings();
+  const eventRegistrationEnabled = useEventRegistrationEnabled();
   const [dmReports, setDmReports] = useState([]);
   const [reports, setReports] = useState([]);
   const [bans, setBans] = useState([]);
@@ -143,6 +145,17 @@ export function useChatAdmin(enabled) {
     [user]
   );
 
+  const setEventRegistrationEnabled = useCallback(
+    async (next) => {
+      await setDoc(
+        doc(db, 'app_settings', 'eventRegistration'),
+        { enabled: Boolean(next), updatedAt: serverTimestamp(), updatedBy: user?.uid ?? null },
+        { merge: true }
+      );
+    },
+    [user]
+  );
+
   const resolveDmReport = useCallback(
     async (reportId) => {
       await updateDoc(doc(db, 'dm_reports', reportId), {
@@ -196,6 +209,8 @@ export function useChatAdmin(enabled) {
     setOnlineStatusMode,
     onboardingMode,
     setOnboardingMode,
+    eventRegistrationEnabled,
+    setEventRegistrationEnabled,
     dmReports,
     setMessengerMode,
     resolveDmReport,

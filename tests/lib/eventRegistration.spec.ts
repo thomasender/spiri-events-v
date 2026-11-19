@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   classifyContact,
   confirmationMarkerId,
+  isEventRegistrationEnabled,
   pickOrganizerEmail,
   registrationClosedReason,
   shouldPurgeRegistrations,
@@ -70,6 +71,19 @@ describe('registrationClosedReason', () => {
     );
     expect(registrationClosedReason({ ...event, cancelled: true }, '2026-11-16')).toBe('cancelled');
     expect(registrationClosedReason(event, '2026-11-21')).toBe('past');
+  });
+});
+
+describe('isEventRegistrationEnabled', () => {
+  it('is off without a settings doc and for anything but enabled: true', () => {
+    expect(isEventRegistrationEnabled(null)).toBe(false);
+    expect(isEventRegistrationEnabled(undefined)).toBe(false);
+    expect(isEventRegistrationEnabled({})).toBe(false);
+    expect(isEventRegistrationEnabled({ enabled: false })).toBe(false);
+    expect(isEventRegistrationEnabled({ enabled: 'true' })).toBe(false);
+  });
+  it('is on only for enabled: true', () => {
+    expect(isEventRegistrationEnabled({ enabled: true })).toBe(true);
   });
 });
 
