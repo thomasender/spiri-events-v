@@ -173,6 +173,7 @@ export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { adminSendBroadcastDm } from './adminBroadcast';
+export { getSuperAdminContacts } from './superAdminContacts';
 export {
   submitModeratorApplication,
   remindOpenModeratorApplications,

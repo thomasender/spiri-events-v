@@ -11,6 +11,7 @@ const mockAuth = vi.hoisted(() => ({
 
 const mockFavoriteCount = vi.hoisted(() => ({ count: 3 as number | null, calls: [] as boolean[] }));
 
+vi.mock('../../src/components/ModerationGuidanceNotice', () => ({ default: () => null }));
 vi.mock('../../src/hooks/useEventFavoriteCount', () => ({
   useEventFavoriteCount: (_id: string, enabled: boolean) => {
     mockFavoriteCount.calls.push(enabled);

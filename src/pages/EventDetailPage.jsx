@@ -1,3 +1,4 @@
+import ModerationGuidanceNotice from '../components/ModerationGuidanceNotice';
 import { useState, useEffect, useRef } from 'react';
 import { bezirkLabel } from '../utils/regions';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -678,6 +679,8 @@ export default function EventDetailPage() {
         <ArrowLeft size={16} />
         <span>{backLabel}</span>
       </Link>
+
+      {showApproveButton && <ModerationGuidanceNotice />}
 
       {(showEditButton ||
         showDeleteButton ||

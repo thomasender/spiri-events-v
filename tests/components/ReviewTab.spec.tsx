@@ -70,6 +70,7 @@ vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => mockAuth.current,
 }));
 
+vi.mock('../../src/components/ModerationGuidanceNotice', () => ({ default: () => null }));
 vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
 
 vi.mock('../../src/lib/firebase', () => ({ db: {} }));
