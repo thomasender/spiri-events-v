@@ -12,7 +12,7 @@ import {
   sendEventRegistration,
   validateRegistrationForm,
 } from '../lib/eventRegistration';
-import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
+import { getCustomOccurrenceTime, getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import { describeOccurrence } from '../utils/occurrenceDescription';
 import './EventRegistrationModal.css';
 
@@ -67,7 +67,7 @@ export default function EventRegistrationModal({ open, onClose, event, user, occ
 
   // The date the guest looked at; a list link carries none, so a series falls back to its next date.
   const chosenDate = occurrenceDate || getNextUpcomingOccurrence(event) || event.date;
-  const when = describeOccurrence(chosenDate, event.time);
+  const when = describeOccurrence(chosenDate, getCustomOccurrenceTime(event, chosenDate).time);
 
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 

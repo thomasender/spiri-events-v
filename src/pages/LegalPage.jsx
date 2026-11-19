@@ -216,10 +216,13 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von Google: [https
 - Datenspeicherung (Cloud Firestore)
 - Bereitstellung der Website und der Server-Funktionen (Firebase Hosting, Cloud Functions), z.B. für den Kalender-Export
 - Nutzungsstatistik (Google Analytics, nur mit Ihrer Einwilligung, siehe Abschnitt 7)
+- Push-Benachrichtigungen (Firebase Cloud Messaging, nur wenn Sie sie einschalten, siehe unten)
 
 Die Datenverarbeitung durch Firebase erfolgt auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO. Google verarbeitet Daten ausschließlich nach unserer Weisung und nicht für eigene Zwecke.
 
 *Server-Protokolle:* Bei jedem Aufruf der Website und ihrer Server-Funktionen (z.B. beim Abruf einer Kalenderdatei oder des Kalender-Abos) werden technisch bedingt Zugriffsdaten protokolliert: Ihre IP-Adresse, Datum und Uhrzeit, die aufgerufene Adresse sowie die Angaben Ihres Browsers bzw. Ihrer Kalender-App (User-Agent). Diese Protokolle werden von Google als Auftragsverarbeiter erstellt und gespeichert. Wir nutzen sie ausschließlich, um den Betrieb und die Sicherheit der Website zu gewährleisten und Fehler oder Missbrauch zu erkennen, und führen sie nicht mit anderen Daten zusammen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren und funktionsfähigen Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Die Protokolle werden nur so lange gespeichert, wie es für Betrieb und Sicherheit erforderlich ist, und danach automatisch gelöscht.
+
+*Push-Benachrichtigungen (freiwillig):* In Ihrem Profil können Sie für ein Gerät Push-Benachrichtigungen einschalten, z.B. wenn Ihr Event genehmigt wurde oder es eine Rückfrage dazu gibt (für das Team auch: neue Einreichungen und Antworten). Erst nach Ihrem Klick fragt Ihr Browser um Erlaubnis. Dafür nutzen wir Firebase Cloud Messaging (Google). Gespeichert werden eine zufällige Geräte-Kennung (Token), die Art des Geräts (z.B. Android, iPhone, Computer) sowie wann das Gerät eingerichtet und zuletzt genutzt wurde. Die Kennung wird über Google und den Push-Dienst Ihres Browsers bzw. Betriebssystems (z.B. Apple, Mozilla, Google) zugestellt; die Benachrichtigung enthält nur den Titel des Events, keine Nachrichteninhalte. Sie können Push jederzeit im Profil oder in den Einstellungen Ihres Browsers ausschalten; beim Ausschalten, beim Abmelden und beim Löschen des Kontos wird die Kennung gelöscht, nicht mehr gültige Kennungen löschen wir automatisch. Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).
 
 Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https://policies.google.com/privacy`,
       },

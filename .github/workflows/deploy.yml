@@ -90,6 +90,9 @@ jobs:
           # While it is empty, App Check stays off and the app behaves as before.
           VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
           VITE_RECAPTCHA_PROVIDER: ${{ vars.VITE_RECAPTCHA_PROVIDER }}
+          # Public Web Push key (VAPID) of spirieventsvbg, also a GitHub *variable*.
+          # While it is empty, push stays invisible (docs/push-notifications.md).
+          VITE_FIREBASE_VAPID_KEY: ${{ vars.VITE_FIREBASE_VAPID_KEY }}
         run: npm run build
 
       - name: Deploy Firestore rules, indexes and Storage rules

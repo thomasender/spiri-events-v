@@ -32,6 +32,12 @@ describe('Content-Security-Policy', () => {
     expect(directive('connect-src')).toContain('https://www.google.com/recaptcha/');
   });
 
+  it('lets Web Push register with FCM (fcmregistrations / firebaseinstallations)', () => {
+    // Both live under googleapis.com; the push service worker is same-origin (script-src 'self').
+    expect(directive('connect-src')).toContain('https://*.googleapis.com');
+    expect(directive('script-src')).toContain("'self'");
+  });
+
   it('does not open script-src to everything', () => {
     const scripts = directive('script-src');
     expect(scripts).not.toContain('*');

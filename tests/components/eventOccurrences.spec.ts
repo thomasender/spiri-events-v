@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  getCustomOccurrenceTime,
   getEventOccurrences,
+  hasOwnOccurrenceTime,
   getNextUpcomingOccurrence,
   getNthWeekdayOrdinal,
   nthWeekdayOfMonth,
@@ -984,5 +986,68 @@ describe('pruneExceptionDates', () => {
         '2026-01-10'
       )
     ).toEqual(['2025-12-01', '2026-01-19']);
+  });
+});
+
+describe('own times of single dates (custom, 6afd86b4)', () => {
+  const event = {
+    id: '1',
+    date: dateStr(5),
+    time: '10:00',
+    endTime: '12:00',
+    recurrence: 'custom',
+    customDates: [dateStr(5), dateStr(12), dateStr(19), dateStr(26)],
+    customTimes: {
+      [dateStr(12)]: { time: '18:00', endTime: '20:00' },
+      [dateStr(19)]: { time: '07:30' },
+      // The event's own date always keeps the time from above.
+      [dateStr(5)]: { time: '23:00', endTime: '23:30' },
+    },
+  };
+
+  it('each occurrence carries its own time, the others the event time', () => {
+    const byDate = Object.fromEntries(
+      getEventOccurrences(event).map((o) => [o.date, [o.time, o.endTime]])
+    );
+    expect(byDate).toEqual({
+      [dateStr(5)]: ['10:00', '12:00'],
+      [dateStr(12)]: ['18:00', '20:00'],
+      // An own start without an end means "no end", not the end from above.
+      [dateStr(19)]: ['07:30', ''],
+      [dateStr(26)]: ['10:00', '12:00'],
+    });
+  });
+
+  it('calendar mode gives every day of a multi-day occurrence the own time', () => {
+    const multi = { ...event, endDate: dateStr(6) };
+    const days = getEventOccurrences(multi, { mode: 'calendar' }).filter(
+      (o) => o.date === dateStr(12) || o.date === dateStr(13)
+    );
+    expect(days.map((o) => [o.date, o.time, o.endTime])).toEqual([
+      [dateStr(12), '18:00', '20:00'],
+      [dateStr(13), '18:00', '20:00'],
+    ]);
+  });
+
+  it('getCustomOccurrenceTime / hasOwnOccurrenceTime', () => {
+    expect(getCustomOccurrenceTime(event, dateStr(12))).toEqual({
+      time: '18:00',
+      endTime: '20:00',
+    });
+    expect(getCustomOccurrenceTime(event, dateStr(26))).toEqual({
+      time: '10:00',
+      endTime: '12:00',
+    });
+    expect(getCustomOccurrenceTime(event, dateStr(5))).toEqual({
+      time: '10:00',
+      endTime: '12:00',
+    });
+    expect(hasOwnOccurrenceTime(event, dateStr(12))).toBe(true);
+    expect(hasOwnOccurrenceTime(event, dateStr(26))).toBe(false);
+    // Only custom series have own times.
+    expect(hasOwnOccurrenceTime({ ...event, recurrence: 'weekly' }, dateStr(12))).toBe(false);
+    // Old events without customTimes.
+    const { customTimes: _unused, ...old } = event;
+    expect(getEventOccurrences(old).every((o) => o.time === '10:00')).toBe(true);
   });
 });

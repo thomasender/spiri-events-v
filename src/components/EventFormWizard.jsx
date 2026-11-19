@@ -2,10 +2,20 @@ import { EVENTS, trackEvent } from '../lib/analytics';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
-import { serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import CityField from './CityField';
 import { validatePlaceChoice } from '../utils/placeDistrict';
+import {
+  applyEventFormDefaults,
+  isRememberableVenue,
+  knownCategory,
+  mergeVenue,
+  pickDefaults,
+  venueLabel,
+  venuesForRegion,
+} from '../utils/eventFormDefaults';
 import { canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
@@ -37,6 +47,8 @@ import {
   Plus,
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import DuplicateEventDialog from './DuplicateEventDialog';
+import { useDuplicateCheck } from '../hooks/useDuplicateCheck';
 import SuccessDialog from './SuccessDialog';
 import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
@@ -76,6 +88,13 @@ import {
   pruneExceptionDates,
 } from '../utils/eventOccurrences';
 import SeriesDatesOverview from './SeriesDatesOverview';
+import CustomDateTimeInputs from './CustomDateTimeInputs';
+import {
+  buildCustomTimesPayload,
+  invalidCustomTimeDates,
+  moveFormCustomTime,
+  setFormCustomTime,
+} from '../utils/customSeriesUpdates';
 import {
   saveWizardDraft,
   loadWizardDraft,
@@ -152,6 +171,8 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  // Own times of single dates ({ 'YYYY-MM-DD': { time?, endTime? } }), see CustomDateTimeInputs.
+  customTimes: {},
   exceptionDates: [],
   category: '',
   bezirk: '',
@@ -317,6 +338,12 @@ export default function EventFormWizard() {
         customDates: Array.isArray(restoredDraft.formData.customDates)
           ? restoredDraft.formData.customDates
           : [],
+        customTimes:
+          restoredDraft.formData.customTimes &&
+          typeof restoredDraft.formData.customTimes === 'object' &&
+          !Array.isArray(restoredDraft.formData.customTimes)
+            ? restoredDraft.formData.customTimes
+            : {},
         exceptionDates: Array.isArray(restoredDraft.formData.exceptionDates)
           ? restoredDraft.formData.exceptionDates
           : [],
@@ -388,6 +415,10 @@ export default function EventFormWizard() {
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  // Similar approved events found before saving (Trello 6afdc0ce); [] = dialog closed.
+  const [duplicateCandidates, setDuplicateCandidates] = useState([]);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const { findDuplicates } = useDuplicateCheck();
   const [showMultiDayRecurrenceConfirm, setShowMultiDayRecurrenceConfirm] = useState(false);
   const [endDateConflictMarked, setEndDateConflictMarked] = useState(false);
   const [successState, setSuccessState] = useState(null);
@@ -616,6 +647,36 @@ export default function EventFormWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
+  // A new event of a signed-in person starts with the answers of the last one (Trello
+  // 6afd8505): once, when the profile has arrived. A restored draft wins, what was typed
+  // meanwhile stays. The category follows as soon as the category list is there.
+  const defaultsApplied = useRef(false);
+  const categoryDefaultApplied = useRef(false);
+  const remembered = profile?.eventFormDefaults ?? null;
+  useEffect(() => {
+    if (defaultsApplied.current || restoredDraft || !user || !profile) return;
+    defaultsApplied.current = true;
+    if (!remembered) return;
+    setFormData((prev) =>
+      applyEventFormDefaults(prev, remembered, {
+        organizerDefaults: [emailFallbackName, profileDisplayName],
+        kontaktDefault: user.email || '',
+        // With several regions only a place of the chosen region is taken over.
+        placeAllowed: (placeRegionId) =>
+          !regionChoices.enabled || (placeRegionId || DEFAULT_REGION_ID) === selectedRegion,
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+  useEffect(() => {
+    if (categoryDefaultApplied.current || restoredDraft || !user || !remembered) return;
+    if (!allCategories.length) return;
+    categoryDefaultApplied.current = true;
+    const category = knownCategory(remembered.category, allCategories);
+    if (category) setFormData((prev) => (prev.category ? prev : { ...prev, category }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remembered, allCategories]);
+
   const hasRecurrence = formData.recurrence !== 'none';
   const hasEndDateRecurrenceConflict = Boolean(formData.endDate) && hasRecurrence;
   // Red marking only while the conflict still exists (clears once resolved).
@@ -633,12 +694,14 @@ export default function EventFormWizard() {
         recurrence: 'none',
         recurrenceEndDate: '',
         customDates: [],
+        customTimes: {},
         exceptionDates: [],
       }));
       setErrors((prev) => ({
         ...prev,
         recurrenceEndDate: null,
         customDates: null,
+        customTimes: null,
       }));
     }
   };
@@ -756,6 +819,17 @@ export default function EventFormWizard() {
         (!formData.customDates || formData.customDates.length === 0)
       ) {
         newErrors.customDates = 'Bitte mindestens ein Datum hinzufügen';
+      }
+      if (
+        formData.recurrence === 'custom' &&
+        !formData.endDate &&
+        invalidCustomTimeDates(
+          formData.customTimes,
+          (formData.customDates || []).filter((d) => d !== formData.date),
+          formData
+        ).length > 0
+      ) {
+        newErrors.customTimes = 'Die Endzeit muss nach der Startzeit liegen';
       }
     } else if (step === 4) {
       if (!rightsConfirmed) {
@@ -932,6 +1006,8 @@ export default function EventFormWizard() {
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
       // A Bezirk / Landkreis chosen in the select belongs to the region of the form.
       ...(name === 'bezirk' ? { placeRegionId: '' } : {}),
+      // Own times of single dates only belong to "An einzelnen Terminen".
+      ...(name === 'recurrence' && value !== 'custom' ? { customTimes: {} } : {}),
       // A new region has its own Bezirke / Landkreise (and Orte): drop what no longer fits.
       ...(name === 'regionId'
         ? {
@@ -966,6 +1042,27 @@ export default function EventFormWizard() {
     if (bezirk && errors.bezirk) setErrors((prev) => ({ ...prev, bezirk: null }));
     if (errors.city) setErrors((prev) => ({ ...prev, city: null }));
     if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
+  };
+
+  // "Frühere Orte": one choice sets Ort, Bezirk / Landkreis, region of the place and Adresse
+  // together, as if the Ort had been picked from the list.
+  const savedVenueChoices = user
+    ? venuesForRegion(profile?.savedVenues, {
+        regionId: regionChoices.enabled ? selectedRegion : '',
+        defaultRegionId: DEFAULT_REGION_ID,
+      })
+    : [];
+  const handleSavedVenuePick = (e) => {
+    const venue = savedVenueChoices[Number(e.target.value)];
+    if (!venue) return;
+    handleCityChange({
+      city: venue.city,
+      bezirk: venue.bezirk,
+      regionId: venue.placeRegionId || null,
+      picked: true,
+    });
+    setFormData((prev) => ({ ...prev, place: venue.place }));
+    if (errors.place) setErrors((prev) => ({ ...prev, place: null }));
   };
 
   const handleOrganizerChange = (e) => {
@@ -1026,19 +1123,39 @@ export default function EventFormWizard() {
   };
 
   const handleRemoveCustomDate = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).filter((_, i) => i !== index),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).filter((_, i) => i !== index);
+      const removed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, removed, '', customDates),
+      };
+    });
   };
 
   const handleCustomDateChange = (index, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).map((d, i) => (i === index ? value : d)),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).map((d, i) => (i === index ? value : d));
+      const changed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, changed, value, customDates),
+      };
+    });
     if (errors.customDates) {
       setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
+  const handleCustomTimeChange = (date, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      customTimes: setFormCustomTime(prev.customTimes, date, field, value),
+    }));
+    if (errors.customTimes) {
+      setErrors((prev) => ({ ...prev, customTimes: null }));
     }
   };
 
@@ -1151,6 +1268,15 @@ export default function EventFormWizard() {
             ),
           ].sort()
         : [],
+    // Only the dates whose time differs from the one above (Trello 6afd86b4).
+    customTimes:
+      formData.recurrence === 'custom'
+        ? buildCustomTimesPayload(
+            formData.customTimes,
+            (formData.customDates || []).filter((d) => d !== formData.date),
+            formData
+          )
+        : {},
     exceptionDates: pruneExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
@@ -1238,6 +1364,22 @@ export default function EventFormWizard() {
     return true;
   };
 
+  // Similar approved events for the event as it would be saved; [] when none or the check
+  // failed (never blocks saving). The event being retried after a failed save is left out.
+  const lookUpDuplicates = async () => {
+    setLoading(true);
+    try {
+      const data = buildEventData('pending');
+      const hits = await findDuplicates({
+        ...data,
+        id: eventIdRef.current ?? createdEventRef.current?.id,
+      });
+      return hits.map((hit) => hit.event);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (currentStep < 4) {
@@ -1249,13 +1391,43 @@ export default function EventFormWizard() {
     }
     if (!canCreateEvents) return;
     if (!validateBeforeSave('submit')) return;
+    const duplicates = await lookUpDuplicates();
+    if (duplicates.length > 0) {
+      setDuplicateCandidates(duplicates);
+      return;
+    }
     setShowConfirmModal(true);
   };
 
   const handleSaveAsDraft = async () => {
     if (!canCreateEvents) return;
     if (!validateBeforeSave('draft')) return;
+    const duplicates = await lookUpDuplicates();
+    if (duplicates.length > 0) {
+      setDuplicateCandidates(duplicates);
+      return;
+    }
     await saveEvent(buildEventData('draft'));
+  };
+
+  const handleDuplicateSubmitAnyway = () => {
+    setDuplicateCandidates([]);
+    saveEvent(buildEventData('pending'));
+  };
+
+  const handleDuplicateSaveDraft = () => {
+    setDuplicateCandidates([]);
+    saveEvent(buildEventData('draft'));
+  };
+
+  // Drops only the wizard draft (saved answers and files); nothing is written to Firestore.
+  const handleDuplicateDiscard = () => {
+    setShowDiscardConfirm(false);
+    setDuplicateCandidates([]);
+    draftDoneRef.current = true;
+    clearWizardDraft(draftOwner);
+    clearWizardDraftFiles(draftOwner);
+    navigate('/admin');
   };
 
   // Guest at the end of the wizard: check the draft, keep it, then log in or
@@ -1274,6 +1446,25 @@ export default function EventFormWizard() {
         ...(contactEmail && { email: contactEmail }),
       },
     });
+  };
+
+  // Keeps the answers of this save for the next new event (profile doc, best effort: a
+  // failure never blocks saving, and a slow connection is not waited for).
+  const rememberFormAnswers = () => {
+    if (!user?.uid) return;
+    try {
+      const update = {
+        eventFormDefaults: pickDefaults(formData, profile?.eventFormDefaults ?? {}),
+      };
+      if (isRememberableVenue(formData)) {
+        update.savedVenues = mergeVenue(profile?.savedVenues, formData);
+      }
+      Promise.resolve(updateDoc(doc(db, 'users', user.uid), update)).catch((err) => {
+        console.warn('Event form defaults not saved:', err?.code || err?.message);
+      });
+    } catch (err) {
+      console.warn('Event form defaults not saved:', err?.code || err?.message);
+    }
   };
 
   const saveEvent = async (eventData) => {
@@ -1316,6 +1507,7 @@ export default function EventFormWizard() {
         createdEventRef.current = docRef;
       }
       if (imageFile) markCoverSaved();
+      rememberFormAnswers();
       if (eventData.status !== 'draft') trackEvent(EVENTS.EVENT_CREATE_SUBMIT);
 
       if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
@@ -1744,6 +1936,25 @@ export default function EventFormWizard() {
         />
       </div>
 
+      {savedVenueChoices.length > 0 && !formData.isOnline && (
+        <div className="form-group">
+          <label htmlFor="saved-venues">Frühere Orte</label>
+          <select
+            id="saved-venues"
+            value=""
+            onChange={handleSavedVenuePick}
+            data-testid="saved-venues-select"
+          >
+            <option value="">Früheren Ort übernehmen...</option>
+            {savedVenueChoices.map((venue, index) => (
+              <option key={`${venue.city}|${venue.place}`} value={index}>
+                {venueLabel(venue)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="form-row">
         {useGemeinden ? (
           <CityField
@@ -2092,7 +2303,7 @@ export default function EventFormWizard() {
             <label>Termine</label>
             <span className="input-info">
               <Info size={14} />
-              <span>Füge einzelne Termine hinzu</span>
+              <span>Füge einzelne Termine hinzu, die Uhrzeit kannst du pro Termin ändern</span>
             </span>
           </div>
           <div className="custom-dates-list" data-testid="custom-dates-list">
@@ -2104,6 +2315,19 @@ export default function EventFormWizard() {
                   onChange={(e) => handleCustomDateChange(index, e.target.value)}
                   data-testid={`custom-date-input-${index}`}
                   aria-label={`Termin ${index + 1}`}
+                />
+                <CustomDateTimeInputs
+                  index={index}
+                  date={date}
+                  customTimes={formData.customTimes}
+                  defaults={formData}
+                  fixed={Boolean(date) && date === formData.date}
+                  invalid={
+                    !formData.endDate &&
+                    date !== formData.date &&
+                    invalidCustomTimeDates(formData.customTimes, [date], formData).length > 0
+                  }
+                  onChange={handleCustomTimeChange}
                 />
                 <button
                   type="button"
@@ -2129,6 +2353,11 @@ export default function EventFormWizard() {
           {errors.customDates && (
             <span className="error-text" data-testid="custom-dates-error">
               {errors.customDates}
+            </span>
+          )}
+          {errors.customTimes && (
+            <span className="error-text" data-testid="custom-times-error">
+              {errors.customTimes}
             </span>
           )}
         </div>
@@ -2608,6 +2837,27 @@ export default function EventFormWizard() {
         onConfirm={confirmSubmit}
         onCancel={() => setShowConfirmModal(false)}
         loading={loading}
+      />
+
+      <DuplicateEventDialog
+        isOpen={duplicateCandidates.length > 0 && !showDiscardConfirm}
+        candidates={duplicateCandidates}
+        loading={loading}
+        onSubmitAnyway={handleDuplicateSubmitAnyway}
+        onSaveDraft={handleDuplicateSaveDraft}
+        onBack={() => setDuplicateCandidates([])}
+        onDiscard={() => setShowDiscardConfirm(true)}
+      />
+
+      <ConfirmDialog
+        isOpen={showDiscardConfirm}
+        title="Event verwerfen?"
+        message="Dein Entwurf wird gelöscht. Das kann nicht rückgängig gemacht werden."
+        confirmLabel="Ja, verwerfen"
+        cancelLabel="Abbrechen"
+        danger
+        onConfirm={handleDuplicateDiscard}
+        onCancel={() => setShowDiscardConfirm(false)}
       />
 
       <ConfirmDialog

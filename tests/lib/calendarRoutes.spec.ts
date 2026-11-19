@@ -349,6 +349,21 @@ describe('selectSingleEvent', () => {
     expect(out).toHaveLength(12);
   });
 
+  it('a custom date with its own time keeps it in the calendar', () => {
+    const out = selectSingleEvent(
+      ev({
+        recurrence: 'custom',
+        customDates: ['2026-10-21'],
+        customTimes: { '2026-10-21': { time: '09:00', endTime: '10:30' } },
+      }),
+      TODAY
+    );
+    expect(out.map((o) => [o.date, o.time, (o as { endTime?: unknown }).endTime])).toEqual([
+      ['2026-10-14', '18:00', undefined],
+      ['2026-10-21', '09:00', '10:30'],
+    ]);
+  });
+
   it('caps the occurrences of one event', () => {
     const customDates = Array.from({ length: 100 }, (_, i) => {
       const d = new Date(Date.UTC(2026, 9, 13 + i));

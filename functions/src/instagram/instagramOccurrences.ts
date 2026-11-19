@@ -2,8 +2,8 @@
  * Occurrences of an event inside a date window, for the weekly carousel.
  *
  * Mirrors the website's getEventOccurrences (src/utils/eventOccurrences.js):
- * weekly / biweekly / monthly series and custom dates are expanded, exception
- * dates removed, and a series without recurrenceEndDate stops after the same
+ * weekly / biweekly / monthly series and custom dates are expanded (a custom
+ * date with its own time in `customTimes` carries that time), exception dates removed, and a series without recurrenceEndDate stops after the same
  * default horizon (3 months, 12 for monthly / monthlyWeekday). Working purely on YYYY-MM-DD
  * strings at noon UTC keeps it independent of the server's timezone.
  */
@@ -21,6 +21,8 @@ export interface SeriesFields {
   recurrence?: unknown;
   recurrenceEndDate?: unknown;
   customDates?: unknown;
+  /** Own times of custom dates: { 'YYYY-MM-DD': { time, endTime } } (Trello 6afd86b4). */
+  customTimes?: unknown;
   exceptionDates?: unknown;
 }
 
@@ -84,6 +86,25 @@ function monthlyOccurrence(startIso: string, recurrence: string, monthsAhead: nu
     targetDay = nthWeekdayOfMonth(y, m, weekday, getNthWeekdayOrdinal(startIso)) ?? targetDay;
   }
   return toIso(new Date(Date.UTC(y, m, targetDay, 12)));
+}
+
+/**
+ * Own start / end time of a date of a `custom` series, or null when the date
+ * has the event's time. Mirror of getCustomOccurrenceTime in
+ * src/utils/eventOccurrences.js: an entry overrides both values, the event's
+ * own date always keeps the event's time.
+ */
+export function customOccurrenceTime(
+  event: SeriesFields,
+  day: string
+): { time: string; endTime: string } | null {
+  if (str(event.recurrence) !== 'custom' || day === str(event.date)) return null;
+  const all = event.customTimes;
+  if (!all || typeof all !== 'object' || Array.isArray(all)) return null;
+  const entry = (all as Record<string, unknown>)[day];
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+  const { time, endTime } = entry as { time?: unknown; endTime?: unknown };
+  return { time: str(time), endTime: str(endTime) };
 }
 
 function daysBetween(fromIso: string, toIsoDay: string): number {
@@ -156,9 +177,11 @@ export function expandOccurrencesInWindow<T extends SeriesFields>(
     .filter((d) => d >= window.start && d <= window.end && !exceptions.has(d))
     .sort()
     .map((d) => {
-      if (d === date || length === 0) return { ...event, date: d };
+      const ownTime = customOccurrenceTime(event, d);
+      const copy = ownTime ? { ...event, ...ownTime } : event;
+      if (d === date || length === 0) return { ...copy, date: d };
       const shifted = toDate(d);
       shifted.setUTCDate(shifted.getUTCDate() + length);
-      return { ...event, date: d, endDate: toIso(shifted) };
+      return { ...copy, date: d, endDate: toIso(shifted) };
     });
 }

@@ -3,6 +3,16 @@
 Read this when you touch the registration button / modal, `submitEventRegistration`,
 `events/{id}/registrations`, the `pendingRegistration` guest flow or its privacy section.
 
+## Admin switch (default: off)
+
+Verwaltung -> Kommunikation -> Chat -> "Event-Anmeldung": On/Off, stored in
+`app_settings/eventRegistration { enabled }`. A missing doc means **off**, so the feature stays dark
+on every environment until an admin turns it on. Off means: `EventRegistrationButton` renders nothing
+(`useEventRegistrationEnabled`), and the callable refuses with `failed-precondition` / `reason:
+'disabled'` (`isEventRegistrationEnabled`), so nobody can register by calling it directly either.
+Registrations already stored stay untouched. The doc is publicly readable (like all of
+`app_settings`), written by admins only (`firestore.rules`, cases in `revisions.rules.spec.ts`).
+
 ## What it is
 
 A pure notification, no participant list and no seat limit. Every published, upcoming,

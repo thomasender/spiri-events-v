@@ -33,6 +33,7 @@ import AdminCoverPreview from './AdminCoverPreview';
 import { AdminInstagramPreview } from './InstagramPostPreview';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
+import ModerationGuidanceNotice from './ModerationGuidanceNotice';
 import './ReviewTab.css';
 
 const APPROVED_WINDOW_DAYS = 7;
@@ -398,6 +399,7 @@ export default function ReviewTab() {
           {approveError}
         </p>
       )}
+      {pendingEvents.length > 0 && <ModerationGuidanceNotice />}
 
       {showRegionFilter && (
         <div className="review-region-filter">

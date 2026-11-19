@@ -177,6 +177,16 @@ service cloud.firestore {
                 && d.termsVersion.size() <= 20));
     }
 
+    // Remembered answers of the event form (src/utils/eventFormDefaults.js): the last
+    // organizer / contact / place / category / fee as a small map, and up to 10 earlier
+    // venues. Only the owner writes them (users/{uid}); both are optional.
+    function isValidEventFormMemory(d) {
+      return (!('eventFormDefaults' in d)
+              || (d.eventFormDefaults is map && d.eventFormDefaults.size() <= 30))
+        && (!('savedVenues' in d)
+            || (d.savedVenues is list && d.savedVenues.size() <= 10));
+    }
+
     function isValidFireplaceLabel(d) {
       return !('fireplaceLabel' in d)
         || (d.fireplaceLabel is string
@@ -416,7 +426,7 @@ service cloud.firestore {
       // Everything else in this list is saved without a new review (Trello
       // 6af0678b): date / time, place, price, link, contact (+ messengers), registration,
       // category, the whole series (recurrence, end date, more or fewer
-      // customDates, exceptions), the organizer's name, the cover crop
+      // customDates and their own times in customTimes, exceptions), the organizer's name, the cover crop
       // (focal point / zoom), Instagram settings incl. the own Instagram photo
       // and cancelling single dates or the event. The list is kept in sync
       // with OWNER_APPROVED_PATCH_FIELDS in src/utils/eventReviewFields.js
@@ -428,7 +438,7 @@ service cloud.firestore {
                                 'contribution', 'fee', 'feeMax', 'priceCurrency', 'feeNote',
                                 'firstSessionFree',
                                 'link', 'kontakt', 'kontaktMessenger', 'registration', 'category', 'organizer',
-                                'recurrence', 'recurrenceEndDate', 'customDates', 'exceptionDates',
+                                'recurrence', 'recurrenceEndDate', 'customDates', 'customTimes', 'exceptionDates',
                                 'imageFocalPoint', 'imageZoom',
                                 'instagramConsent', 'instagramHandleOverride', 'instagramExtraHandles', 'instagramImage',
                                 'cancelled', 'cancelledDates',
@@ -436,6 +446,7 @@ service cloud.firestore {
           && !changed.hasAny(['title', 'description', 'imageUrl', 'imageThumbUrl'])
           && (!changed.hasAny(['instagramImage']) || isInstagramPhotoKept(before, after))
           && (!changed.hasAny(['customDates']) || after.customDates is list)
+          && (!changed.hasAny(['customTimes']) || after.customTimes is map)
           && (!changed.hasAny(['recurrenceEndDate']) || after.recurrenceEndDate is string)
           && (!changed.hasAny(['organizer']) || isOwnerOrganizerNameChange(before, after));
       }
@@ -712,6 +723,13 @@ service cloud.firestore {
         && (!('notifyOnEventChat' in data) || data.notifyOnEventChat is bool);
     }
 
+    // Push switches (docs/push-notifications.md); missing means off.
+    function isValidPushPrefs(data) {
+      return (!('pushOnEventStatus' in data) || data.pushOnEventStatus is bool)
+        && (!('pushOnReviewMessage' in data) || data.pushOnReviewMessage is bool)
+        && (!('pushStaffReview' in data) || data.pushStaffReview is bool);
+    }
+
     match /users/{uid} {
       allow read: if isAuthenticated() && request.auth.uid == uid;
 
@@ -725,7 +743,9 @@ service cloud.firestore {
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                        'notifyOnDirectMessage', 'notifyOnEventChat',
+                       'pushOnEventStatus', 'pushOnReviewMessage', 'pushStaffReview',
                        'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
+                       'eventFormDefaults', 'savedVenues',
                        'siteOrigin', 'termsAcceptedAt', 'termsVersion', 'createdAt', 'updatedAt']
                     )
                     && isValidTermsAcceptance(request.resource.data, request.resource.data.keys())
@@ -742,7 +762,9 @@ service cloud.firestore {
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
                     && isValidChatMailPrefs(request.resource.data)
+                    && isValidPushPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
+                    && isValidEventFormMemory(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
                     && (!('onboardingCompleted' in request.resource.data)
@@ -766,7 +788,9 @@ service cloud.firestore {
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
                     && isValidChatMailPrefs(request.resource.data)
+                    && isValidPushPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
+                    && isValidEventFormMemory(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
                     && (!('onboardingCompleted' in request.resource.data)
@@ -782,7 +806,9 @@ service cloud.firestore {
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                                   'notifyOnDirectMessage', 'notifyOnEventChat',
+                                  'pushOnEventStatus', 'pushOnReviewMessage', 'pushStaffReview',
                                   'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
+                                  'eventFormDefaults', 'savedVenues',
                                   'termsAcceptedAt', 'termsVersion', 'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
@@ -820,6 +846,23 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
                       && request.resource.data.read == true;
         allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
+
+      // Push tokens of this person's devices (docs/push-notifications.md). Doc id =
+      // SHA-256 (hex) of the token. Owner only; the functions read them (Admin SDK)
+      // and delete tokens FCM no longer knows.
+      match /pushTokens/{tokenHash} {
+        allow read, delete: if isAuthenticated() && request.auth.uid == uid;
+        allow create, update: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && tokenHash.size() == 64
+                      && request.resource.data.keys().hasOnly(['token', 'platform', 'createdAt', 'lastSeenAt'])
+                      && request.resource.data.token is string
+                      && request.resource.data.token.size() > 0
+                      && request.resource.data.token.size() <= 4096
+                      && (!('platform' in request.resource.data)
+                          || (request.resource.data.platform is string
+                              && request.resource.data.platform.size() <= 40));
       }
 
       // "Last opened" markers for staff notification dots (vX7TgrWN): which
@@ -1735,6 +1778,20 @@ service cloud.firestore {
     match /club_memberships/{uid} {
       allow read: if (isAuthenticated() && request.auth.uid == uid) || isAdminOrEmulatorAdmin();
       allow write: if false;
+    }
+
+    // Admin switch for "Zum Event anmelden" (docs/event-registration.md):
+    // app_settings/eventRegistration { enabled: bool }. A missing doc means off.
+    // Read via the app_settings match above; the callable re-checks it server-side.
+    match /app_settings/eventRegistration {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['enabled', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.enabled is bool;
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['enabled', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.enabled is bool;
+      allow delete: if isChatStaff();
     }
 
     // ---- Private messenger "Postfach" (docs/messenger.md) -------------------

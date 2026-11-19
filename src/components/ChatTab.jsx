@@ -82,6 +82,8 @@ export default function ChatTab() {
     setOnlineStatusMode,
     onboardingMode,
     setOnboardingMode,
+    eventRegistrationEnabled,
+    setEventRegistrationEnabled,
     dmReports,
     loading,
     error,
@@ -252,6 +254,40 @@ export default function ChatTab() {
         <p className="chat-tab-hint">
           Der Assistent führt in drei Schritten zu Foto, Beschreibung und Verzeichnis-Eintrag. Jeder
           Schritt lässt sich überspringen.
+        </p>
+      </section>
+
+      <section className="chat-tab-section" aria-labelledby="chat-tab-event-registration">
+        <h3 id="chat-tab-event-registration">Event-Anmeldung („Zum Event anmelden“)</h3>
+        <div className="chat-tab-modes" role="radiogroup" aria-label="Event-Anmeldung">
+          {[
+            {
+              on: false,
+              label: 'Aus',
+              help: 'Der Button „Zum Event anmelden“ ist für niemanden sichtbar.',
+            },
+            { on: true, label: 'An', help: 'Der Button erscheint bei allen kommenden Events.' },
+          ].map((m) => (
+            <label
+              key={m.label}
+              className={`chat-tab-mode${eventRegistrationEnabled === m.on ? ' chat-tab-mode--on' : ''}`}
+            >
+              <input
+                type="radio"
+                name="event-registration-enabled"
+                value={m.label}
+                checked={eventRegistrationEnabled === m.on}
+                disabled={busy || loading}
+                onChange={() => run(() => setEventRegistrationEnabled(m.on), 'Gespeichert.')}
+              />
+              <span className="chat-tab-mode-label">{m.label}</span>
+              <span className="chat-tab-mode-help">{m.help}</span>
+            </label>
+          ))}
+        </div>
+        <p className="chat-tab-hint">
+          Standardmäßig aus. Beim Ausschalten bleiben bereits eingegangene Anmeldungen erhalten, es
+          kommen nur keine neuen mehr an.
         </p>
       </section>
 

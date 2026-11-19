@@ -1,3 +1,4 @@
+import ModerationGuidanceNotice from '../components/ModerationGuidanceNotice';
 import { useState, useEffect, useRef } from 'react';
 import { bezirkLabel } from '../utils/regions';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -69,9 +70,11 @@ import RegistrationText from '../components/RegistrationText';
 import ContactText from '../components/ContactText';
 import { MemberBadgeFrame } from '../components/MemberBadge';
 import {
+  getCustomOccurrenceTime,
   getMonthlyWeekdayPhrase,
   getNextUpcomingOccurrence,
   getRecurrenceDatesForDetail,
+  hasOwnOccurrenceTime,
 } from '../utils/eventOccurrences';
 import { isEventCancelled, isOccurrenceCancelled } from '../utils/eventCancellation';
 import CancelledBadge from '../components/CancelledBadge';
@@ -691,6 +694,9 @@ export default function EventDetailPage() {
   const visibleRecurrenceDates = showAllDates
     ? recurrenceDates
     : recurrenceDates.slice(0, MAX_COLLAPSED_DATES);
+  // A single date of a series may have its own time (Trello 6afd86b4).
+  const shownTime = getCustomOccurrenceTime(event, occurrenceDate || event.date);
+  const formatTimeRange = ({ time, endTime }) => `${time}${endTime ? ` — ${endTime} Uhr` : ' Uhr'}`;
 
   return (
     <div className="event-detail-page">
@@ -709,6 +715,8 @@ export default function EventDetailPage() {
         <ArrowLeft size={16} />
         <span>{backLabel}</span>
       </Link>
+
+      {showApproveButton && <ModerationGuidanceNotice />}
 
       {(showEditButton ||
         showDeleteButton ||
@@ -896,6 +904,14 @@ export default function EventDetailPage() {
                       >
                         {formatDate(date)}
                       </span>
+                      {hasOwnOccurrenceTime(event, date) && (
+                        <span
+                          className="event-detail-date-time"
+                          data-testid="event-detail-date-time"
+                        >
+                          {formatTimeRange(getCustomOccurrenceTime(event, date))}
+                        </span>
+                      )}
                       {dateCancelled && <CancelledBadge className="event-detail-date-badge" />}
                       {showDateToggle &&
                         (dateIsCancelledSingly ? (
@@ -968,14 +984,13 @@ export default function EventDetailPage() {
           </div>
         </div>
 
-        {event.time && (
+        {shownTime.time && (
           <div className="detail-item">
             <Clock size={18} className="detail-icon" />
             <div>
               <span className="detail-label">Uhrzeit</span>
-              <span className="detail-value">
-                {event.time}
-                {event.endTime ? ` — ${event.endTime} Uhr` : ' Uhr'}
+              <span className="detail-value" data-testid="event-detail-time">
+                {formatTimeRange(shownTime)}
               </span>
             </div>
           </div>

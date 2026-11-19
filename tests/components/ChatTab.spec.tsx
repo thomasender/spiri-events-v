@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   reports: [] as Record<string, unknown>[],
   deleteMessage: vi.fn(async () => {}),
   resolveReport: vi.fn(async () => {}),
+  setEventRegistrationEnabled: vi.fn(async () => {}),
 }));
 
 vi.mock('../../src/lib/firebase', () => ({ db: {} }));
@@ -22,6 +23,8 @@ vi.mock('../../src/hooks/useChatAdmin', () => ({
     onboardingMode: 'off',
     setOnlineStatusMode: vi.fn(),
     setOnboardingMode: vi.fn(),
+    eventRegistrationEnabled: false,
+    setEventRegistrationEnabled: state.setEventRegistrationEnabled,
     setMessengerMode: vi.fn(),
     setMode: vi.fn(),
     dmReports: [],
@@ -57,6 +60,20 @@ const renderTab = () =>
 beforeEach(() => {
   state.deleteMessage.mockClear();
   state.resolveReport.mockClear();
+});
+
+describe('ChatTab event registration switch', () => {
+  it('is off by default and switches the feature on', async () => {
+    state.setEventRegistrationEnabled.mockClear();
+    state.reports = [];
+    renderTab();
+    const group = screen.getByRole('radiogroup', { name: 'Event-Anmeldung' });
+    const [off, on] = Array.from(group.querySelectorAll('input')) as HTMLInputElement[];
+    expect(off.checked).toBe(true);
+    expect(on.checked).toBe(false);
+    fireEvent.click(on);
+    await waitFor(() => expect(state.setEventRegistrationEnabled).toHaveBeenCalledWith(true));
+  });
 });
 
 describe('ChatTab reports', () => {

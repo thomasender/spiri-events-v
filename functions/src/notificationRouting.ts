@@ -56,6 +56,7 @@ const CONTENT_KEY_FIELDS = [
   'recurrence',
   'recurrenceEndDate',
   'customDates',
+  'customTimes',
   'organizer',
 ] as const;
 
@@ -63,7 +64,11 @@ const CONTENT_KEY_FIELDS = [
 export function eventContentKey(data: Record<string, unknown> | undefined | null): string | null {
   if (!data) return null;
   const empty = (v: unknown) =>
-    v == null || v === '' || v === false || (Array.isArray(v) && v.length === 0);
+    v == null ||
+    v === '' ||
+    v === false ||
+    (Array.isArray(v) && v.length === 0) ||
+    (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
   const picked: Record<string, unknown> = {};
   for (const field of CONTENT_KEY_FIELDS) {
     const value = data[field];

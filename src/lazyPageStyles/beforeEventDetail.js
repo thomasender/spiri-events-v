@@ -18,6 +18,7 @@ import '../components/PasswordInput.css';
 import '../components/RecurringDeleteDialog.css';
 import '../components/OccurrencePickerDialog.css';
 import '../components/SuccessDialog.css';
+import '../components/DuplicateEventDialog.css';
 import '../components/StatusBadge.css';
 import '../components/EventAdminListRow.css';
 import '../components/EventList.css';

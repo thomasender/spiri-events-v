@@ -56,6 +56,29 @@ describe('expandOccurrencesInWindow', () => {
     ]);
   });
 
+  it('gives a custom date its own time and keeps the event time on the other dates', () => {
+    const out = expandOccurrencesInWindow(
+      {
+        date: '2026-10-13',
+        time: '10:00',
+        endTime: '12:00',
+        recurrence: 'custom',
+        customDates: ['2026-10-13', '2026-10-15', '2026-10-17'],
+        customTimes: {
+          '2026-10-13': { time: '23:00' }, // the event's own date keeps the time from above
+          '2026-10-15': { time: '18:00', endTime: '20:00' },
+          '2026-10-17': { time: '07:00' },
+        },
+      },
+      WINDOW
+    );
+    expect(out.map((o) => [o.date, o.time, o.endTime])).toEqual([
+      ['2026-10-13', '10:00', '12:00'],
+      ['2026-10-15', '18:00', '20:00'],
+      ['2026-10-17', '07:00', ''],
+    ]);
+  });
+
   it('moves endDate along for multi-day occurrences and keeps the original untouched', () => {
     const [occurrence] = expandOccurrencesInWindow(
       { date: '2026-09-04', endDate: '2026-09-06', recurrence: 'weekly', id: 'x' },

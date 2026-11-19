@@ -6,7 +6,16 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -166,5 +175,39 @@ describe('app_stats (Fun Facts)', () => {
     await assertFails(setDoc(doc(db, 'app_stats/fun_facts'), { events: { published: 99 } }));
     await assertFails(updateDoc(doc(db, 'app_stats/fun_facts'), { events: {} }));
     await assertFails(deleteDoc(doc(db, 'app_stats/fun_facts')));
+  });
+});
+
+describe('app_settings/eventRegistration (admin switch for "Zum Event anmelden")', () => {
+  const adminDb = () => env.authenticatedContext('adminDoc').firestore();
+
+  it('lets anybody read the switch (the button needs it)', async () => {
+    await assertSucceeds(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'app_settings/eventRegistration'))
+    );
+  });
+
+  it('lets an admin turn it on and off', async () => {
+    const ref = doc(adminDb(), 'app_settings/eventRegistration');
+    await assertSucceeds(
+      setDoc(ref, { enabled: true, updatedAt: serverTimestamp(), updatedBy: 'adminDoc' })
+    );
+    await assertSucceeds(updateDoc(ref, { enabled: false, updatedAt: serverTimestamp() }));
+  });
+
+  it('rejects non-boolean values and extra fields', async () => {
+    const ref = doc(adminDb(), 'app_settings/eventRegistration');
+    await assertFails(setDoc(ref, { enabled: 'yes' }));
+    await assertFails(setDoc(ref, { enabled: true, other: 1 }));
+  });
+
+  it('blocks members, organizers and visitors from writing it', async () => {
+    for (const db of [
+      env.authenticatedContext('owner').firestore(),
+      env.authenticatedContext('tirolMod').firestore(),
+      env.unauthenticatedContext().firestore(),
+    ]) {
+      await assertFails(setDoc(doc(db, 'app_settings/eventRegistration'), { enabled: true }));
+    }
   });
 });

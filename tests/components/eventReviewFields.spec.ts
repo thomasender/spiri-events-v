@@ -141,6 +141,14 @@ describe('reviewEditChanges', () => {
     expect(edit({ recurrence: 'weekly', recurrenceEndDate: '2027-06-30' }).needsReview).toBe(false);
   });
 
+  it('own times of single dates are free; no own times is no change', () => {
+    expect(edit({ customTimes: {} })).toEqual({ needsReview: false, reviewFields: [], patch: {} });
+    const customTimes = { '2026-12-17': { time: '18:00', endTime: '20:00' } };
+    const result = edit({ recurrence: 'custom', customDates: ['2026-12-17'], customTimes });
+    expect(result.needsReview).toBe(false);
+    expect(result.patch).toMatchObject({ customTimes });
+  });
+
   it('the organizer name is free', () => {
     const result = edit({
       organizer: { firstName: 'Anna', lastName: 'Neu', email: 'a@b.c', photoURL: null },

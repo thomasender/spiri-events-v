@@ -24,9 +24,11 @@ import { checkRateLimit, enforceRateLimit, recordRateLimitAttempt } from './rate
 import { requestSiteOrigin } from './siteOrigin';
 import { getUserSiteOrigin } from './userPreferences';
 import { todayInVienna } from './eventCancellation';
+import { customOccurrenceTime } from './instagram/instagramOccurrences';
 import {
   EVENT_REGISTRATION_RATE_LIMITS,
   confirmationMarkerId,
+  isEventRegistrationEnabled,
   pickOrganizerEmail,
   registrationClosedReason,
   validateEventRegistration,
@@ -88,6 +90,14 @@ export const submitEventRegistration = onCall(
     logMissingAppCheck('submitEventRegistration', request);
     enforceRateLimit(request, 'eventRegistration', EVENT_REGISTRATION_RATE_LIMITS.caller);
 
+    // Admin switch (Verwaltung -> Chat -> "Zum Event anmelden"); off unless an admin set it.
+    const settingsSnap = await getFirestore().doc('app_settings/eventRegistration').get();
+    if (!isEventRegistrationEnabled(settingsSnap.exists ? settingsSnap.data() : null)) {
+      throw new HttpsError('failed-precondition', 'Registration is switched off.', {
+        reason: 'disabled',
+      });
+    }
+
     const input = validateEventRegistration(request.data);
     enforceKeyedLimit(
       `eventRegistration:contact:${input.contact}`,
@@ -132,15 +142,17 @@ export const submitEventRegistration = onCall(
       }
     }
 
-    const event = {
-      title: readText(eventData.title) ?? '',
-      slug: readText(eventData.slug),
-      time: readText(eventData.time),
-    };
     // A single event has exactly one date; for a series the guest's chosen date is needed.
     const mailDate =
       input.occurrenceDate ??
       (!eventData.recurrence || eventData.recurrence === 'none' ? readText(eventData.date) : null);
+    // A date of a custom series may have its own time (Trello 6afd86b4).
+    const ownTime = mailDate ? customOccurrenceTime(eventData, mailDate) : null;
+    const event = {
+      title: readText(eventData.title) ?? '',
+      slug: readText(eventData.slug),
+      time: ownTime?.time || readText(eventData.time),
+    };
     const organizerUid = readText(eventData.createdBy);
     const organizerData = (eventData.organizer ?? {}) as Record<string, unknown>;
     const account = await organizerAccount(organizerUid);
