@@ -30,9 +30,23 @@ describe('placeDistrict: Ort -> region and Bezirk / Landkreis', () => {
     });
   });
 
-  it('gives null for a place without a district', () => {
-    expect(assignmentForEntry(byName('Kleinort'), STATIC_REGIONS)).toBeNull();
-    expect(placeAssignment(index, STATIC_REGIONS, 'Kleinort')).toBeNull();
+  it('keeps the region of a place without a district, so the event is reviewed there', () => {
+    // Real cases: "Klagenfurt", "Krems", "Innsbruck-Arzl" have no district in the place list.
+    // They must not fall back to the region the person is in.
+    expect(assignmentForEntry(byName('Kleinort'), STATIC_REGIONS)).toEqual({
+      regionId: 'zuerich',
+      bezirk: '',
+    });
+    expect(placeAssignment(index, STATIC_REGIONS, 'Kleinort')).toEqual({
+      regionId: 'zuerich',
+      bezirk: '',
+    });
+  });
+
+  it('gives null for a place whose region is unknown', () => {
+    expect(
+      assignmentForEntry({ kind: 'place', name: 'X', stateSlug: null, districtKey: null }, [])
+    ).toBeNull();
   });
 
   it('resolves a Vorarlberg Gemeinde through the Gemeinde list', () => {
