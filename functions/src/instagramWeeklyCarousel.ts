@@ -19,7 +19,7 @@ export const instagramWeeklyCarousel = onSchedule(
     schedule: '0 10 * * 0',
     timeZone: 'Europe/Vienna',
     region: 'europe-west3',
-    timeoutSeconds: 540,
+    timeoutSeconds: 1800,
     memory: '1GiB',
     secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
   },

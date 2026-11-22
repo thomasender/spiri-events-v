@@ -282,7 +282,7 @@ export const adminPostWeeklyCarousels = onCall(
   {
     region: 'europe-west3',
     cors: ALLOWED_ORIGINS,
-    timeoutSeconds: 540,
+    timeoutSeconds: 1800,
     memory: '1GiB',
     secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
     ...appCheckOptions(),
