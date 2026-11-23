@@ -46,6 +46,11 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
   through `publishApprovedEvent` (dedupe via `create()`, so reruns and parallel runs
   never double-post).
 - `adminRetryInstagramPost` picks the account by the event's region.
+- **Domains and links** follow the country of the post's region (`siteDomainForRegion`:
+  AT `www.deintribe.at`, DE `www.deintribe.de`, CH `www.deintribe.ch`, others AT). The
+  first comment links `https://<domain>/event/<slug>` (`eventPageUrl(slug, regionId)`; no
+  region in event URLs). Vorarlberg links moved from `www.thetribe.at` to
+  `www.deintribe.at` on purpose. Images and captions show the plain domain.
 - **Weekly carousel and daily stories per region**
   (`instagram/instagramRegionConfig.ts`). Switched on for the regions in
   `INSTAGRAM_SCHEDULED_REGION_IDS`: `vorarlberg` and `bodensee`.
