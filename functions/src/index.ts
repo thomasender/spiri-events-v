@@ -205,6 +205,7 @@ export {
 export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
 export { onInstagramRegionAccountEnabled } from './instagramRegionBackfill';
+export { instagramRegionLaunchDrip } from './instagramRegionLaunch';
 export {
   adminRetryInstagramPost,
   adminBackfillInstagramRegion,
