@@ -3,9 +3,14 @@ import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { CAROUSEL_BEZIRKE } from './instagram/instagramCarousel';
 import { runDailyStories } from './instagram/instagramStory';
-import { buildStoryDeps, resolveInstagramAccessToken } from './instagramDeps';
+import {
+  INSTAGRAM_SCHEDULED_REGION_IDS,
+  carouselBezirkeFor,
+  runForRegions,
+} from './instagram/instagramRegionConfig';
+import { buildStoryDeps, memoizedEventLister } from './instagramDeps';
+import { resolveCredentialsForRegion } from './instagramRegionStore';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
 
 if (getApps().length === 0) {
@@ -19,16 +24,6 @@ const IG_USER_ID = defineSecret('IG_USER_ID');
 async function isInstagramEnabled(): Promise<boolean> {
   const settings = await getFirestore().doc('app_settings/instagram').get();
   return settings.exists && settings.get('enabled') === true;
-}
-
-async function loadCredentials(): Promise<{ accessToken: string; userId: string } | null> {
-  const accessToken = await resolveInstagramAccessToken(getFirestore(), IG_ACCESS_TOKEN.value());
-  const userId = IG_USER_ID.value();
-  if (!accessToken || !userId) {
-    logger.warn('IG_ACCESS_TOKEN or IG_USER_ID is not configured; skipping stories');
-    return null;
-  }
-  return { accessToken, userId };
 }
 
 // Retired (Trello gOparsqS): the per-event story about two hours before each
@@ -51,7 +46,9 @@ export const instagramEventStories = onSchedule(
 
 // 05:00 every day: one "Heute in <Bezirk>" overview per Bezirk with at least
 // two events today. Since the per-event story was retired (gOparsqS), a Bezirk
-// with a single event gets no story.
+// with a single event gets no story. Runs for every scheduled region in turn
+// (Vorarlberg first), each with its own account; a region without a usable
+// account is skipped, a failing one does not stop the next.
 export const instagramMorningStories = onSchedule(
   {
     schedule: '0 5 * * *',
@@ -68,13 +65,25 @@ export const instagramMorningStories = onSchedule(
       );
       return;
     }
-    const credentials = await loadCredentials();
-    if (!credentials) return;
-    const outcome = await runDailyStories(
-      buildStoryDeps(getFirestore(), credentials.accessToken, credentials.userId),
-      CAROUSEL_BEZIRKE,
-      { minEvents: 2 }
+    const db = getFirestore();
+    const listEvents = memoizedEventLister(db);
+    const outcome = await runForRegions(
+      INSTAGRAM_SCHEDULED_REGION_IDS,
+      async (regionId) => {
+        const credentials = await resolveCredentialsForRegion(db, regionId, {
+          accessToken: IG_ACCESS_TOKEN.value(),
+          userId: IG_USER_ID.value(),
+        });
+        if (!credentials) return null;
+        return {
+          ...buildStoryDeps(db, credentials.accessToken, credentials.userId),
+          listEvents,
+        };
+      },
+      (deps, regionId) =>
+        runDailyStories(deps, carouselBezirkeFor(regionId), { minEvents: 2, regionId }),
+      (message, data) => logger.warn(message, data)
     );
-    logger.info('Instagram overview stories processed', outcome);
+    logger.info('Instagram overview stories processed', { regions: outcome });
   }
 );

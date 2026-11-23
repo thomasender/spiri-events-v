@@ -15,6 +15,16 @@ import {
   type CarouselPostRecord,
 } from '../../functions/src/instagram/instagramCarousel';
 import {
+  CAROUSEL_BEZIRKE,
+  INSTAGRAM_SCHEDULED_REGION_IDS,
+  bezirkCoverPhrase,
+  bezirkInPhrase,
+  bezirkLabel,
+  carouselBezirkeFor,
+  runForRegions,
+} from '../../functions/src/instagram/instagramRegionConfig';
+import { buildCoverLayout } from '../../functions/src/instagram/instagramImage';
+import {
   BIO_LINK_LINE,
   CAPTION_CTA,
   CAPTION_MAX_LENGTH,
@@ -817,5 +827,230 @@ describe('region gate (Vorarlberg only)', () => {
     const summary = summarizeCandidates(events, WINDOW);
     expect(summary).toMatchObject({ total: 2, eligible: 1, regionExcluded: 1, otherRegion: 0 });
     expect(summary.details.regionExcluded.map((e) => e.id)).toEqual(['t']);
+  });
+});
+
+describe('Bodensee carousel (regional account)', () => {
+  const bo = (over: Partial<CarouselEvent> = {}) =>
+    ev({ regionId: 'bodensee', bezirk: 'Landkreis Konstanz', city: 'Konstanz', ...over });
+
+  it('takes its Bezirke from the register, Vorarlberg keeps its list incl. Grenznahe', () => {
+    expect(carouselBezirkeFor('bodensee')).toEqual([
+      'Landkreis Konstanz',
+      'Bodenseekreis',
+      'Landkreis Lindau (Bodensee)',
+    ]);
+    expect(carouselBezirkeFor('vorarlberg')).toEqual(CAROUSEL_BEZIRKE);
+    expect(carouselBezirkeFor()).toContain('Grenznahe');
+    expect(INSTAGRAM_SCHEDULED_REGION_IDS).toEqual(['vorarlberg', 'bodensee']);
+  });
+
+  it('groups one carousel per Landkreis, with the same splitting as Vorarlberg', () => {
+    const ten = Array.from({ length: 10 }, (_, i) => bo({ id: `k${i}` }));
+    const groups = groupCarousels(
+      [...ten, bo({ id: 'l1', bezirk: 'Landkreis Lindau (Bodensee)' })],
+      WINDOW,
+      'bodensee'
+    );
+    expect(groups.map((g) => [g.bezirk, g.part, g.events.length])).toEqual([
+      ['Landkreis Konstanz', 1, 5],
+      ['Landkreis Konstanz', 2, 5],
+      ['Landkreis Lindau (Bodensee)', 1, 1],
+    ]);
+    expect(groups.every((g) => g.regionId === 'bodensee')).toBe(true);
+  });
+
+  it('never mixes regions: matched by regionId and Bezirk', () => {
+    const events = [
+      ev({ id: 'v' }),
+      bo({ id: 'b' }),
+      // Bodensee Bezirk, but the event belongs to Vorarlberg (no regionId): not Bodensee's
+      ev({ id: 'wrong-region', bezirk: 'Bodenseekreis' }),
+      // Bodensee event with a Vorarlberg Bezirk: in neither carousel
+      bo({ id: 'wrong-bezirk', bezirk: 'Dornbirn' }),
+    ];
+    const ids = (regionId?: string) =>
+      groupCarousels(events, WINDOW, regionId).flatMap((g) => g.events.map((e) => e.id));
+    expect(ids()).toEqual(['v']);
+    expect(ids('bodensee')).toEqual(['b']);
+    expect(summarizeCandidates(events, WINDOW, 'bodensee')).toMatchObject({
+      eligible: 1,
+      regionExcluded: 2,
+      otherRegion: 1,
+    });
+  });
+
+  it('prefixes post ids with the region; Vorarlberg ids are unchanged', () => {
+    expect(carouselPostId('Landkreis Konstanz', WINDOW.start, 1, 'bodensee')).toBe(
+      'carousel_bodensee_landkreiskonstanz_2026-10-05'
+    );
+    expect(carouselPostId('Landkreis Lindau (Bodensee)', WINDOW.start, 2, 'bodensee')).toBe(
+      'carousel_bodensee_landkreislindaubodensee_2026-10-05_p2'
+    );
+    expect(carouselPostId('Dornbirn', WINDOW.start, 1, 'vorarlberg')).toBe(
+      'carousel_dornbirn_2026-10-05'
+    );
+  });
+
+  it('writes grammatical German for Landkreise', () => {
+    expect(bezirkInPhrase('Landkreis Konstanz', 'bodensee')).toBe('im Landkreis Konstanz');
+    expect(bezirkInPhrase('Bodenseekreis', 'bodensee')).toBe('im Bodenseekreis');
+    expect(bezirkInPhrase('Landkreis Lindau (Bodensee)', 'bodensee')).toBe('im Landkreis Lindau');
+    expect(bezirkCoverPhrase('Landkreis Lindau (Bodensee)', 'bodensee')).toBe(
+      'im Landkreis Lindau'
+    );
+    expect(bezirkCoverPhrase('Bodenseekreis', 'bodensee')).toBe('im Bodenseekreis');
+    expect(bezirkLabel('Landkreis Lindau (Bodensee)', 'bodensee')).toBe('Landkreis Lindau');
+    // Vorarlberg unchanged
+    expect(bezirkInPhrase('Dornbirn')).toBe('in Dornbirn');
+    expect(bezirkCoverPhrase('Dornbirn')).toBe('im Bezirk Dornbirn');
+    expect(bezirkCoverPhrase('Grenznahe')).toBe('in der Umgebung');
+    expect(bezirkLabel('Grenznahe')).toBe('Umgebung');
+  });
+
+  it('builds caption and cover with the German domain and no Vorarlberg wording', () => {
+    const [group] = groupCarousels([bo()], WINDOW, 'bodensee');
+    const caption = buildCarouselCaption(group, WINDOW);
+    expect(caption).toContain('Events nächste Woche im Landkreis Konstanz');
+    expect(caption).toContain('www.deintribe.de');
+    expect(caption).not.toContain('deintribe.at');
+    expect(caption).toContain('#konstanz');
+    expect(caption).not.toMatch(/vorarlberg/i);
+    const cover = buildCoverModel(group, WINDOW);
+    expect(cover).toMatchObject({
+      bezirk: 'im Landkreis Konstanz',
+      siteDomain: 'www.deintribe.de',
+    });
+    const layout = JSON.stringify(buildCoverLayout(cover, 'carousel'));
+    expect(layout).toContain('www.deintribe.de');
+    expect(layout).not.toMatch(/vorarlberg|deintribe\.at/i);
+  });
+
+  it('cuts a long Bodensee caption with the German "more" line', () => {
+    const events = Array.from({ length: 9 }, (_, i) =>
+      bo({ id: `e${i}`, title: `Sehr langer Titel ${i} `.repeat(3), city: 'P'.repeat(300) })
+    );
+    const [group] = groupCarousels(events, WINDOW, 'bodensee');
+    const caption = buildCarouselCaption(group, WINDOW);
+    expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
+    expect(caption).toContain('…und mehr auf www.deintribe.de');
+  });
+
+  it('keeps the Vorarlberg cover model exactly as before (no siteDomain key)', () => {
+    const [group] = groupCarousels([ev()], WINDOW);
+    expect(buildCoverModel(group, WINDOW)).toEqual({
+      heading: 'Events nächste Woche',
+      bezirk: 'im Bezirk Dornbirn',
+      dateRange: '5. – 11. Okt 2026',
+      partLabel: '',
+      eventCount: 1,
+    });
+  });
+
+  describe('runWeeklyCarousels per region', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+      vi.setSystemTime(SUNDAY);
+    });
+    afterEach(() => vi.useRealTimers());
+
+    function harness(events: CarouselEvent[], userId = 'IGUSER') {
+      const posts = new Map<string, Record<string, unknown>>();
+      const media: URLSearchParams[] = [];
+      const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+        const body = new URLSearchParams(String(init?.body ?? ''));
+        const ok = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
+        if (url.endsWith('/media') && init?.method === 'POST') {
+          media.push(body);
+          return ok({ id: body.get('media_type') === 'CAROUSEL' ? 'parent1' : 'child' });
+        }
+        if (url.includes('?fields=status_code')) return ok({ status_code: 'FINISHED' });
+        if (url.endsWith('/media_publish')) return ok({ id: 'media1' });
+        return ok({ permalink: 'https://instagram.com/p/abc/' });
+      });
+      const deps: CarouselDeps = {
+        fetch: fetchMock as unknown as typeof fetch,
+        accessToken: TOKEN,
+        userId,
+        isEnabled: async () => true,
+        listEvents: async () => events,
+        async createPost(id, record) {
+          if (posts.has(id)) return false;
+          posts.set(id, { ...record });
+          return true;
+        },
+        async updatePost(id, patch) {
+          posts.set(id, { ...posts.get(id), ...patch });
+        },
+        generateCoverImage: async (name) => `https://img/${name}.jpg`,
+        generateEventImage: async (name) => `https://img/${name}.jpg`,
+        notifyAdmins: vi.fn(async () => undefined),
+      };
+      return { deps, posts, media, fetchMock };
+    }
+
+    it('posts Bodensee carousels with the regional account and region-tagged records', async () => {
+      const h = harness([ev({ id: 'v' }), bo({ id: 'b' })], 'BODENSEE_IG');
+      const out = await runWeeklyCarousels(h.deps, 'bodensee');
+      expect(out).toMatchObject({
+        results: [{ id: 'carousel_bodensee_landkreiskonstanz_2026-10-05', outcome: 'published' }],
+      });
+      expect(h.posts.get('carousel_bodensee_landkreiskonstanz_2026-10-05')).toMatchObject({
+        regionId: 'bodensee',
+        bezirk: 'Landkreis Konstanz',
+        eventIds: ['b'],
+      });
+      expect(String(h.fetchMock.mock.calls[0][0])).toContain('BODENSEE_IG/media');
+      expect(h.media[0].get('image_url')).toBe(
+        'https://img/carousel_bodensee_landkreiskonstanz_2026-10-05_0.jpg'
+      );
+      const caption = h.media.find((b) => b.get('media_type') === 'CAROUSEL')?.get('caption');
+      expect(caption).toContain('im Landkreis Konstanz');
+      expect(caption).not.toMatch(/vorarlberg/i);
+    });
+
+    it('leaves Vorarlberg records without a regionId field (unchanged)', async () => {
+      const h = harness([ev({ id: 'v' }), bo({ id: 'b' })]);
+      await runWeeklyCarousels(h.deps);
+      expect([...h.posts.keys()]).toEqual(['carousel_dornbirn_2026-10-05']);
+      expect(h.posts.get('carousel_dornbirn_2026-10-05')).not.toHaveProperty('regionId');
+    });
+  });
+});
+
+describe('runForRegions', () => {
+  it('skips regions without account, survives a crashing region, keeps the order', async () => {
+    const ran: string[] = [];
+    const results = await runForRegions(
+      ['vorarlberg', 'tirol', 'bodensee', 'wien'],
+      async (regionId) => {
+        if (regionId === 'tirol') return null;
+        if (regionId === 'bodensee') throw new Error('Firestore down');
+        return { regionId };
+      },
+      async (deps) => {
+        ran.push(deps.regionId);
+        return 'ok';
+      }
+    );
+    expect(ran).toEqual(['vorarlberg', 'wien']);
+    expect(results).toEqual([
+      { regionId: 'vorarlberg', status: 'ran', outcome: 'ok' },
+      { regionId: 'tirol', status: 'no-account' },
+      { regionId: 'bodensee', status: 'error', error: 'Firestore down' },
+      { regionId: 'wien', status: 'ran', outcome: 'ok' },
+    ]);
+  });
+
+  it('a run that throws does not stop the next region', async () => {
+    const results = await runForRegions(
+      ['vorarlberg', 'bodensee'],
+      async (regionId) => regionId,
+      async (regionId) => {
+        if (regionId === 'vorarlberg') throw new Error('boom');
+        return regionId;
+      }
+    );
+    expect(results.map((r) => r.status)).toEqual(['error', 'ran']);
   });
 });

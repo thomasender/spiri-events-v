@@ -7,12 +7,15 @@ import {
   overviewStoryTitle,
   groupStories,
   runDailyStory,
+  runDailyStories,
   storyPostId,
   storyHeading,
   type StoryDeps,
   type StoryPostRecord,
 } from '../../functions/src/instagram/instagramStory';
 import type { CarouselEvent } from '../../functions/src/instagram/instagramCarousel';
+import { carouselBezirkeFor } from '../../functions/src/instagram/instagramRegionConfig';
+import { buildStoryListLayout } from '../../functions/src/instagram/instagramImage';
 
 const TOKEN = 'SECRET_TOKEN_123';
 // Saturday 2026-10-17, 09:00 Vienna (CEST, UTC+2)
@@ -357,5 +360,126 @@ describe('story title and date', () => {
     expect(formatStoryDate('kaputt')).toBe('');
     const [group] = groupStories([ev({ date: TODAY })], TODAY, 'Feldkirch');
     expect(buildStoryModel(group, TODAY, null, 'Heute').dateLabel).toBe('Samstag, 17. Oktober');
+  });
+});
+
+describe('Bodensee stories (regional account)', () => {
+  const bo = (over: Partial<CarouselEvent> = {}) =>
+    ev({ regionId: 'bodensee', bezirk: 'Bodenseekreis', city: 'Friedrichshafen', ...over });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('groups by regionId and Bezirk; Vorarlberg and Bodensee never mix', () => {
+    const events = [
+      ev({ id: 'v' }),
+      bo({ id: 'b1' }),
+      bo({ id: 'b2', time: '9:00' }),
+      ev({ id: 'v-with-bo-bezirk', bezirk: 'Bodenseekreis' }),
+      bo({ id: 'b-with-v-bezirk', bezirk: 'Feldkirch' }),
+    ];
+    const bodensee = groupStories(events, DAY, 'Bodenseekreis', 'bodensee');
+    expect(bodensee.flatMap((g) => g.events.map((e) => e.id))).toEqual(['b2', 'b1']);
+    expect(bodensee[0].regionId).toBe('bodensee');
+    expect(
+      groupStories(events, DAY, 'Feldkirch').flatMap((g) => g.events.map((e) => e.id))
+    ).toEqual(['v']);
+    // a Vorarlberg Bezirk is not a Bodensee Bezirk and vice versa
+    expect(groupStories(events, DAY, 'Feldkirch', 'bodensee')).toEqual([]);
+    expect(groupStories(events, DAY, 'Bodenseekreis')).toEqual([]);
+  });
+
+  it('prefixes story ids with the region; Vorarlberg ids are unchanged', () => {
+    expect(storyPostId('Landkreis Konstanz', DAY, 1, undefined, 'bodensee')).toBe(
+      'story_bodensee_landkreiskonstanz_2026-10-17'
+    );
+    expect(storyPostId('Bodenseekreis', DAY, 2, 'abend', 'bodensee')).toBe(
+      'story_bodensee_bodenseekreis_2026-10-17_abend_p2'
+    );
+    expect(storyPostId('Feldkirch', DAY, 1, undefined, 'vorarlberg')).toBe(
+      'story_feldkirch_2026-10-17'
+    );
+  });
+
+  it('renders the same layout with German wording and the German domain, no Vorarlberg', () => {
+    const [group] = groupStories(
+      [
+        bo({ id: 'a', bezirk: 'Landkreis Lindau (Bodensee)' }),
+        bo({ id: 'b', bezirk: 'Landkreis Lindau (Bodensee)' }),
+      ],
+      DAY,
+      'Landkreis Lindau (Bodensee)',
+      'bodensee'
+    );
+    const model = buildStoryModel(group, DAY);
+    expect(model.bezirk).toBe('im Landkreis Lindau');
+    expect(model.siteDomain).toBe('www.deintribe.de');
+    expect(overviewStoryTitle('Bodenseekreis', 'Heute', 'bodensee')).toBe('Heute im Bodenseekreis');
+    const layout = JSON.stringify(buildStoryListLayout(model, null));
+    expect(layout).toContain('Mehr auf www.deintribe.de');
+    expect(layout).not.toMatch(/vorarlberg|deintribe\.at/i);
+  });
+
+  it('keeps the Vorarlberg story model without a siteDomain key', () => {
+    const [group] = groupStories([ev()], DAY, 'Feldkirch');
+    expect(buildStoryModel(group, DAY)).not.toHaveProperty('siteDomain');
+  });
+
+  it('posts with the regional account and tags only Bodensee records with regionId', async () => {
+    const posts = new Map<string, Record<string, unknown>>();
+    const urls: string[] = [];
+    const ok = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
+    const deps = (userId: string): StoryDeps => ({
+      fetch: (async (url: string, init?: RequestInit) => {
+        urls.push(url);
+        if (url.endsWith('/media') && init?.method === 'POST') return ok({ id: 'c1' });
+        if (url.includes('?fields=status_code')) return ok({ status_code: 'FINISHED' });
+        if (url.endsWith('/media_publish')) return ok({ id: 'media1' });
+        return ok({ permalink: 'https://instagram.com/stories/x/1/' });
+      }) as unknown as typeof fetch,
+      accessToken: TOKEN,
+      userId,
+      isEnabled: async () => true,
+      listEvents: async () => [
+        ev({ id: 'v1' }),
+        ev({ id: 'v2' }),
+        bo({ id: 'b1' }),
+        bo({ id: 'b2' }),
+      ],
+      async createPost(id, record) {
+        if (posts.has(id)) return false;
+        posts.set(id, { ...record });
+        return true;
+      },
+      async updatePost(id, patch) {
+        posts.set(id, { ...posts.get(id), ...patch });
+      },
+      generateStoryImage: async (name) => `https://img/${name}.jpg`,
+      notifyAdmins: vi.fn(async () => undefined),
+    });
+    const bodensee = await runDailyStories(deps('BODENSEE_IG'), carouselBezirkeFor('bodensee'), {
+      minEvents: 2,
+      regionId: 'bodensee',
+    });
+    expect(bodensee).toMatchObject({
+      results: [{ id: 'story_bodensee_bodenseekreis_2026-10-17', outcome: 'published' }],
+    });
+    expect(urls.filter((u) => u.endsWith('/media')).every((u) => u.includes('BODENSEE_IG'))).toBe(
+      true
+    );
+    const vorarlberg = await runDailyStories(deps('IGUSER'), carouselBezirkeFor(), {
+      minEvents: 2,
+    });
+    expect(vorarlberg).toMatchObject({
+      results: [{ id: 'story_feldkirch_2026-10-17', outcome: 'published' }],
+    });
+    expect(posts.get('story_bodensee_bodenseekreis_2026-10-17')).toMatchObject({
+      regionId: 'bodensee',
+      eventIds: ['b1', 'b2'],
+    });
+    expect(posts.get('story_feldkirch_2026-10-17')).not.toHaveProperty('regionId');
   });
 });

@@ -148,6 +148,25 @@ export async function listCarouselEvents(db: Firestore, window: { start: string;
 }
 
 /**
+ * listCarouselEvents that queries Firestore once per window, so a run over
+ * several regions reads the approved events only once.
+ */
+export function memoizedEventLister(db: Firestore) {
+  const cache = new Map<string, ReturnType<typeof listCarouselEvents>>();
+  return (window: { start: string; end: string }) => {
+    const key = `${window.start}_${window.end}`;
+    let pending = cache.get(key);
+    if (!pending) {
+      pending = listCarouselEvents(db, window);
+      // A failed query must not be served to the next region.
+      pending.catch(() => cache.delete(key));
+      cache.set(key, pending);
+    }
+    return pending;
+  };
+}
+
+/**
  * CarouselDeps shared by the weekly schedule and the admin "post now" callable.
  * isEnabled reads the kill switch; the caller supplies the resolved token.
  */
