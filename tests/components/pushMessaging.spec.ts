@@ -26,7 +26,7 @@ describe('pushSupportState', () => {
     expect(pushSupportState({ vapidKey: '   ', env: desktop, enabledOnDevice: false })).toBe(
       'disabled'
     );
-    expect(pushSupportState({ vapidKey: undefined, env: desktop, enabledOnDevice: false })).toBe(
+    expect(pushSupportState({ vapidKey: null, env: desktop, enabledOnDevice: false })).toBe(
       'disabled'
     );
   });
