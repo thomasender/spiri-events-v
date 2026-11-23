@@ -30,9 +30,9 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
   a usable account (doc exists, `enabled`, token not expired). Otherwise it skips
   quietly **without** an `instagram_posts` doc (consent stays on the event, a later
   approval can still post). A failing lookup counts as "no account".
-- `isInstagramRegion(event, regionIds = INSTAGRAM_REGION_IDS)`: the carousel and
-  stories keep the default (Vorarlberg only); the feed path passes the region of the
-  account in use via `PublishDeps.instagramRegionIds`.
+- `isInstagramRegion(event, regionIds = INSTAGRAM_REGION_IDS)`: the feed path passes the
+  region of the account in use via `PublishDeps.instagramRegionIds`; carousel and stories
+  pass the region they run for.
 - **Token refresh** (`refreshInstagramTokenJob`, Monday 04:00): Vorarlberg as before,
   then every `instagram_private/region_*` doc with the same thresholds (refresh below 30
   days, warn below 14). Mails carry the region id; a failing region never blocks the
@@ -46,10 +46,36 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
   through `publishApprovedEvent` (dedupe via `create()`, so reruns and parallel runs
   never double-post).
 - `adminRetryInstagramPost` picks the account by the event's region.
-- **Carousel and stories stay Vorarlberg-only** (`CAROUSEL_BEZIRKE` is Vorarlberg's
-  Bezirk list; `TODO(regions)` in the code). `carouselPostId` / `storyPostId` already
-  take an optional `regionId` that is added to the id for non-Vorarlberg regions only,
-  so ids cannot collide once they are generalised.
+- **Weekly carousel and daily stories per region**
+  (`instagram/instagramRegionConfig.ts`). Switched on for the regions in
+  `INSTAGRAM_SCHEDULED_REGION_IDS`: `vorarlberg` and `bodensee`.
+  - Bezirke: Vorarlberg keeps `CAROUSEL_BEZIRKE` (incl. `Grenznahe`); other regions use
+    their register list (`regionData.ts`), e.g. Bodensee `Landkreis Konstanz`,
+    `Bodenseekreis`, `Landkreis Lindau (Bodensee)`. One carousel per Bezirk, same
+    grouping and splitting (max 9 events, by days / day parts) as Vorarlberg.
+  - An event counts for a region only when `resolveRegionId(event)` **and** its Bezirk
+    match, so Vorarlberg and Bodensee events never mix.
+  - Post ids: non-Vorarlberg ids carry the region (`carousel_bodensee_landkreiskonstanz_2026-11-30`,
+    `story_bodensee_bodenseekreis_2026-11-24`); their records also carry `regionId`
+    (the admin retry picks the account from it). Vorarlberg ids and records are unchanged
+    (no `regionId` field).
+  - Same layouts for every region (cover, slides, stories). Only the Bezirk wording
+    ("im Landkreis Konstanz", "im Bodenseekreis", "im Landkreis Lindau"), the place
+    hashtag (`#konstanz`, `#bodenseekreis`, `#lindau`) and the shown domain
+    (`siteDomainForRegion`: `www.deintribe.de` for Germany) differ. The images contain no
+    region name or handle.
+  - Schedules unchanged (`instagramWeeklyCarousel` Sunday 10:00, `instagramMorningStories`
+    05:00, Europe/Vienna = same wall clock as Berlin). Inside, after the kill switch,
+    the regions run one after the other (Vorarlberg first) with
+    `resolveCredentialsForRegion`. No usable account (doc missing, `enabled` false,
+    token expired) = region skipped quietly, no post docs. A crashing region is logged
+    and the next one still runs. Approved events are read once per run.
+  - Admin callables `adminPreviewWeeklyCarousels`, `adminPostWeeklyCarousels` and
+    `adminPostDailyStory` take an optional `regionId` (default `vorarlberg`, must be one
+    of the switched-on regions); `bezirk` of the story callable must belong to that
+    region. The admin tab sends no `regionId` yet, so it still shows Vorarlberg.
+  - Another region: add its id to `INSTAGRAM_SCHEDULED_REGION_IDS` and check its Bezirk
+    wording in the config (tests in `tests/lib/instagramCarousel.spec.ts`).
 
 ## Onboarding a new regional account (Thomas)
 
@@ -81,3 +107,6 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
 Staging CI deploys rules and indexes on push, **functions stay manual** (the CI service
 account lacks ActAs): `firebase deploy --only functions:onEventApprovedPostToInstagram,functions:refreshInstagramTokenJob,functions:onInstagramRegionAccountEnabled,functions:adminRetryInstagramPost,functions:adminBackfillInstagramRegion`.
 The new Firestore trigger and callable are created on first deploy.
+
+Carousel and stories for the regions (above) are also deployed by hand:
+`firebase deploy --only functions:instagramWeeklyCarousel,functions:instagramMorningStories,functions:adminRetryInstagramPost,functions:adminPreviewWeeklyCarousels,functions:adminPostWeeklyCarousels,functions:adminPostDailyStory`.
