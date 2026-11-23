@@ -19,14 +19,16 @@ import {
   type InstagramEventInput,
   type InstagramImageChoice,
 } from './instagramContent';
+import { DEFAULT_REGION_ID } from '../regions';
+import { isCarouselEligible, type CarouselEvent } from './instagramCarousel';
 import {
-  CAROUSEL_BEZIRKE,
   bezirkInPhrase,
   bezirkLabel,
-  isCarouselEligible,
-  type CarouselEvent,
-  type CarouselBezirk,
-} from './instagramCarousel';
+  carouselBezirkeFor,
+  regionMailSuffix,
+  regionOrDefault,
+  regionSiteDomain,
+} from './instagramRegionConfig';
 import {
   graphGet,
   graphPost,
@@ -58,9 +60,13 @@ export function formatStoryDate(day: string): string {
   return `${weekday}, ${dayMonth}`;
 }
 
-/** "Heute in Dornbirn" - the full title of an overview story. */
-export function overviewStoryTitle(bezirk: string, heading = OVERVIEW_STORY_HEADING): string {
-  return `${heading} ${stripImageUnsafeChars(bezirkInPhrase(bezirk))}`.trim();
+/** "Heute in Dornbirn", "Heute im Landkreis Konstanz" - the full title of an overview story. */
+export function overviewStoryTitle(
+  bezirk: string,
+  heading = OVERVIEW_STORY_HEADING,
+  regionId: string = DEFAULT_REGION_ID
+): string {
+  return `${heading} ${stripImageUnsafeChars(bezirkInPhrase(bezirk, regionId))}`.trim();
 }
 
 /** Events per story image; more events are spread over several stories. */
@@ -92,14 +98,16 @@ export interface StoryModel {
   /** "Teil 1 von 2" - only when one half of the day still has more events than fit; else empty */
   partLabel: string;
   items: StoryItem[];
-  /** Domain in the "Mehr auf ..." line; default DEFAULT_SITE_DOMAIN (stories are Vorarlberg-only). */
+  /** Domain in the "Mehr auf ..." line; default DEFAULT_SITE_DOMAIN (Vorarlberg leaves it unset). */
   siteDomain?: string;
   /** The event's own picture and crop, only for a story about a single event. */
   image: InstagramImageChoice | null;
 }
 
 export interface StoryGroup {
-  bezirk: CarouselBezirk;
+  bezirk: string;
+  /** Region of the story; missing = Vorarlberg. */
+  regionId?: string;
   /** 1-based */
   part: number;
   parts: number;
@@ -132,13 +140,20 @@ function compareEvents(a: CarouselEvent, b: CarouselEvent): number {
  * sorted by start time and spread evenly over as many stories as needed.
  * Empty when nothing happens.
  */
-export function groupStories(events: CarouselEvent[], day: string, bezirk: string): StoryGroup[] {
-  if (!(CAROUSEL_BEZIRKE as readonly string[]).includes(bezirk)) return [];
+export function groupStories(
+  events: CarouselEvent[],
+  day: string,
+  bezirk: string,
+  regionId: string = DEFAULT_REGION_ID
+): StoryGroup[] {
+  if (!carouselBezirkeFor(regionId).includes(bezirk)) return [];
   const list = events
-    .filter((e) => isCarouselEligible(e, { start: day, end: day }) && asString(e.bezirk) === bezirk)
+    .filter(
+      (e) =>
+        isCarouselEligible(e, { start: day, end: day }, regionId) && asString(e.bezirk) === bezirk
+    )
     .sort(compareEvents);
   if (list.length === 0) return [];
-  const typed = bezirk as CarouselBezirk;
   const chunk = (items: CarouselEvent[], section?: 'frueh' | 'abend'): StoryGroup[] => {
     const parts = Math.ceil(items.length / MAX_EVENTS_PER_STORY);
     const base = Math.floor(items.length / parts);
@@ -148,7 +163,8 @@ export function groupStories(events: CarouselEvent[], day: string, bezirk: strin
     for (let i = 0; i < parts; i += 1) {
       const size = base + (i < extra ? 1 : 0);
       groups.push({
-        bezirk: typed,
+        bezirk,
+        regionId,
         part: i + 1,
         parts,
         ...(section ? { section } : {}),
@@ -190,9 +206,13 @@ export function buildStoryModel(
   registry?: Record<string, string> | null,
   heading = 'Heute'
 ): StoryModel {
+  const regionId = regionOrDefault(group.regionId);
+  const siteDomain = regionSiteDomain(regionId);
   return {
     heading,
-    bezirk: stripImageUnsafeChars(group.city ? `in ${group.city}` : bezirkInPhrase(group.bezirk)),
+    bezirk: stripImageUnsafeChars(
+      group.city ? `in ${group.city}` : bezirkInPhrase(group.bezirk, regionId)
+    ),
     dateLabel: formatStoryDate(day),
     partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
     image: group.events.length === 1 ? resolveEventImageChoice(group.events[0]) : null,
@@ -200,6 +220,8 @@ export function buildStoryModel(
     items: group.events.map((e) =>
       buildStoryItem(e, registry, group.events.length <= MAX_STORY_ITEMS_WITH_ORGANIZER)
     ),
+    // Only other regions set it: Vorarlberg's model stays as before (renderer default .at).
+    ...(siteDomain ? { siteDomain } : {}),
   };
 }
 
@@ -213,7 +235,7 @@ export function storyPostId(
   regionId?: string
 ): StoryPostId {
   // Non-Vorarlberg regions get their id in the post id so regions never collide;
-  // Vorarlberg ids stay as they are. Stories are still Vorarlberg-only (TODO).
+  // Vorarlberg ids stay as they are.
   const region =
     regionId && regionId !== 'vorarlberg' ? `${regionId.replace(/[^a-z0-9]/g, '')}_` : '';
   return `story_${region}${bezirk.toLowerCase().replace(/[^a-z0-9]/g, '')}_${day}${section ? `_${section}` : ''}${part > 1 ? `_p${part}` : ''}`;
@@ -224,6 +246,8 @@ export interface StoryPostRecord {
   /** 'overview' = "Heute in <Bezirk>" for the whole day, 'event' = one event shortly before it starts */
   kind: 'overview' | 'event';
   bezirk: string;
+  /** Only on non-Vorarlberg records (Vorarlberg records stay as they always were). */
+  regionId?: string;
   /** Day the story is about (an event story posted the evening before is about tomorrow). */
   day: string;
   /** Vienna day the story was posted; drives the daily cap. */
@@ -313,10 +337,12 @@ export async function postStoryGroup(
   options: PostGroupOptions
 ): Promise<StoryResult> {
   const log = deps.log ?? (() => undefined);
+  const regionId = regionOrDefault(group.regionId);
   const created = await deps.createPost(postId, {
     type: 'story',
     kind: options.kind,
     bezirk: group.bezirk,
+    ...(regionId !== DEFAULT_REGION_ID ? { regionId } : {}),
     day,
     postedDay: options.postedDay,
     part: group.part,
@@ -360,8 +386,8 @@ export async function postStoryGroup(
     }
     try {
       await deps.notifyAdmins(
-        `Instagram-Story fehlgeschlagen: ${bezirkLabel(group.bezirk)} ${day}`,
-        `Die Instagram-Story für ${bezirkLabel(group.bezirk)} (${day}, ${group.events.length} Event(s), ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
+        `Instagram-Story fehlgeschlagen: ${bezirkLabel(group.bezirk, regionId)} ${day}${regionMailSuffix(regionId)}`,
+        `Die Instagram-Story für ${bezirkLabel(group.bezirk, regionId)}${regionMailSuffix(regionId)} (${day}, ${group.events.length} Event(s), ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
       );
     } catch (mailErr) {
       log('Could not mail admins about story failure', {
@@ -373,12 +399,16 @@ export async function postStoryGroup(
   }
 }
 
-/** Overview stories for several Bezirke; a Bezirk needs at least `minEvents` events that day. */
+/**
+ * Overview stories for several Bezirke of one region (default Vorarlberg) with
+ * the account in `deps`; a Bezirk needs at least `minEvents` events that day.
+ */
 export async function runDailyStories(
   deps: StoryDeps,
   bezirke: readonly string[],
-  options: { minEvents?: number } = {}
+  options: { minEvents?: number; regionId?: string } = {}
 ): Promise<StoryRunOutcome> {
+  const regionId = options.regionId ?? DEFAULT_REGION_ID;
   const log = deps.log ?? (() => undefined);
   if (!(await deps.isEnabled())) {
     log('Instagram posting disabled via app_settings/instagram; skipping stories');
@@ -391,7 +421,7 @@ export async function runDailyStories(
   const results: StoryResult[] = [];
 
   for (const bezirk of bezirke) {
-    const groups = groupStories(events, day, bezirk);
+    const groups = groupStories(events, day, bezirk, regionId);
     const total = groups.reduce((sum, g) => sum + g.events.length, 0);
     if (total < (options.minEvents ?? 1)) continue;
     for (const group of groups) {
@@ -400,7 +430,7 @@ export async function runDailyStories(
           deps,
           group,
           day,
-          storyPostId(group.bezirk, day, group.part, group.section),
+          storyPostId(group.bezirk, day, group.part, group.section, regionId),
           {
             kind: 'overview',
             postedDay: viennaToday((deps.now ?? (() => new Date()))()),
@@ -417,6 +447,10 @@ export async function runDailyStories(
  * Posts today's story/stories for one Bezirk. One post per Bezirk, day and
  * part (instagram_posts doc id), so a second run the same day posts nothing.
  */
-export function runDailyStory(deps: StoryDeps, bezirk: string): Promise<StoryRunOutcome> {
-  return runDailyStories(deps, [bezirk]);
+export function runDailyStory(
+  deps: StoryDeps,
+  bezirk: string,
+  regionId: string = DEFAULT_REGION_ID
+): Promise<StoryRunOutcome> {
+  return runDailyStories(deps, [bezirk], { regionId });
 }

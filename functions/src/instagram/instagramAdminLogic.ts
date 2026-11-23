@@ -11,6 +11,7 @@ import {
   type CarouselDeps,
   type CarouselPostRecord,
 } from './instagramCarousel';
+import { regionOrDefault } from './instagramRegionConfig';
 
 export class AdminActionError extends Error {
   constructor(
@@ -129,7 +130,9 @@ export async function retryCarouselPost(
   }
   const part = typeof record.part === 'number' && record.part > 0 ? record.part : 1;
   const window = weekWindowFrom(weekStart);
-  const group = groupCarousels(await deps.listEvents(window), window).find(
+  // Records without regionId are Vorarlberg's (they never carried one).
+  const regionId = regionOrDefault(record.regionId);
+  const group = groupCarousels(await deps.listEvents(window), window, regionId).find(
     (g) => g.bezirk === record.bezirk && g.part === part
   );
   if (!group) {

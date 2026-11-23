@@ -8,7 +8,7 @@
  */
 
 import { isCuratedWithoutConsent } from '../eventImport';
-import { isInstagramRegion } from '../regions';
+import { DEFAULT_REGION_ID, isInstagramRegion } from '../regions';
 import {
   BASE_HASHTAGS,
   CAPTION_MAX_LENGTH,
@@ -18,7 +18,6 @@ import {
   formatEventDate,
   formatEventTime,
   stripImageUnsafeChars,
-  toHashtag,
   truncateTitle,
   type CoverModel,
   type InstagramEventInput,
@@ -39,27 +38,26 @@ import {
   type PostStatus,
 } from './instagramPublish';
 
-/** Bezirke that get a weekly carousel. Online events are excluded. */
-// TODO(regions): Vorarlberg-specific Bezirk list. Carousels and stories stay
-// Vorarlberg-only until another region has its own Bezirk structure.
-export const CAROUSEL_BEZIRKE = [
-  'Dornbirn',
-  'Feldkirch',
-  'Bregenz',
-  'Bludenz',
-  'Grenznahe',
-] as const;
-export type CarouselBezirk = (typeof CAROUSEL_BEZIRKE)[number];
+import {
+  bezirkCoverPhrase,
+  bezirkHashtag,
+  bezirkInPhrase,
+  bezirkLabel,
+  carouselBezirkeFor,
+  regionMailSuffix,
+  regionOrDefault,
+  regionSiteDomain,
+} from './instagramRegionConfig';
 
-/** Human-readable name of a carousel region ("Grenznahe" is written "Umgebung"). */
-export function bezirkLabel(bezirk: string): string {
-  return bezirk === 'Grenznahe' ? 'Umgebung' : bezirk;
-}
-
-/** "in Dornbirn", "in der Umgebung". */
-export function bezirkInPhrase(bezirk: string): string {
-  return bezirk === 'Grenznahe' ? 'in der Umgebung' : `in ${bezirk}`;
-}
+// Bezirk lists and wording per region live in instagramRegionConfig.ts; re-exported
+// here because callers and tests have always imported them from the carousel.
+export {
+  CAROUSEL_BEZIRKE,
+  bezirkCoverPhrase,
+  bezirkInPhrase,
+  bezirkLabel,
+  type CarouselBezirk,
+} from './instagramRegionConfig';
 
 /** Instagram allows 10 items per carousel: 1 cover + 9 events. */
 export const MAX_EVENTS_PER_CAROUSEL = 9;
@@ -129,22 +127,24 @@ function asString(value: unknown): string {
 }
 
 /**
- * Whether an event may appear in the weekly carousel: approved, starts inside
- * the window, in one of the carousel Bezirke (so not online-only), and the
- * organiser explicitly consented. NOTE: `instagramConsent` is introduced by a
- * parallel ticket (consent checkbox); until that is merged no event has the
- * field and the carousel stays empty by design.
+ * Whether an event may appear in the region's weekly carousel: approved, starts
+ * inside the window, belongs to the region (resolveRegionId) and one of its
+ * carousel Bezirke (so not online-only), and the organiser explicitly consented.
  */
-export function isCarouselEligible(event: CarouselEvent, window: WeekWindow): boolean {
+export function isCarouselEligible(
+  event: CarouselEvent,
+  window: WeekWindow,
+  regionId: string = DEFAULT_REGION_ID
+): boolean {
   if (event.status !== 'approved') return false;
   if (event.instagramConsent !== true) return false;
   if (isCuratedWithoutConsent(event)) return false;
-  if (!isInstagramRegion(event)) return false;
+  if (!isInstagramRegion(event, [regionId])) return false;
   if (isCancelledOccurrence(event)) return false;
   const date = asString(event.date);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < window.start || date > window.end) return false;
   if (event.isOnline === true || event.isOnline === 'true') return false;
-  return (CAROUSEL_BEZIRKE as readonly string[]).includes(asString(event.bezirk));
+  return carouselBezirkeFor(regionId).includes(asString(event.bezirk));
 }
 
 function compareEvents(a: CarouselEvent, b: CarouselEvent): number {
@@ -154,7 +154,9 @@ function compareEvents(a: CarouselEvent, b: CarouselEvent): number {
 }
 
 export interface CarouselGroup {
-  bezirk: CarouselBezirk;
+  bezirk: string;
+  /** Region of the carousel; missing = Vorarlberg. */
+  regionId?: string;
   /** 1-based */
   part: number;
   parts: number;
@@ -300,21 +302,26 @@ function buildDaysLabel(units: CarouselUnit[]): string {
  * is split further, into Vormittag / Nachmittag / Abend. Each carousel then carries
  * a label naming its days. Empty Bezirke are skipped.
  */
-export function groupCarousels(events: CarouselEvent[], window: WeekWindow): CarouselGroup[] {
+export function groupCarousels(
+  events: CarouselEvent[],
+  window: WeekWindow,
+  regionId: string = DEFAULT_REGION_ID
+): CarouselGroup[] {
   const groups: CarouselGroup[] = [];
-  for (const bezirk of CAROUSEL_BEZIRKE) {
+  for (const bezirk of carouselBezirkeFor(regionId)) {
     const list = events
-      .filter((e) => isCarouselEligible(e, window) && asString(e.bezirk) === bezirk)
+      .filter((e) => isCarouselEligible(e, window, regionId) && asString(e.bezirk) === bezirk)
       .sort(compareEvents);
     if (list.length === 0) continue;
     if (list.length <= MAX_EVENTS_PER_CAROUSEL) {
-      groups.push({ bezirk, part: 1, parts: 1, events: list, daysLabel: '' });
+      groups.push({ bezirk, regionId, part: 1, parts: 1, events: list, daysLabel: '' });
       continue;
     }
     const bins = packBalanced(buildUnits(list));
     bins.forEach((bin, i) =>
       groups.push({
         bezirk,
+        regionId,
         part: i + 1,
         parts: bins.length,
         events: bin.flatMap((u) => u.events),
@@ -353,23 +360,19 @@ export function formatWeekRange(window: WeekWindow): string {
   return `${startPart} – ${e.getUTCDate()}. ${em} ${e.getUTCFullYear()}`;
 }
 
-/** Cover wording: "im Bezirk Dornbirn" (the kind word before the name); "in der Umgebung" stays. */
-export function bezirkCoverPhrase(bezirk: string): string {
-  return bezirk === 'Grenznahe' ? bezirkInPhrase(bezirk) : `im Bezirk ${bezirk}`;
-}
-
 export function buildCoverModel(group: CarouselGroup, window: WeekWindow): CoverModel {
+  const regionId = regionOrDefault(group.regionId);
+  const siteDomain = regionSiteDomain(regionId);
   return {
     heading: 'Events nächste Woche',
-    bezirk: stripImageUnsafeChars(bezirkCoverPhrase(group.bezirk)),
+    bezirk: stripImageUnsafeChars(bezirkCoverPhrase(group.bezirk, regionId)),
     dateRange: formatWeekRange(window),
     partLabel: stripImageUnsafeChars(group.daysLabel),
     eventCount: group.events.length,
+    // Only other regions set it: Vorarlberg's model stays as before (renderer default .at).
+    ...(siteDomain ? { siteDomain } : {}),
   };
 }
-
-// The weekly carousel is Vorarlberg-only (isInstagramRegion), so it shows the Austrian domain.
-const MORE_LINE = `…und mehr auf ${DEFAULT_SITE_DOMAIN}`;
 
 const MAX_MENTION_LINE = 400;
 
@@ -400,12 +403,17 @@ export function buildCarouselCaption(
   window: WeekWindow,
   handles: string[] = []
 ): string {
+  const regionId = regionOrDefault(group.regionId);
+  const domain = regionSiteDomain(regionId) ?? DEFAULT_SITE_DOMAIN;
+  const moreLine = `…und mehr auf ${domain}`;
   const part = group.daysLabel ? ` ${group.daysLabel}` : '';
-  const heading = `Events nächste Woche ${bezirkInPhrase(group.bezirk)}${part}\n${formatWeekRange(window)}`;
+  const heading = `Events nächste Woche ${bezirkInPhrase(group.bezirk, regionId)}${part}\n${formatWeekRange(window)}`;
   const hashtags = [
-    ...new Set([toHashtag(group.bezirk), ...BASE_HASHTAGS, '#events'].filter(Boolean)),
+    ...new Set(
+      [bezirkHashtag(group.bezirk, regionId), ...BASE_HASHTAGS, '#events'].filter(Boolean)
+    ),
   ].join(' ');
-  const footer = buildCaptionFooter(hashtags);
+  const footer = buildCaptionFooter(hashtags, domain);
 
   const lines = group.events.map((event) => {
     const when = [
@@ -436,10 +444,10 @@ export function buildCarouselCaption(
 
   const kept: string[] = [];
   for (const line of lines) {
-    if (assemble([...kept, line, MORE_LINE], []).length > CAPTION_MAX_LENGTH) break;
+    if (assemble([...kept, line, moreLine], []).length > CAPTION_MAX_LENGTH) break;
     kept.push(line);
   }
-  return assemble([...kept, MORE_LINE], []).slice(0, CAPTION_MAX_LENGTH);
+  return assemble([...kept, moreLine], []).slice(0, CAPTION_MAX_LENGTH);
 }
 
 export type CarouselPostId = string;
@@ -447,6 +455,8 @@ export type CarouselPostId = string;
 export interface CarouselPostRecord {
   type: 'carousel';
   bezirk: string;
+  /** Only on non-Vorarlberg records (Vorarlberg records stay as they always were). */
+  regionId?: string;
   weekStart: string;
   part: number;
   eventIds: string[];
@@ -494,10 +504,8 @@ function bezirkSlug(bezirk: string): string {
 }
 
 /**
- * `regionId` is for future non-Vorarlberg carousels: it is added to the id so
- * two regions' posts never collide. Vorarlberg (and no regionId) keeps the
- * historic id. TODO: the carousel itself (CAROUSEL_BEZIRKE, per-region
- * credentials) is still Vorarlberg-only; see docs/instagram-regions.md.
+ * Non-Vorarlberg regions get their id in the post id so two regions' posts
+ * never collide. Vorarlberg (and no regionId) keeps the historic id.
  */
 export function carouselPostId(
   bezirk: string,
@@ -528,9 +536,8 @@ export async function publishCarousel(
   postId: string
 ): Promise<string | null> {
   const log = deps.log ?? (() => undefined);
-  const imageBase = `carousel_${bezirkSlug(group.bezirk)}_${window.start}${
-    group.part > 1 ? `_p${group.part}` : ''
-  }`;
+  // Same as the post id: unchanged for Vorarlberg, region-prefixed elsewhere.
+  const imageBase = carouselPostId(group.bezirk, window.start, group.part, group.regionId);
 
   const imageUrls: string[] = [
     await deps.generateCoverImage(`${imageBase}_0`, buildCoverModel(group, window)),
@@ -615,7 +622,14 @@ export async function publishCarousel(
   return mediaId;
 }
 
-export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRunOutcome> {
+/**
+ * Posts the region's carousels for next week with the account in `deps` (the
+ * caller resolved it for this region). Default region: Vorarlberg.
+ */
+export async function runWeeklyCarousels(
+  deps: CarouselDeps,
+  regionId: string = DEFAULT_REGION_ID
+): Promise<CarouselRunOutcome> {
   const log = deps.log ?? (() => undefined);
   if (!(await deps.isEnabled())) {
     log('Instagram posting disabled via app_settings/instagram; skipping weekly carousels');
@@ -624,14 +638,15 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
 
   const window = getNextWeekWindow((deps.now ?? (() => new Date()))());
   const events = await deps.listEvents(window);
-  const groups = groupCarousels(events, window);
+  const groups = groupCarousels(events, window, regionId);
   const results: CarouselResult[] = [];
 
   for (const group of groups) {
-    const postId = carouselPostId(group.bezirk, window.start, group.part);
+    const postId = carouselPostId(group.bezirk, window.start, group.part, regionId);
     const created = await deps.createPost(postId, {
       type: 'carousel',
       bezirk: group.bezirk,
+      ...(regionId !== DEFAULT_REGION_ID ? { regionId } : {}),
       weekStart: window.start,
       part: group.part,
       eventIds: group.events.map((e) => e.id ?? ''),
@@ -665,8 +680,8 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
       }
       try {
         await deps.notifyAdmins(
-          `Instagram-Karussell fehlgeschlagen: ${bezirkLabel(group.bezirk)} ${window.start}`,
-          `Das wöchentliche Instagram-Karussell für ${bezirkLabel(group.bezirk)} (Woche ab ${window.start}${group.daysLabel ? `, ${group.daysLabel}` : ''}, ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
+          `Instagram-Karussell fehlgeschlagen: ${bezirkLabel(group.bezirk, regionId)} ${window.start}${regionMailSuffix(regionId)}`,
+          `Das wöchentliche Instagram-Karussell für ${bezirkLabel(group.bezirk, regionId)}${regionMailSuffix(regionId)} (Woche ab ${window.start}${group.daysLabel ? `, ${group.daysLabel}` : ''}, ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
         );
       } catch (mailErr) {
         log('Could not mail admins about carousel failure', {
@@ -699,7 +714,7 @@ export interface CarouselPreviewEvent {
 
 export interface CarouselPreviewGroup {
   postId: string;
-  bezirk: CarouselBezirk;
+  bezirk: string;
   /** Display name, e.g. "Umgebung". */
   label: string;
   part: number;
@@ -720,7 +735,7 @@ export interface CarouselCandidateSummary {
   eligible: number;
   notApproved: number;
   withoutConsent: number;
-  /** Event belongs to a region without an Instagram account (not Vorarlberg). */
+  /** Event belongs to another region than the previewed one. */
   regionExcluded: number;
   online: number;
   /** No Bezirk or one that gets no carousel. */
@@ -755,7 +770,8 @@ export interface CarouselPreview {
 /** Counts each event of the week under the first rule that excludes it. */
 export function summarizeCandidates(
   events: CarouselEvent[],
-  window: WeekWindow
+  window: WeekWindow,
+  regionId: string = DEFAULT_REGION_ID
 ): CarouselCandidateSummary {
   const summary: CarouselCandidateSummary = {
     total: 0,
@@ -789,10 +805,10 @@ export function summarizeCandidates(
     if (date < window.start || date > window.end) continue;
     if (isCancelledOccurrence(event)) continue;
     summary.total += 1;
-    if (isCarouselEligible(event, window)) summary.eligible += 1;
+    if (isCarouselEligible(event, window, regionId)) summary.eligible += 1;
     else if (event.status !== 'approved') note('notApproved', event);
     else if (event.instagramConsent !== true) note('withoutConsent', event);
-    else if (!isInstagramRegion(event)) note('regionExcluded', event);
+    else if (!isInstagramRegion(event, [regionId])) note('regionExcluded', event);
     else if (event.isOnline === true || event.isOnline === 'true') note('online', event);
     else note('otherRegion', event);
   }
@@ -803,21 +819,24 @@ export function summarizeCandidates(
  * Dry run of runWeeklyCarousels: the same window, eligibility, grouping and
  * caption, but nothing is rendered, uploaded, written or posted.
  */
-export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise<CarouselPreview> {
+export async function previewWeeklyCarousels(
+  deps: CarouselPreviewDeps,
+  regionId: string = DEFAULT_REGION_ID
+): Promise<CarouselPreview> {
   const window = getNextWeekWindow((deps.now ?? (() => new Date()))());
   const events = await deps.listEvents(window);
   const groups: CarouselPreviewGroup[] = [];
 
-  for (const group of groupCarousels(events, window)) {
+  for (const group of groupCarousels(events, window, regionId)) {
     const eventHandles: string[][] = [];
     for (const event of group.events) {
       eventHandles.push(await resolveTagHandles(deps, event, () => undefined));
     }
-    const postId = carouselPostId(group.bezirk, window.start, group.part);
+    const postId = carouselPostId(group.bezirk, window.start, group.part, regionId);
     groups.push({
       postId,
       bezirk: group.bezirk,
-      label: bezirkLabel(group.bezirk),
+      label: bezirkLabel(group.bezirk, regionId),
       part: group.part,
       parts: group.parts,
       daysLabel: group.daysLabel,
@@ -837,7 +856,7 @@ export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise
   return {
     window,
     weekLabel: formatWeekRange(window),
-    summary: summarizeCandidates(events, window),
+    summary: summarizeCandidates(events, window, regionId),
     groups,
   };
 }

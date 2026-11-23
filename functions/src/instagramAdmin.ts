@@ -20,7 +20,11 @@ import {
   type CarouselPreview,
   type CarouselRunOutcome,
 } from './instagram/instagramCarousel';
-import { CAROUSEL_BEZIRKE } from './instagram/instagramCarousel';
+import {
+  carouselBezirkeFor,
+  isScheduledInstagramRegion,
+  regionOrDefault,
+} from './instagram/instagramRegionConfig';
 import { runDailyStory, type StoryRunOutcome } from './instagram/instagramStory';
 import {
   AdminActionError,
@@ -59,6 +63,30 @@ function toHttpsError(err: unknown): never {
   throw err;
 }
 
+/**
+ * Region of a carousel/story callable: missing = Vorarlberg (the admin UI sends
+ * none); otherwise one of the regions whose carousel/stories are switched on.
+ */
+function assertScheduledRegion(value: unknown): string {
+  if (value === undefined || value === null || value === '') return DEFAULT_REGION_ID;
+  if (!isScheduledInstagramRegion(value)) {
+    throw new HttpsError('invalid-argument', 'Unknown region.');
+  }
+  return value;
+}
+
+/** Account for a region (Vorarlberg: legacy secrets); throws when there is none. */
+async function requireRegionCredentials(regionId: string) {
+  const credentials = await resolveCredentialsForRegion(getFirestore(), regionId, {
+    accessToken: IG_ACCESS_TOKEN.value(),
+    userId: IG_USER_ID.value(),
+  });
+  if (!credentials) {
+    throw new HttpsError('failed-precondition', 'Instagram is not configured.');
+  }
+  return credentials;
+}
+
 async function readStatus(postId: string): Promise<string | null> {
   const snap = await getFirestore().collection('instagram_posts').doc(postId).get();
   if (!snap.exists) return null;
@@ -88,12 +116,12 @@ export const adminRetryInstagramPost = onCall(
         await posts.doc(postId).delete();
       };
       if (isCarouselPostId(eventId)) {
-        // Weekly carousel (Vorarlberg account): post this one group again.
-        const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
-        const userId = IG_USER_ID.value();
-        if (!accessToken || !userId) {
-          throw new HttpsError('failed-precondition', 'Instagram is not configured.');
-        }
+        // Weekly carousel: post this one group again with the account of the
+        // record's region (records without regionId are Vorarlberg's).
+        const record = await posts.doc(eventId).get();
+        const { accessToken, userId } = await requireRegionCredentials(
+          regionOrDefault(record.get('regionId'))
+        );
         const outcome = await retryCarouselPost(
           {
             ...buildCarouselDeps(db, accessToken, userId),
@@ -260,29 +288,37 @@ export const adminArchiveInstagramPost = onCall(
 
 // Dry run of the weekly carousels: same window, eligibility and caption as the
 // Sunday job, but nothing is rendered, written or posted. No secrets needed.
+// Optional `regionId` (default Vorarlberg).
 export const adminPreviewWeeklyCarousels = onCall(
   { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<CarouselPreview> => {
     logMissingAppCheck('adminPreviewWeeklyCarousels', request);
     await assertAdmin(request.auth?.uid);
+    const regionId = assertScheduledRegion(
+      (request.data as { regionId?: unknown } | null)?.regionId
+    );
     const db = getFirestore();
-    return previewWeeklyCarousels({
-      listEvents: (window) => listCarouselEvents(db, window),
-      getOrganizerHandle: (ev) => lookupOrganizerHandle(db, ev),
-      getTagHandles: (ev) => lookupTagHandles(db, ev),
-      getPostStatus: readStatus,
-    });
+    return previewWeeklyCarousels(
+      {
+        listEvents: (window) => listCarouselEvents(db, window),
+        getOrganizerHandle: (ev) => lookupOrganizerHandle(db, ev),
+        getTagHandles: (ev) => lookupTagHandles(db, ev),
+        getPostStatus: readStatus,
+      },
+      regionId
+    );
   }
 );
 
-// Posts the weekly carousels now instead of waiting for Sunday. Respects the
-// kill switch and the one-post-per-Bezirk-and-week guard, so the Sunday job
-// afterwards skips whatever was posted here.
+// Posts the weekly carousels of one region (optional `regionId`, default
+// Vorarlberg) now instead of waiting for Sunday. Respects the kill switch and
+// the one-post-per-Bezirk-and-week guard, so the Sunday job afterwards skips
+// whatever was posted here.
 export const adminPostWeeklyCarousels = onCall(
   {
     region: 'europe-west3',
     cors: ALLOWED_ORIGINS,
-    timeoutSeconds: 540,
+    timeoutSeconds: 1800,
     memory: '1GiB',
     secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
     ...appCheckOptions(),
@@ -290,20 +326,20 @@ export const adminPostWeeklyCarousels = onCall(
   async (request): Promise<CarouselRunOutcome> => {
     logMissingAppCheck('adminPostWeeklyCarousels', request);
     await assertAdmin(request.auth?.uid);
+    const regionId = assertScheduledRegion(
+      (request.data as { regionId?: unknown } | null)?.regionId
+    );
     const db = getFirestore();
-    const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
-    const userId = IG_USER_ID.value();
-    if (!accessToken || !userId) {
-      throw new HttpsError('failed-precondition', 'Instagram is not configured.');
-    }
-    const outcome = await runWeeklyCarousels(buildCarouselDeps(db, accessToken, userId));
-    logger.info('Instagram weekly carousels posted by admin', outcome);
+    const { accessToken, userId } = await requireRegionCredentials(regionId);
+    const outcome = await runWeeklyCarousels(buildCarouselDeps(db, accessToken, userId), regionId);
+    logger.info('Instagram weekly carousels posted by admin', { regionId, outcome });
     return outcome;
   }
 );
 
-// Posts today's "Heute in <Bezirk>" story now. Respects the kill switch and the
-// one-story-per-Bezirk-day-and-part guard, so calling it twice posts once.
+// Posts today's "Heute in <Bezirk>" story now. Optional `regionId` (default
+// Vorarlberg); `bezirk` must be one of that region's Bezirke. Respects the kill
+// switch and the one-story-per-Bezirk-day-and-part guard, so calling it twice posts once.
 export const adminPostDailyStory = onCall(
   {
     region: 'europe-west3',
@@ -316,18 +352,16 @@ export const adminPostDailyStory = onCall(
   async (request): Promise<StoryRunOutcome> => {
     logMissingAppCheck('adminPostDailyStory', request);
     await assertAdmin(request.auth?.uid);
-    const bezirk = (request.data as { bezirk?: unknown } | undefined)?.bezirk;
-    if (typeof bezirk !== 'string' || !(CAROUSEL_BEZIRKE as readonly string[]).includes(bezirk)) {
+    const data = request.data as { bezirk?: unknown; regionId?: unknown } | undefined;
+    const regionId = assertScheduledRegion(data?.regionId);
+    const bezirk = data?.bezirk;
+    if (typeof bezirk !== 'string' || !carouselBezirkeFor(regionId).includes(bezirk)) {
       throw new HttpsError('invalid-argument', 'Unknown Bezirk.');
     }
     const db = getFirestore();
-    const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
-    const userId = IG_USER_ID.value();
-    if (!accessToken || !userId) {
-      throw new HttpsError('failed-precondition', 'Instagram is not configured.');
-    }
-    const outcome = await runDailyStory(buildStoryDeps(db, accessToken, userId), bezirk);
-    logger.info('Instagram daily story posted by admin', { bezirk, outcome });
+    const { accessToken, userId } = await requireRegionCredentials(regionId);
+    const outcome = await runDailyStory(buildStoryDeps(db, accessToken, userId), bezirk, regionId);
+    logger.info('Instagram daily story posted by admin', { regionId, bezirk, outcome });
     return outcome;
   }
 );

@@ -30,9 +30,9 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
   a usable account (doc exists, `enabled`, token not expired). Otherwise it skips
   quietly **without** an `instagram_posts` doc (consent stays on the event, a later
   approval can still post). A failing lookup counts as "no account".
-- `isInstagramRegion(event, regionIds = INSTAGRAM_REGION_IDS)`: the carousel and
-  stories keep the default (Vorarlberg only); the feed path passes the region of the
-  account in use via `PublishDeps.instagramRegionIds`.
+- `isInstagramRegion(event, regionIds = INSTAGRAM_REGION_IDS)`: the feed path passes the
+  region of the account in use via `PublishDeps.instagramRegionIds`; carousel and stories
+  pass the region they run for.
 - **Token refresh** (`refreshInstagramTokenJob`, Monday 04:00): Vorarlberg as before,
   then every `instagram_private/region_*` doc with the same thresholds (refresh below 30
   days, warn below 14). Mails carry the region id; a failing region never blocks the
@@ -46,10 +46,88 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
   through `publishApprovedEvent` (dedupe via `create()`, so reruns and parallel runs
   never double-post).
 - `adminRetryInstagramPost` picks the account by the event's region.
-- **Carousel and stories stay Vorarlberg-only** (`CAROUSEL_BEZIRKE` is Vorarlberg's
-  Bezirk list; `TODO(regions)` in the code). `carouselPostId` / `storyPostId` already
-  take an optional `regionId` that is added to the id for non-Vorarlberg regions only,
-  so ids cannot collide once they are generalised.
+- **Domains and links** follow the country of the post's region (`siteDomainForRegion`:
+  AT `www.deintribe.at`, DE `www.deintribe.de`, CH `www.deintribe.ch`, others AT). The
+  first comment links `https://<domain>/event/<slug>` (`eventPageUrl(slug, regionId)`; no
+  region in event URLs). Vorarlberg links moved from `www.thetribe.at` to
+  `www.deintribe.at` on purpose. Images and captions show the plain domain.
+- **Weekly carousel and daily stories per region**
+  (`instagram/instagramRegionConfig.ts`). Switched on for the regions in
+  `INSTAGRAM_SCHEDULED_REGION_IDS`: `vorarlberg` and `bodensee`.
+  - Bezirke: Vorarlberg keeps `CAROUSEL_BEZIRKE` (incl. `Grenznahe`); other regions use
+    their register list (`regionData.ts`), e.g. Bodensee `Landkreis Konstanz`,
+    `Bodenseekreis`, `Landkreis Lindau (Bodensee)`. One carousel per Bezirk, same
+    grouping and splitting (max 9 events, by days / day parts) as Vorarlberg.
+  - An event counts for a region only when `resolveRegionId(event)` **and** its Bezirk
+    match, so Vorarlberg and Bodensee events never mix.
+  - Post ids: non-Vorarlberg ids carry the region (`carousel_bodensee_landkreiskonstanz_2026-11-30`,
+    `story_bodensee_bodenseekreis_2026-11-24`); their records also carry `regionId`
+    (the admin retry picks the account from it). Vorarlberg ids and records are unchanged
+    (no `regionId` field).
+  - Same layouts for every region (cover, slides, stories). Only the Bezirk wording
+    ("im Landkreis Konstanz", "im Bodenseekreis", "im Landkreis Lindau"), the place
+    hashtag (`#konstanz`, `#bodenseekreis`, `#lindau`) and the shown domain
+    (`siteDomainForRegion`: `www.deintribe.de` for Germany) differ. The images contain no
+    region name or handle.
+  - Schedules unchanged (`instagramWeeklyCarousel` Sunday 10:00, `instagramMorningStories`
+    05:00, Europe/Vienna = same wall clock as Berlin). Inside, after the kill switch,
+    the regions run one after the other (Vorarlberg first) with
+    `resolveCredentialsForRegion`. No usable account (doc missing, `enabled` false,
+    token expired) = region skipped quietly, no post docs. A crashing region is logged
+    and the next one still runs. Approved events are read once per run.
+  - Admin callables `adminPreviewWeeklyCarousels`, `adminPostWeeklyCarousels` and
+    `adminPostDailyStory` take an optional `regionId` (default `vorarlberg`, must be one
+    of the switched-on regions); `bezirk` of the story callable must belong to that
+    region. The admin tab sends no `regionId` yet, so it still shows Vorarlberg.
+  - Another region: add its id to `INSTAGRAM_SCHEDULED_REGION_IDS` and check its Bezirk
+    wording in the config (tests in `tests/lib/instagramCarousel.spec.ts`).
+
+## Launch drip (backlog over several days)
+
+Instead of the one-batch backfill on switching a region on, a region can get a **launch
+plan**: its backlog is posted evenly over the posting windows of a few days
+(`instagram/instagramRegionLaunch.ts`, schedule `instagramRegionLaunchDrip` every 30 min).
+
+- **Plan fields** on `instagram_private/region_{id}`: `launchStartAt` (Timestamp),
+  `launchDays` (default 3, max 14), `launchWindowStart` / `launchWindowEnd` (default
+  `08:00` / `20:00`), `launchTimezone` (default: the region's timezone). Day 1 starts at
+  `launchStartAt` (not at the window start); the other days use the full window.
+  Bodensee: 25.11. 12:00-20:00, 26.11. and 27.11. 08:00-20:00 (Europe/Berlin).
+- **Progress fields** (written by the drip only): `launchStartedAt`, `launchEventIds`
+  (backlog frozen at the first run after the start), `launchTotal`, `launchCursor`,
+  `launchPosted` (slots used), `launchRemaining`, `launchFinishedAt`, `launchLeaseUntil`
+  (one run at a time).
+- **Before `launchStartAt` the region posts nothing at all** (`isAccountUsable`): no feed
+  post on approval, no backfill, carousel, stories or admin retry. Such events stay
+  approved with consent and without post doc.
+- **Backlog** = approved + `instagramConsent` + `regionId` + not past + no `feed_{id}` doc +
+  approved before `launchStartAt` (`approvedAt`; events without it count), soonest first.
+  Events approved from `launchStartAt` on post at once through the approval trigger and
+  are never part of the drip.
+- **Each run** posts only up to the cumulative target of the elapsed window time
+  (`launchTarget`), serial with 10 s pause, through `publishApprovedEvent` (dedupe via
+  `create()`). A missed run is caught up by the next; a second run posts nothing extra. A
+  slot is reserved before posting and given back when nothing was posted, so the target is
+  never exceeded, even after a crash. Events that became past, were withdrawn or got
+  posted meanwhile use no slot. A failed post uses its slot (admin mail as usual) and the
+  rest continue.
+- **Kill switch** off: the run does nothing (no backlog, no slot, no post doc); later runs
+  catch up within the windows.
+- **After the last window** nothing is forced out: the rest is logged and stored as
+  `launchRemaining`. Post it by hand with `adminBackfillInstagramRegion` if wanted.
+- With a plan set, switching the account on (`enabled` false -> true) starts **no**
+  automatic backfill. Regions without a plan behave as before.
+
+```bash
+# Set the plan BEFORE --enable (otherwise the normal backfill already ran):
+node scripts/instagram-region-launch.mjs bodensee --set --start 2026-11-25T12:00+01:00 \
+  --days 3 --window 08:00-20:00 --tz Europe/Berlin --dry-run
+node scripts/instagram-region-launch.mjs bodensee --show     # plan + progress, no token
+node scripts/instagram-region-launch.mjs bodensee --clear    # remove plan and progress
+```
+
+`--set` refuses a plan that has already started (`--clear` first). The start needs an
+explicit offset (`+01:00` / `Z`).
 
 ## Onboarding a new regional account (Thomas)
 
@@ -81,3 +159,9 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
 Staging CI deploys rules and indexes on push, **functions stay manual** (the CI service
 account lacks ActAs): `firebase deploy --only functions:onEventApprovedPostToInstagram,functions:refreshInstagramTokenJob,functions:onInstagramRegionAccountEnabled,functions:adminRetryInstagramPost,functions:adminBackfillInstagramRegion`.
 The new Firestore trigger and callable are created on first deploy.
+
+Carousel, stories and the launch drip (above) are also deployed by hand. The launch gate
+lives in `isAccountUsable`, so every function that resolves regional credentials has to be
+deployed with it:
+`firebase deploy --only functions:instagramRegionLaunchDrip,functions:onEventApprovedPostToInstagram,functions:onInstagramRegionAccountEnabled,functions:adminBackfillInstagramRegion,functions:instagramWeeklyCarousel,functions:instagramMorningStories,functions:adminRetryInstagramPost,functions:adminPreviewWeeklyCarousels,functions:adminPostWeeklyCarousels,functions:adminPostDailyStory`.
+`instagramRegionLaunchDrip` is a new scheduled function (created on first deploy).

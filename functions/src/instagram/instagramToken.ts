@@ -49,7 +49,7 @@ export async function getInstagramAccessToken(deps: TokenSelectionDeps): Promise
       error: sanitizeError(err, [deps.secretToken]),
     });
   }
-  return deps.secretToken;
+  return deps.secretToken.trim();
 }
 
 export interface TokenStatusPatch {
@@ -117,7 +117,7 @@ export async function refreshInstagramToken(deps: RefreshDeps): Promise<RefreshO
     });
   }
   const usable = stored && stored.expiresAt.getTime() > now.getTime() ? stored : null;
-  const token = usable ? usable.accessToken : deps.secretToken;
+  const token = usable ? usable.accessToken : deps.secretToken.trim();
   const expiresAt = usable ? usable.expiresAt : FALLBACK_EXPIRY;
   const refreshedAt = usable ? usable.refreshedAt : null;
   const secrets = [deps.secretToken, stored?.accessToken ?? ''];

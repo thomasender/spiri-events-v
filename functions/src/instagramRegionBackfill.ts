@@ -3,7 +3,11 @@ import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { becameEnabled, regionIdFromAccountDocId } from './instagram/instagramRegionAccounts';
+import {
+  becameEnabled,
+  regionIdFromAccountDocId,
+  shouldAutoBackfill,
+} from './instagram/instagramRegionAccounts';
 import { resolveCredentialsForRegion, runRegionBackfill } from './instagramRegionStore';
 import { sanitizeError } from './instagram/instagramPublish';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
@@ -22,7 +26,9 @@ const IG_USER_ID = defineSecret('IG_USER_ID');
  * userId and token), publish the region's already approved, consented and not
  * yet past events once. Bounded to one batch per run; the admin callable
  * adminBackfillInstagramRegion continues with the rest. Idempotent via the
- * instagram_posts dedupe docs.
+ * instagram_posts dedupe docs. A region doc with a launch plan
+ * (launchStartAt) gets no automatic backfill: the launch drip
+ * (instagramRegionLaunchDrip) spreads the backlog over several days instead.
  */
 export const onInstagramRegionAccountEnabled = onDocumentWritten(
   {
@@ -38,7 +44,13 @@ export const onInstagramRegionAccountEnabled = onDocumentWritten(
     const docId = typeof event.params.docId === 'string' ? event.params.docId : '';
     const regionId = regionIdFromAccountDocId(docId);
     if (!regionId || regionId === 'vorarlberg') return;
-    if (!becameEnabled(event.data?.before.data(), event.data?.after.data(), regionId)) return;
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!becameEnabled(before, after, regionId)) return;
+    if (!shouldAutoBackfill(before, after, regionId)) {
+      logger.info('Instagram backfill skipped: region has a launch plan', { regionId });
+      return;
+    }
     const db = getFirestore();
     try {
       const credentials = await resolveCredentialsForRegion(db, regionId, {
