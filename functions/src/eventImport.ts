@@ -559,6 +559,9 @@ export function candidateToEventData(
       sourceUrl,
       importedAt: now,
       claimable: true,
+      // The picture's link on the organizer's page, shown to staff while the event is pending (never
+      // copied, never public: EventCoverImage only uses it while `consentAt` is missing).
+      ...(httpsLink(candidate.imageUrl) ? { sourceImageUrl: httpsLink(candidate.imageUrl) } : {}),
       // The source named no usable price: 'free' above is only the form default, so the review
       // must check the price before anything is approved.
       ...(CONTRIBUTIONS.includes(str(x.contribution)) ? {} : { priceUnknown: true }),

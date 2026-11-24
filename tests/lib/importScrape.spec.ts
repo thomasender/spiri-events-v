@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildUserAgent,
+  extractImageUrls,
   extractJsonLdEvents,
   icsHasEvent,
   htmlToText,
@@ -125,5 +126,20 @@ describe('structured events', () => {
     expect(upcoming('2026-12-19T18:00', '2026-11-24')).toBe(true);
     expect(upcoming('2026-11-24', '2026-11-24')).toBe(false);
     expect(upcoming('', '2026-11-24')).toBe(false);
+  });
+});
+
+describe('extractImageUrls', () => {
+  it('reads og:image, twitter:image and the Event JSON-LD image, resolves relative links', () => {
+    const html = `<meta property="og:image" content="/img/a.jpg"><meta name="twitter:image" content="https://x.org/b.jpg">
+<script type="application/ld+json">{"@type":"Event","name":"E","image":["https://x.org/c.jpg",{"url":"https://x.org/d.jpg"}]}</script>
+<meta property="og:image" content="javascript:alert(1)">`;
+    expect(extractImageUrls(html, 'https://x.org/events/1')).toEqual([
+      'https://x.org/img/a.jpg',
+      'https://x.org/b.jpg',
+      'https://x.org/c.jpg',
+      'https://x.org/d.jpg',
+    ]);
+    expect(extractImageUrls('<p>nothing</p>', 'https://x.org')).toEqual([]);
   });
 });

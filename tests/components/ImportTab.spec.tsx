@@ -120,8 +120,8 @@ describe('ImportTab access', () => {
 });
 
 describe('Kandidaten', () => {
-  it('shows the facts and links without loading an image', () => {
-    const { container } = render(<ImportTab />);
+  it("shows the facts, the links and the organizer's picture (no referrer)", () => {
+    render(<ImportTab />);
     const card = screen.getByTestId('import-candidate-c1');
     expect(card).toHaveTextContent('Yoga Abend');
     expect(card).toHaveTextContent('2026-12-02 18:00');
@@ -135,7 +135,9 @@ describe('Kandidaten', () => {
       'href',
       'https://yoga.test/img.jpg'
     );
-    expect(container.querySelector('img')).toBeNull();
+    const img = within(card).getByTestId('candidate-image');
+    expect(img).toHaveAttribute('src', 'https://yoga.test/img.jpg');
+    expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
     expect(screen.getByTestId('import-count-found')).toHaveTextContent('2');
   });
 

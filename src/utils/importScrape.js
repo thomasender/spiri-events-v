@@ -277,3 +277,51 @@ export function icsHasEvent(candidate, icsEvents) {
   }
   return { ok: false, how: 'missing' };
 }
+
+// ── images ────────────────────────────────────────────────────────────
+
+function metaContent(html, attr, name) {
+  const re = new RegExp(`<meta[^>]*\\b${attr}=["']${name}["'][^>]*>`, 'i');
+  const tag = re.exec(String(html ?? ''))?.[0];
+  if (!tag) return '';
+  return decodeEntities(/\bcontent=["']([^"']*)["']/i.exec(tag)?.[1] ?? '').trim();
+}
+
+/**
+ * Candidate image URLs of a page, best first: og:image, twitter:image, the JSON-LD `image` of an
+ * Event. Relative URLs are resolved against `baseUrl`; only http(s) results are returned. The caller
+ * decides which one is allowed (`isImageUrlAllowed`: the organizer's own domain).
+ */
+export function extractImageUrls(html, baseUrl) {
+  const raw = [
+    metaContent(html, 'property', 'og:image'),
+    metaContent(html, 'property', 'og:image:secure_url'),
+    metaContent(html, 'name', 'twitter:image'),
+  ];
+  const re = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(String(html ?? '')))) {
+    try {
+      const found = [];
+      collectEvents(JSON.parse(m[1].trim()), found);
+      for (const e of found) {
+        for (const img of asArray(e.image))
+          raw.push(typeof img === 'string' ? img : (img?.url ?? ''));
+      }
+    } catch {
+      /* skipped */
+    }
+  }
+  const out = [];
+  for (const r of raw) {
+    if (!r) continue;
+    try {
+      const u = new URL(r, baseUrl);
+      if ((u.protocol === 'https:' || u.protocol === 'http:') && !out.includes(u.href))
+        out.push(u.href);
+    } catch {
+      /* not a URL */
+    }
+  }
+  return out;
+}

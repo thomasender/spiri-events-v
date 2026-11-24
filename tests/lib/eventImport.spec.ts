@@ -294,10 +294,11 @@ describe('candidateToEventData', () => {
     );
   });
 
-  it('carries no image fields, no consent and no e-mail', () => {
+  it('carries no image fields (only the staff preview link), no consent and no e-mail', () => {
     const data = candidateToEventData(candidate, organizer, 'curatorUid', { now });
     for (const key of Object.keys(data)) expect(key.toLowerCase()).not.toContain('image');
-    expect(JSON.stringify(data)).not.toContain('kakao.jpg');
+    // The picture exists only as a link in curation.sourceImageUrl (staff preview), nowhere else.
+    expect(JSON.stringify({ ...data, curation: undefined })).not.toContain('kakao.jpg');
     expect(JSON.stringify(data)).not.toContain('info@yoga-zuerich.ch');
     expect((data.curation as Record<string, unknown>).consentAt).toBeUndefined();
     expect(isCuratedWithoutConsent(data)).toBe(true);
@@ -342,6 +343,25 @@ describe('candidateToEventData', () => {
     expect(make('donation').contribution).toBe('donation');
     expect(make('unspecified').contribution).toBe('unspecified');
     expect(make('fee')).toMatchObject({ contribution: 'fee', fee: 5 });
+  });
+
+  it('keeps the picture link of the candidate as curation.sourceImageUrl (https only)', () => {
+    const make = (imageUrl: string | null) =>
+      candidateToEventData(
+        { ...candidate, imageUrl, rawExtract: { title: 'A', date: '2026-12-01' } },
+        organizer,
+        'curatorUid',
+        { now }
+      );
+    expect(
+      (make('https://org.example/a.jpg').curation as Record<string, unknown>).sourceImageUrl
+    ).toBe('https://org.example/a.jpg');
+    expect(
+      (make('javascript:alert(1)').curation as Record<string, unknown>).sourceImageUrl
+    ).toBeUndefined();
+    expect((make(null).curation as Record<string, unknown>).sourceImageUrl).toBeUndefined();
+    // never an image field on the event itself before consent
+    expect(make('https://org.example/a.jpg')).not.toHaveProperty('imageUrl');
   });
 
   it('falls back to safe defaults for odd extracts', () => {

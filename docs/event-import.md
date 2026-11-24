@@ -156,6 +156,19 @@ curation: {
   changes requested, ...) reaches the organizer before consent. `slug` and server timestamps
   are left to the caller (the slug trigger makes it unique).
 
+## Pictures of imported events
+
+A candidate may carry `imageUrl`, a link to the picture on the organizer's page (`scripts/import-scrape/find-images.mjs`
+fills it; `isImageUrlAllowed` rules out social CDNs and the like). The link is only a link, taken over as found:
+nothing is downloaded or stored before the organizer consents (then `copyConsentedImages`, only with the image
+checkbox on the preview page, where the organizer states the picture rights).
+
+- Import tab: the candidate card shows the picture (`referrerPolicy="no-referrer"`, loaded in the admin's browser).
+- The event keeps the link as `curation.sourceImageUrl` (Admin SDK only). `EventCoverImage` uses it **only while
+  `curation.consentAt` is missing and the event has no picture of its own**, i.e. for staff looking at a pending
+  imported event (such an event is never public); it falls back to the category picture if the link does not load.
+  After consent the event shows its own copied picture or the category picture, never the foreign link.
+
 ## Price "Keine Angabe"
 
 `events.contribution` is `free` | `donation` | `fee` | `unspecified`. `unspecified` ("Keine Angabe") exists

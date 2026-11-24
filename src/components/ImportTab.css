@@ -222,3 +222,12 @@
 .import-progress {
   grid-column: 1 / -1;
 }
+
+.import-candidate-image {
+  display: block;
+  max-width: 14rem;
+  max-height: 9rem;
+  margin-top: var(--space-2);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}

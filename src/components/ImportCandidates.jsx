@@ -208,6 +208,21 @@ export default function ImportCandidates({ regionId, organizersById }) {
                     </>
                   )}
                 </p>
+                {c.imageUrl && (
+                  // The picture on the organizer's own page, loaded in the admin's browser only (no copy,
+                  // no referrer), so the reviewer sees what the organizer would be asked about.
+                  <img
+                    className="import-candidate-image"
+                    src={c.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    data-testid="candidate-image"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
               </div>
               {status === 'found' && (
                 <div className="moderation-card-actions">
