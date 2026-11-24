@@ -129,6 +129,17 @@ describe('validateCandidate', () => {
     expect(ok.imageDropped).toBe(false);
   });
 
+  it('keeps a donation and the end time (Spendenbasis, 10:00 to 17:30)', () => {
+    const r = v({ contribution: 'donation', fee: 5, time: '10:00', endTime: '17:30' });
+    expect(r.candidate).toMatchObject({
+      contribution: 'donation',
+      fee: null,
+      time: '10:00',
+      endTime: '17:30',
+    });
+    expect(v({ endTime: '5pm' }).candidate.endTime).toBe('');
+  });
+
   it('keeps unknown contribution, replaces a social link by the source page', () => {
     const r = v({ contribution: 'unknown', fee: 5, link: 'https://instagram.com/x' });
     expect(r.candidate.contribution).toBe('unknown');

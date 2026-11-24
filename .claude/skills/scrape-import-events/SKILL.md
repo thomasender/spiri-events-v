@@ -80,13 +80,14 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
          "title": "...",
          "date": "2026-12-18",
          "time": "19:00",
+         "endTime": "17:00",
          "endDate": "",
          "place": "Yoga Haus Dubs, Malzstrasse 19a",
          "city": "Zürich",
          "contribution": "fee",
          "fee": 90,
          "currency": "CHF",
-         "description": "1-2 own sentences",
+         "description": "1-2 own sentences, in the language of the page (German for DE/AT/CH)",
          "link": "https://... (the event page)",
          "categoryGuess": "Breathwork",
          "sourceUrl": "https://... (the page you read)",
@@ -101,9 +102,14 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
      checked against the live page in step 5 and shown to Thomas in the Import tab.
    - Future events only (the script drops past dates). If the page shows no year, derive it from the weekday
      (18. Dezember is a Friday in 2026) and lower `confidence`.
-   - `contribution`: `free`, `fee` (+ `fee`, `currency`) or `unknown` (never guess "free"). `sourceType`: `ical` or
-     `jsonld` when read from structured data, else `llm`.
+   - `contribution`: `free`, `donation` (Spendenbasis / freiwilliger Beitrag), `fee` (+ `fee`, `currency`; mention a
+     reduced price in the description) or `unknown`. Never guess "free": an unknown price ends up as "free" in the
+     event with only a note in the review, so look for the price on the organizer's linked pages first.
+     `sourceType`: `ical` or `jsonld` when read from structured data, else `llm`.
    - `categoryGuess`: the closest of our categories; the reviewer corrects it.
+   - Follow the links on the page that matter (course pages, "Kurstermine", price lists): they often carry the price,
+     the end time (`endTime`), a multi-day span (`endDate`) and more dates.
+   - A restriction that decides who may come (prior course needed, sold out) belongs in the description.
 5. **Verify** against the live pages (drops what is not on the page, keeps unreadable ones for a manual look):
    ```
    node scripts/import-scrape/verify.mjs <region>.json --out <region>.verified.json --keep-unreachable

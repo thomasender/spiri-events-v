@@ -240,6 +240,7 @@ export function validateCandidate(raw, { today }) {
   if (date <= today) return { ok: false, reason: 'past-date' };
   const endDate = isIsoDate(raw.endDate) && raw.endDate > date ? raw.endDate : '';
   const time = /^\d{2}:\d{2}$/.test(raw.time ?? '') ? raw.time : '';
+  const endTime = /^\d{2}:\d{2}$/.test(raw.endTime ?? '') ? raw.endTime : '';
 
   let imageUrl = null;
   let imageDropped = false;
@@ -248,7 +249,7 @@ export function validateCandidate(raw, { today }) {
     else imageDropped = true;
   }
 
-  const contribution = ['free', 'fee', 'unknown'].includes(raw.contribution)
+  const contribution = ['free', 'donation', 'fee', 'unknown'].includes(raw.contribution)
     ? raw.contribution
     : 'unknown';
   const fee =
@@ -268,6 +269,7 @@ export function validateCandidate(raw, { today }) {
       title,
       date,
       time,
+      endTime,
       endDate,
       place: text(raw.place, 200),
       city: text(raw.city, 120),
@@ -472,6 +474,7 @@ export function planIngest(file, ctx) {
         title: c.title,
         date: c.date,
         ...(c.time ? { time: c.time } : {}),
+        ...(c.endTime ? { endTime: c.endTime } : {}),
         ...(c.endDate ? { endDate: c.endDate } : {}),
         place: c.place,
         city: c.city,
