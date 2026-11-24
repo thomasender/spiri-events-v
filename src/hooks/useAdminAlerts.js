@@ -3,7 +3,7 @@ import { collection, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import { useReviewVisibility } from './useImportVisibility';
-import { filterCuratedForReview } from '../utils/eventImport';
+import { filterCuratedForReview, isCuratedWithoutConsent } from '../utils/eventImport';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 import { toMillis } from '../utils/staffNotifications';
@@ -24,6 +24,8 @@ export function useAdminAlerts(uid, enabled = true) {
   const regionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
   const [items, setItems] = useState([]);
   const [pendingIds, setPendingIds] = useState(() => new Set());
+  // Imported events still waiting for the organizer need nothing from the team (dot, counts).
+  const [attentionIds, setAttentionIds] = useState(() => new Set());
 
   useEffect(() => {
     if (!uid || !enabled) {
@@ -57,6 +59,7 @@ export function useAdminAlerts(uid, enabled = true) {
   useEffect(() => {
     if (!uid || !enabled) {
       setPendingIds(new Set());
+      setAttentionIds(new Set());
       return undefined;
     }
     // The pending events this account reviews (a moderator: her regions only;
@@ -64,15 +67,17 @@ export function useAdminAlerts(uid, enabled = true) {
     const access = getStaffAccess(role, regionKey ? regionKey.split(',') : []);
     return subscribeEventQueries(
       staffEventQuerySpecs({ access, uid, status: 'pending', includeOwn: false }),
-      (docs) =>
-        setPendingIds(
-          new Set(
-            filterCuratedForReview(docs, { isSuperAdmin, moderatorsSeeInReview }).map((d) => d.id)
-          )
-        ),
+      (docs) => {
+        const visible = filterCuratedForReview(docs, { isSuperAdmin, moderatorsSeeInReview });
+        setPendingIds(new Set(visible.map((d) => d.id)));
+        setAttentionIds(
+          new Set(visible.filter((d) => !isCuratedWithoutConsent(d)).map((d) => d.id))
+        );
+      },
       (err) => {
         console.warn('useAdminAlerts pending events error:', err?.code || err);
         setPendingIds(new Set());
+        setAttentionIds(new Set());
       }
     );
   }, [uid, enabled, role, regionKey, isSuperAdmin, moderatorsSeeInReview]);
@@ -95,5 +100,5 @@ export function useAdminAlerts(uid, enabled = true) {
     [uid, unreadByEvent]
   );
 
-  return { items, unreadCount, unreadByEvent, pendingIds, markRead };
+  return { items, unreadCount, unreadByEvent, pendingIds, attentionIds, markRead };
 }

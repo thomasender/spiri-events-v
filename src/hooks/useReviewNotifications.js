@@ -16,7 +16,7 @@ const MAX_SEEN_IDS = 500;
  * so it holds across devices.
  */
 export function useReviewNotifications(uid, enabled = true) {
-  const { unreadByEvent, pendingIds: allPendingIds } = useAdminAlerts(uid, enabled);
+  const { unreadByEvent, attentionIds: allPendingIds } = useAdminAlerts(uid, enabled);
   const { hasMessagesByEvent, unreadCountByEvent } = useEventsWithMessages();
   // Events "in Klärung" need no indicator until answered or edited (JtOsYv7n).
   const pendingIds = useMemo(

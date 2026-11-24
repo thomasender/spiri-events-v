@@ -48,6 +48,16 @@ vi.mock('../../src/hooks/useRegions', () => ({
   useRegions: () => ({ regions: mockRegions.current, loading: false }),
 }));
 
+const mockImport = vi.hoisted(() => ({
+  organizers: [] as Array<Record<string, unknown>>,
+  outreach: null as Record<string, unknown> | null,
+}));
+
+vi.mock('../../src/hooks/useImportData', () => ({
+  useAllImportOrganizers: () => ({ items: mockImport.organizers, loading: false, error: null }),
+  useLastOutreach: () => mockImport.outreach,
+}));
+
 vi.mock('../../src/hooks/useUserDisplayNames', () => ({
   useUserDisplayNames: () => mockUserDisplayNames,
 }));
@@ -109,6 +119,8 @@ beforeEach(() => {
   mockUseEventsWithMessages.lastStaffMessageByEvent = {};
   mockUserDisplayNames.namesByUid = {};
   mockUserDisplayNames.loading = false;
+  mockImport.organizers = [];
+  mockImport.outreach = null;
 });
 
 describe('ReviewTab — three sections (j67qz6b2)', () => {
@@ -667,16 +679,62 @@ describe('ReviewTab — imported events without consent', () => {
     curation: { sourceUrl: 'https://x.test', consentAt },
   });
 
-  it('shows the badges inside the card and disables approve without consent', () => {
-    mockUsePendingEvents.pendingEvents = [curated(null)];
+  it('puts an import without consent into its own section, with no approve button', () => {
+    mockUsePendingEvents.pendingEvents = [
+      curated(null),
+      { id: 'p1', title: 'Normal', status: 'pending' },
+    ];
     renderReviewTab();
+    const pending = screen.getByTestId('review-section-pending');
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('1');
+    expect(pending).not.toHaveTextContent('Importiertes Event');
+    const awaiting = screen.getByTestId('review-section-import-awaiting');
+    expect(awaiting).toHaveTextContent('Import: wartet auf den Veranstalter');
+    expect(screen.getByTestId('review-section-import-count')).toHaveTextContent('1');
+    expect(awaiting).toHaveTextContent('Importiertes Event');
     const badges = screen.getByTestId('review-curation-imp1');
-    expect(badges.closest('.event-card-badges')).not.toBeNull();
     expect(badges).toHaveTextContent('importiert');
     expect(badges).toHaveTextContent('ohne Consent');
-    const approve = screen.getByRole('button', { name: 'Genehmigen' }) as HTMLButtonElement;
-    expect(approve.disabled).toBe(true);
-    expect(approve.title).toMatch(/noch keine Zustimmung des Veranstalters/);
+    expect(awaiting.querySelector('button[title*="Genehmigen"]')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Genehmigen' })).toHaveLength(1);
+  });
+
+  it('shows only the import section (no empty pending section) when only imports wait', () => {
+    mockUsePendingEvents.pendingEvents = [curated(null)];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-section-pending')).not.toBeInTheDocument();
+    expect(screen.getByTestId('review-section-import-awaiting')).toBeInTheDocument();
+    expect(screen.queryByTestId('review-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('groups by organizer and tells a Super-Admin how far the mail is', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { ...curated(null), curation: { organizerRef: 'o1', sourceUrl: 'https://x.test' } },
+      {
+        ...curated(null),
+        id: 'imp2',
+        curation: { organizerRef: 'o1', sourceUrl: 'https://x.test' },
+      },
+    ];
+    mockImport.organizers = [{ id: 'o1', name: 'Shambhala Berlin', consent: 'asked' }];
+    mockImport.outreach = { status: 'sent', sentAt: new Date('2026-11-20T10:00:00Z') };
+    renderReviewTab();
+    const group = screen.getByTestId('review-import-organizer-o1');
+    expect(group).toHaveTextContent('Shambhala Berlin');
+    expect(screen.getByTestId('review-import-status-o1')).toHaveTextContent(
+      'Mail gesendet am 20.11.2026, noch keine Antwort'
+    );
+  });
+
+  it('says "noch nicht angeschrieben" without a mail', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { ...curated(null), curation: { organizerRef: 'o1', sourceUrl: 'https://x.test' } },
+    ];
+    mockImport.organizers = [{ id: 'o1', name: 'Neu', consent: 'none' }];
+    renderReviewTab();
+    expect(screen.getByTestId('review-import-status-o1')).toHaveTextContent(
+      'noch nicht angeschrieben'
+    );
   });
 
   it('allows approve with consent', () => {

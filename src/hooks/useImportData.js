@@ -86,6 +86,11 @@ export function useImportOrganizers(regionId, enabled = true) {
   );
 }
 
+/** Every organizer (bounded): the Review tab looks them up by id for imported events. */
+export function useAllImportOrganizers(enabled = true) {
+  return useLiveQuery(() => query(collection(db, IMPORT_ORGANIZERS), limit(500)), [], enabled);
+}
+
 /** Last outreach entry (the log is one doc per mail). */
 export function useLastOutreach(organizerId) {
   const { items } = useLiveQuery(
