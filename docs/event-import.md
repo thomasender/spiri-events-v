@@ -374,6 +374,24 @@ node scripts/ensure-curator-account.mjs --project spirieventsvbg --allow-prod --
   in the sign-up shape (`buildUserProfileDocs`, slug `tribe-redaktion`) and
   `app_settings/import.curatorUid`. Prints the UID. Idempotent.
 
+## Manual scraping (skill `scrape-import-events`)
+
+There is no crawler in the product yet (Trello ticket 12). Candidates are collected by hand together with a
+Super-Admin every few days, with the skill `.claude/skills/scrape-import-events/SKILL.md`: find organizers by
+niche and city, read their own pages through the polite fetch tool, write a discovery file, check every
+verbatim date quote against the live page, dry-run, import.
+
+- `scripts/import-scrape/fetch.mjs <url> [--structured|--full|--raw]` reads one page: robots.txt first, 6 s per
+  host (also across runs), generic User-Agent `TribeEventBot/1.0` (a contact address is sent **only** when the
+  person running it sets `SCRAPE_CONTACT`), stop at 403 / 429. `--structured` lists schema.org events (JSON-LD)
+  and iCal VEVENTs.
+- `scripts/import-scrape/verify.mjs <discovery.json> --out <file> [--keep-unreachable]` fetches each source page
+  once and keeps only the candidates whose `dateQuote` stands on it (iCal feeds: same date + similar title).
+- Pure logic (robots rules, HTML to text, JSON-LD / iCal parsing, quote check) is `src/utils/importScrape.js`,
+  tested in `tests/lib/importScrape.spec.ts`.
+- Discovery files hold organizers' contact addresses: keep them out of the repo.
+- Never: Eversports, Facebook, Instagram, anything behind a login, anything robots.txt forbids.
+
 ## Admin tab
 
 Verwaltung -> Regionen -> **Import** (`?tab=import`, Super-Admin only; everyone else gets
