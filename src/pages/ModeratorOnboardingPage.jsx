@@ -14,6 +14,8 @@ import {
 } from '../utils/placeSelection';
 import SeoMeta from '../components/SeoMeta';
 import ModeratorOnboardingWizard from '../components/ModeratorOnboardingWizard';
+import ModeratorPushIntro from '../components/ModeratorPushIntro';
+import { usePushDevice } from '../hooks/usePushDevice';
 import {
   MODERATOR_ONBOARDING_TEXT_VERSION,
   inviteErrorMessage,
@@ -45,6 +47,7 @@ export default function ModeratorOnboardingPage() {
   const [invite, setInvite] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [accepted, setAccepted] = useState(false);
+  const push = usePushDevice(user?.uid);
   const { allRegions, placeSelection, setPlaceSelection, rememberRegion } = useRegion();
   // The region the invitation is for (Trello f9bhbyUo): the page shows its header and texts,
   // and accepting makes it the person's own region, so nothing stale (an older place, the
@@ -115,6 +118,7 @@ export default function ModeratorOnboardingPage() {
           Du bist jetzt Moderator:in beim {tribe}. In der Verwaltung findest du die Events, die auf
           eine Freigabe warten. Schön, dass du da bist!
         </p>
+        <ModeratorPushIntro pushState={push.state} />
         {/* Full reload, so the new role is read again. */}
         <a href="/admin" className="btn btn-primary" data-testid="mod-invite-to-admin">
           Zur Verwaltung

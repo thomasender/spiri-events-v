@@ -58,6 +58,7 @@ import '../components/OnlineDot.css';
 
 // ModeratorOnboardingPage
 import '../components/ModeratorOnboardingWizard.css';
+import '../components/ModeratorPushIntro.css';
 import '../pages/ModeratorOnboardingPage.css';
 
 // PioniereOnboardingPage, AdminPage: MembersTab (PioniereAdminSection)

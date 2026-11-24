@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import ModeratorOnboardingWizard from '../../src/components/ModeratorOnboardingWizard';
+import ModeratorPushIntro from '../../src/components/ModeratorPushIntro';
 import ModeratorOnboardingPage from '../../src/pages/ModeratorOnboardingPage';
 import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
 import { STATIC_REGIONS } from '../../src/utils/regions';
@@ -301,5 +302,37 @@ describe('ModeratorOnboardingPage', () => {
         message: 'Invitation already used.',
       })
     ).toBe('Diese Einladung wurde schon angenommen.');
+  });
+});
+
+describe('ModeratorPushIntro (Trello 801)', () => {
+  const renderIntro = (pushState?: string) =>
+    render(
+      <MemoryRouter>
+        <ModeratorPushIntro pushState={pushState} />
+      </MemoryRouter>
+    );
+
+  it('shows nothing while push is not configured', () => {
+    renderIntro('disabled');
+    expect(screen.queryByTestId('mod-push-intro')).not.toBeInTheDocument();
+  });
+
+  it('explains the steps and links to the profile when push can be switched on', () => {
+    renderIntro('available');
+    expect(screen.getByTestId('mod-push-intro')).toBeInTheDocument();
+    expect(screen.getByText(/Push auf diesem Gerät/)).toBeInTheDocument();
+    expect(screen.getByTestId('mod-push-to-profile')).toHaveAttribute('href', '/profil');
+  });
+
+  it('tells iPhone users to add the page to the home screen first', () => {
+    renderIntro('ios-tab');
+    expect(screen.getByTestId('mod-push-ios')).toHaveTextContent('Zum Home-Bildschirm');
+  });
+
+  it('confirms when push is already on and offers no further step', () => {
+    renderIntro('active');
+    expect(screen.getByTestId('mod-push-active')).toBeInTheDocument();
+    expect(screen.queryByTestId('mod-push-to-profile')).not.toBeInTheDocument();
   });
 });
