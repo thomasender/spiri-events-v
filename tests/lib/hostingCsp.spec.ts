@@ -84,3 +84,29 @@ describe('private previews: event import and pre-entries (/vorschau/**)', () => 
     expect(prerender).not.toContain('datenschutz-import');
   });
 });
+
+describe('/admin: pictures of imported events', () => {
+  const adminRule = config.hosting.headers.find((h: { source: string }) => h.source === '/admin');
+  const adminCsp: string = adminRule.headers.find(
+    (h: { key: string }) => h.key === 'Content-Security-Policy'
+  ).value;
+  const adminDirective = (name: string) =>
+    adminCsp
+      .split(';')
+      .map((d) => d.trim())
+      .find((d) => d.startsWith(`${name} `))!
+      .split(/\s+/)
+      .slice(1);
+
+  it("lets staff see the organizer's picture (img-src https:), everything else equals the site policy", () => {
+    expect(adminDirective('img-src')).toContain('https:');
+    expect(directive('img-src')).not.toContain('https:');
+    const without = (s: string) =>
+      s
+        .split(';')
+        .map((d) => d.trim())
+        .filter((d) => !d.startsWith('img-src '))
+        .join('; ');
+    expect(without(adminCsp)).toBe(without(csp));
+  });
+});
