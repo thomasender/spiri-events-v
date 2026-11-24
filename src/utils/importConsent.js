@@ -117,6 +117,7 @@ export function formatPreviewWhen(event) {
 /** Price line as the calendar shows it. */
 export function formatPreviewPrice(event) {
   if (event.contribution === 'donation') return 'Freie Spende';
+  if (event.contribution === 'unspecified') return 'Keine Angabe';
   if (event.contribution !== 'fee' || event.fee == null) return 'Kostenlos';
   const currency = event.priceCurrency || 'EUR';
   const max = event.feeMax != null && event.feeMax > event.fee ? `–${event.feeMax}` : '';

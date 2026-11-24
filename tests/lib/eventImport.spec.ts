@@ -316,6 +316,34 @@ describe('candidateToEventData', () => {
     }
   });
 
+  it('an extract without a stated price becomes unspecified with the review flag, never free', () => {
+    const data = candidateToEventData(
+      {
+        ...candidate,
+        rawExtract: { title: 'Abend', date: '2026-12-01', contribution: 'unknown' },
+      },
+      organizer,
+      'curatorUid',
+      { now }
+    );
+    expect(data).toMatchObject({ contribution: 'unspecified', fee: null, priceCurrency: null });
+    expect((data.curation as Record<string, unknown>).priceUnknown).toBe(true);
+  });
+
+  it('keeps a price that is stated, also "unspecified" set by hand', () => {
+    const make = (contribution: string) =>
+      candidateToEventData(
+        { ...candidate, rawExtract: { title: 'A', date: '2026-12-01', contribution, fee: 5 } },
+        organizer,
+        'curatorUid',
+        { now }
+      );
+    expect(make('free').contribution).toBe('free');
+    expect(make('donation').contribution).toBe('donation');
+    expect(make('unspecified').contribution).toBe('unspecified');
+    expect(make('fee')).toMatchObject({ contribution: 'fee', fee: 5 });
+  });
+
   it('falls back to safe defaults for odd extracts', () => {
     const data = candidateToEventData(
       {
@@ -338,7 +366,7 @@ describe('candidateToEventData', () => {
     );
     expect(data).toMatchObject({
       time: '',
-      contribution: 'free',
+      contribution: 'unspecified',
       fee: null,
       priceCurrency: null,
       category: 'Sonstiges',

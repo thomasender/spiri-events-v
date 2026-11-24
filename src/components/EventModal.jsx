@@ -116,6 +116,8 @@ export default function EventModal({ event, onClose, user = null }) {
 
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
+  // "Keine Angabe": the organizer did not state a price (e.g. imported events); never shown as free
+  const isUnspecified = event.contribution === 'unspecified';
   const hasRemoteImage = Boolean(event.imageUrl);
 
   return (
@@ -145,7 +147,7 @@ export default function EventModal({ event, onClose, user = null }) {
               </div>
             )}
             <div
-              className={`modal-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : 'badge--fee'}`}
+              className={`modal-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : isUnspecified ? 'badge--unspecified' : 'badge--fee'}`}
             >
               <Ticket size={14} />
               <span>
@@ -153,14 +155,16 @@ export default function EventModal({ event, onClose, user = null }) {
                   ? 'Kostenlos'
                   : isDonation
                     ? 'Freie Spende'
-                    : event.fee
-                      ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
-                          event.feeNote ? ` / ${event.feeNote}` : ''
-                        }`
-                      : event.feeNote || 'Kostenpflichtig'}
+                    : isUnspecified
+                      ? 'Keine Angabe'
+                      : event.fee
+                        ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
+                            event.feeNote ? ` / ${event.feeNote}` : ''
+                          }`
+                        : event.feeNote || 'Kostenpflichtig'}
               </span>
             </div>
-            {event.firstSessionFree && !isFree && !isDonation && (
+            {event.firstSessionFree && !isFree && !isDonation && !isUnspecified && (
               <div className="modal-badge badge--free" data-testid="first-session-free-badge">
                 <span>1. Einheit gratis</span>
               </div>

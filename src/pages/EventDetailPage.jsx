@@ -463,6 +463,8 @@ export default function EventDetailPage() {
 
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
+  // "Keine Angabe": the organizer did not state a price (e.g. imported events); never shown as free
+  const isUnspecified = event.contribution === 'unspecified';
   const jsonLd = generateEventJsonLd(event, regions);
   const isOwner = user && event.createdBy === user.uid;
   const ticketLink = getTicketLink(event);
@@ -828,7 +830,7 @@ export default function EventDetailPage() {
             </div>
           )}
           <div
-            className={`event-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : 'badge--fee'}`}
+            className={`event-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : isUnspecified ? 'badge--unspecified' : 'badge--fee'}`}
           >
             <Ticket size={14} />
             <span>
@@ -836,11 +838,13 @@ export default function EventDetailPage() {
                 ? 'Kostenlos'
                 : isDonation
                   ? 'Freie Spende'
-                  : event.fee
-                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
-                        event.feeNote ? ` / ${event.feeNote}` : ''
-                      }`
-                    : event.feeNote || 'Kostenpflichtig'}
+                  : isUnspecified
+                    ? 'Keine Angabe'
+                    : event.fee
+                      ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
+                          event.feeNote ? ` / ${event.feeNote}` : ''
+                        }`
+                      : event.feeNote || 'Kostenpflichtig'}
             </span>
           </div>
           {canSeeFavoriteCount && favoriteCount !== null && (
@@ -849,7 +853,7 @@ export default function EventDetailPage() {
               <span>{favoriteCount === 1 ? '1 Favorit' : `${favoriteCount} Favoriten`}</span>
             </div>
           )}
-          {event.firstSessionFree && !isFree && !isDonation && (
+          {event.firstSessionFree && !isFree && !isDonation && !isUnspecified && (
             <div className="event-badge badge--free" data-testid="first-session-free-badge">
               <span>1. Einheit gratis</span>
             </div>

@@ -106,9 +106,11 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
      checked against the live page in step 5 and shown to Thomas in the Import tab.
    - Future events only (the script drops past dates). If the page shows no year, derive it from the weekday
      (18. Dezember is a Friday in 2026) and lower `confidence`.
-   - `contribution`: `free`, `donation` (Spendenbasis / freiwilliger Beitrag), `fee` (+ `fee`, `currency`; mention a
-     reduced price in the description) or `unknown`. Never guess "free": an unknown price ends up as "free" in the
-     event with only a note in the review, so look for the price on the organizer's linked pages first.
+   - `contribution`: `free`, `donation` (only when the page says so: "Spende", "Dana", "auf Spendenbasis", "freiwilliger
+     Beitrag"), `fee` (+ `fee`, `currency`; reduced prices and notes in the event's price note) or `unknown`. Never
+     guess: an unknown price becomes **"Keine Angabe"** in the event (a price option that exists only for imported
+     events), not "free" and not "donation". Look for the price on the organizer's linked pages first (course pages,
+     price lists). A price that is stated for one date does not automatically hold for the other dates.
      `sourceType`: `ical` or `jsonld` when read from structured data, else `llm`.
    - `categoryGuess`: the closest of our categories; the reviewer corrects it.
    - Follow the links on the page that matter (course pages, "Kurstermine", price lists): they often carry the price,

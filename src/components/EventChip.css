@@ -46,6 +46,15 @@
   background-color: var(--donation-text);
 }
 
+.event-chip--unspecified {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
+.event-chip--unspecified .event-chip-dot {
+  background-color: var(--text-secondary);
+}
+
 .event-chip-dot {
   width: 6px;
   height: 6px;

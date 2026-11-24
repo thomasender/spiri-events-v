@@ -168,6 +168,11 @@
   color: var(--donation-text);
 }
 
+.badge--unspecified {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
 .event-details {
   background: var(--bg-calendar);
   border-radius: var(--radius-md);

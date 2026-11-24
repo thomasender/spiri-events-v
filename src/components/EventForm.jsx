@@ -1511,6 +1511,22 @@ export default function EventForm({ event }) {
                 />
                 <span>Freie Spende</span>
               </label>
+              {/* Only imported events can have "Keine Angabe" (no price stated by the organizer):
+                  shown so the state is visible while editing, never offered when creating. */}
+              {event?.contribution === 'unspecified' && (
+                <label
+                  className={`radio-label ${formData.contribution === 'unspecified' ? 'active' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="contribution"
+                    value="unspecified"
+                    checked={formData.contribution === 'unspecified'}
+                    onChange={handleChange}
+                  />
+                  <span>Keine Angabe</span>
+                </label>
+              )}
             </div>
           </div>
 

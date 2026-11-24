@@ -156,6 +156,17 @@ curation: {
   changes requested, ...) reaches the organizer before consent. `slug` and server timestamps
   are left to the caller (the slug trigger makes it unique).
 
+## Price "Keine Angabe"
+
+`events.contribution` is `free` | `donation` | `fee` | `unspecified`. `unspecified` ("Keine Angabe") exists
+**only for imported events**: the organizer's page names no price, so the event must neither say "Kostenlos"
+nor "Kostenpflichtig" (decision Thomas, 2026-11-24). `candidateToEventData` maps a candidate with
+`contribution: 'unknown'` (or any other value) to `unspecified` and sets `curation.priceUnknown` for the review.
+Shown as the neutral badge "Keine Angabe" (event page, modal, chip, import preview), no offer in the JSON-LD,
+no price line in the Instagram text. The event wizard never offers it; the edit form only shows it for an event
+that already has it. Never guess a price: a donation is entered only when the page says so ("Spende",
+"Dana", "auf Spendenbasis").
+
 ## Consent states
 
 | `consent`   | Meaning                                                | Event public?                     |

@@ -1216,6 +1216,18 @@ describe('EventDetailPage — contribution badge (VtFz800s)', () => {
     expect(screen.getByText('Freie Spende')).toBeInTheDocument();
   });
 
+  it('shows "Keine Angabe" for events whose organizer named no price', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'unspecified', fee: null },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('Keine Angabe')).toBeInTheDocument();
+    expect(screen.queryByText('Kostenpflichtig')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kostenlos')).not.toBeInTheDocument();
+  });
+
   it('shows formatted price only for fee events with a fee and no note', async () => {
     mockFirestoreDoc.getDocResult = {
       id: baseEvent.id,

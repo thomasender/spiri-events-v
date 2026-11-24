@@ -425,7 +425,8 @@ export function isImageUrlAllowed(imageUrl: unknown, sourcePageUrl: unknown): bo
 
 // ── Candidate -> event ────────────────────────────────────────────────
 
-const CONTRIBUTIONS = ['free', 'donation', 'fee'];
+/** `unspecified` = "Keine Angabe": only imported events (the organizer's page names no price). */
+const CONTRIBUTIONS = ['free', 'donation', 'fee', 'unspecified'];
 const CURRENCIES = ['EUR', 'CHF'];
 const DEFAULT_CATEGORY = 'Sonstiges';
 const MAX_TITLE = 200;
@@ -504,7 +505,10 @@ export function candidateToEventData(
   const date = isoDate(x.date);
   if (!title || !date) throw new Error('candidate needs a title and a date (YYYY-MM-DD)');
 
-  const contribution = CONTRIBUTIONS.includes(str(x.contribution)) ? str(x.contribution) : 'free';
+  // No price on the organizer's page: "Keine Angabe", never "free".
+  const contribution = CONTRIBUTIONS.includes(str(x.contribution))
+    ? str(x.contribution)
+    : 'unspecified';
   const fee = contribution === 'fee' ? num(x.fee, 0, 100000) : null;
   const feeMax = contribution === 'fee' && fee !== null ? num(x.feeMax, fee, 100000) : null;
   const isOnline = x.isOnline === true;
