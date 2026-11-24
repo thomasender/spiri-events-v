@@ -52,6 +52,10 @@ export interface OutreachMailInput {
   /** The address the mail goes to as it was found (shown in the Art. 14 block). */
   contactEmail: string;
   regionName: string | null;
+  /** "in Tirol" / "im Burgenland" (RegionDatum.inPhrase); null = "in deiner Region". */
+  regionIn?: string | null;
+  /** Country of the region (AT, DE, CH, LI); picks the deintribe domain. */
+  country?: string | null;
   events: OutreachMailEvent[];
   previewUrl: string;
   declineUrl: string;
@@ -91,6 +95,19 @@ function calendarDate(ymd: string): string {
 }
 
 const MAX_LISTED_EVENTS = 10;
+
+/** Regional landing page shown in the mail (Trello vlEQpyMW: .de / .ch / .at by country). */
+export function tribeSiteFor(country: string | null | undefined): { host: string; url: string } {
+  const tld = country === 'DE' ? 'de' : country === 'CH' ? 'ch' : 'at';
+  const host = `www.deintribe.${tld}`;
+  return { host, url: `https://${host}` };
+}
+
+/** The vision sentence, regional (Trello vlEQpyMW: the region, not the whole DACH area). */
+export function visionText(regionIn: string | null | undefined): string {
+  const where = regionIn?.trim() || 'in deiner Region';
+  return `Unsere Vision: Veranstaltungen rund um Achtsamkeit, Bewegung und persönliche Entwicklung ${where} sichtbar machen und Menschen vor Ort mit Veranstaltungen und Gemeinschaften verbinden. So entstehen Nähe, echte Begegnungen und Zugehörigkeit ${where}.`;
+}
 
 /** The Art. 14 GDPR information, one entry per line (label, text). */
 export function art14Lines(input: {
@@ -170,6 +187,7 @@ export function renderOutreachMail(input: OutreachMailInput): OutreachMail {
   const paragraphs: string[] = [
     'Hallo,',
     `wir sind tribe, ein ehrenamtlich betriebener Veranstaltungskalender des gemeinnützigen Vereins Tribe Vorarlberg. Wir sammeln Veranstaltungen rund um eine bewusste, ganzheitliche Lebensweise.${region}`,
+    visionText(input.regionIn),
     `Auf deiner Website ${input.website} haben wir diese Veranstaltungen von ${name} gefunden:`,
     eventLines.join('\n'),
     `Deine E-Mail-Adresse haben wir aus dem Impressum bzw. den Kontaktangaben dieser Website.`,
@@ -178,7 +196,8 @@ export function renderOutreachMail(input: OutreachMailInput): OutreachMail {
     `Wenn du das nicht möchtest, genügt ein Klick:\n${input.declineUrl}\nOder antworte einfach mit "Nein" auf diese E-Mail. Dann löschen wir deine Angaben und schreiben dir nicht noch einmal.`,
     `Antwortest du nicht, löschen wir deine E-Mail-Adresse und alle Angaben zu deinen Veranstaltungen nach ${IMPORT_RETENTION_DAYS} Tagen (am ${deleteOn}). Dies ist unsere einzige E-Mail an dich.`,
     `Bei Fragen antworte einfach auf diese E-Mail.`,
-    'Viele Grüße\ntribe',
+    `Du möchtest uns kennenlernen? Antworte einfach auf diese E-Mail, wir melden uns für ein kurzes Gespräch.`,
+    `Viele Grüße\nPeter, Thomas und Jana (Dein Tribe)\n${tribeSiteFor(input.country).host}`,
   ];
 
   const art14 = art14Lines(input);
@@ -204,36 +223,70 @@ export function renderOutreachMail(input: OutreachMailInput): OutreachMail {
       .join('') +
     (more > 0 ? `<li>und ${more} weitere</li>` : '') +
     '</ul>';
+  const first = shown[0];
+  const site = tribeSiteFor(input.country);
+  const step = (nr: string, title: string, body: string) =>
+    `<p style="line-height:1.6;margin:0 0 14px 0;"><b style="color:#bd8d6d;">${nr}</b> &nbsp; <b>${escapeHtml(title)}</b><br>${escapeHtml(body)}</p>`;
+  const small = 'font-size:12px;line-height:1.5;color:#605e5e;';
   const html = `<!doctype html>
 <html lang="de">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>tribe</title></head>
-<body style="margin:0;padding:24px 16px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#161819;background:#ffffff;">
-<div style="max-width:600px;margin:0 auto;">
-${p(paragraphs[0])}
-${p(paragraphs[1])}
-${p(paragraphs[2])}
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Einladung – Dein Tribe</title></head>
+<body style="margin:0;background:#f5f2ef;font-family:Arial,Helvetica,sans-serif;color:#33302d;">
+<div style="display:none;">Deine Events sichtbar machen – nur mit deiner Zustimmung.</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f2ef;"><tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;">
+<tr><td style="padding:30px 38px 20px;text-align:center;background:#eae8e2;"><div style="font-family:Georgia,serif;font-size:28px;color:#63745c;">dein tribe</div><div style="font-size:11px;letter-spacing:2px;color:#777777;">BEWUSSTE EVENTS · ECHTE BEGEGNUNGEN</div></td></tr>
+<tr><td style="padding:35px 38px 10px;">
+<div style="font-size:12px;letter-spacing:2px;color:#bf8b6b;font-weight:bold;">EINE EINLADUNG AN DICH</div>
+<h1 style="font-family:Georgia,serif;font-weight:normal;font-size:30px;line-height:1.2;margin:14px 0;color:#292722;">Deine Events verdienen es, entdeckt zu werden.</h1>
+<p style="line-height:1.65;">Hallo,</p>
+<p style="line-height:1.65;">wir sind <b>Dein Tribe</b> – ein ehrenamtlich betriebener Veranstaltungskalender des gemeinnützigen Vereins Tribe Vorarlberg, für bewusste Veranstaltungen, echte Begegnungen und Menschen, die gemeinsam wachsen möchten.${escapeHtml(region)}</p>
+<p style="line-height:1.65;">${escapeHtml(visionText(input.regionIn))}</p>
+<p style="line-height:1.65;">Auf deiner Website ${link(input.website)} haben wir diese Veranstaltungen von <b>${escapeHtml(name)}</b> gefunden:</p>
 ${eventsHtml}
-${p(paragraphs[4])}
-${p(paragraphs[5])}
-<p style="margin:0 0 14px 0;">Unter diesem privaten Link siehst du, wie die Einträge aussehen würden, und kannst zustimmen oder ablehnen (gültig bis ${escapeHtml(validUntil)}):<br>${link(input.previewUrl)}</p>
-<p style="margin:0 0 14px 0;">Wenn du das nicht möchtest, genügt ein Klick:<br>${link(input.declineUrl)}<br>Oder antworte einfach mit "Nein" auf diese E-Mail. Dann löschen wir deine Angaben und schreiben dir nicht noch einmal.</p>
-${p(paragraphs[8])}
-${p(paragraphs[9])}
-${p(paragraphs[10])}
-<div style="margin-top:28px;padding-top:12px;border-top:1px solid #e2dcd2;font-size:12px;line-height:1.5;color:#605e5e;">
-<p style="margin:0 0 6px 0;font-weight:bold;">Datenschutzinformation (Art. 14 DSGVO)</p>
+<p style="line-height:1.65;">Deine E-Mail-Adresse haben wir aus dem Impressum bzw. den Kontaktangaben dieser Website.</p>
+<p style="line-height:1.65;"><b>Wir möchten dich und deine Veranstaltungen dabei haben.</b> Wir würden diese Veranstaltungen gern in unserem Kalender zeigen, mit einem Link auf deine Seite. <b>Ohne deine Zustimmung veröffentlichen wir nichts.</b> Bisher ist nichts davon öffentlich.</p>
+</td></tr>${
+    first
+      ? `
+<tr><td style="padding:5px 38px 15px;"><table width="100%" role="presentation" style="background:#f0eee9;border:1px solid #e1dcd3;border-radius:12px;"><tr><td style="padding:22px;">
+<div style="font-size:12px;color:#a87859;letter-spacing:1.5px;">SO KÖNNTE DEIN EVENT AUSSEHEN</div>
+<div style="margin-top:14px;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e5e1db;"><div style="padding:16px;"><div style="font-size:11px;color:#a87859;">EVENTKALENDER · VORSCHAU</div><div style="font-family:Georgia,serif;font-size:22px;margin:7px 0;">${escapeHtml(first.title)}</div><div style="color:#666666;font-size:13px;">${escapeHtml(calendarDate(first.date))} · ${escapeHtml(name)}</div><div style="margin-top:14px;font-size:12px;color:#687b60;">● Vorschau – noch nicht öffentlich</div></div></div>
+<div style="${small}margin-top:10px;">Schematische Vorschau – die tatsächliche Darstellung siehst du über deinen privaten Link.</div>
+</td></tr></table></td></tr>`
+      : ''
+  }
+<tr><td style="padding:10px 38px 20px;">
+<h2 style="font-family:Georgia,serif;font-size:24px;font-weight:normal;">So einfach geht’s</h2>
+${step('01', 'Wir haben alles vorbereitet.', 'Deine Events liegen als Entwürfe bereit. Nichts davon ist öffentlich.')}
+${step('02', 'Du schaust es dir an.', `Über deinen privaten Link siehst du die Vorschau (gültig bis ${validUntil}).`)}
+${step('03', 'Du gibst frei.', 'Erst mit deiner Zustimmung werden die Events sichtbar. Wenn du möchtest, kannst du optional einmalig für alle künftigen Events zustimmen – dann entfällt die Bestätigung für jedes einzelne.')}
+<p style="background:#f5f2ef;padding:14px;border-radius:8px;font-size:14px;line-height:1.5;"><b>Du behältst die Kontrolle:</b> Wir veröffentlichen nichts ohne deine Freigabe.</p>
+<div style="text-align:center;margin:26px 0 10px;"><a href="${escapeHtml(input.previewUrl)}" style="display:inline-block;background:#be8e6d;color:#ffffff;border-radius:28px;padding:15px 25px;font-weight:bold;text-decoration:none;">Deine persönliche Vorschau ansehen</a></div>
+<p style="${small}text-align:center;margin:0 0 6px 0;">Falls der Button nicht funktioniert: ${link(input.previewUrl)}</p>
+</td></tr>
+<tr><td style="padding:10px 38px 25px;">
+<p style="font-size:14px;line-height:1.65;color:#514b45;margin:0 0 14px 0;">Als Verein bieten wir dir die Einbindung während unserer Aufbauphase <b>kostenlos und unverbindlich</b> an. Du kannst sie jederzeit beenden. Über mögliche Änderungen, auch bei den Kosten, informieren wir dich rechtzeitig vorab – zunächst sollst du selbst erleben, welchen Mehrwert Dein Tribe für dich bietet.</p>
+<p style="font-size:14px;line-height:1.65;color:#514b45;margin:0 0 14px 0;"><b>Du möchtest das nicht?</b> Dann genügt ein Klick:<br>${link(input.declineUrl)}<br>Oder antworte einfach mit „Nein“ auf diese E-Mail. Dann löschen wir deine Angaben und schreiben dir nicht noch einmal.</p>
+<p style="font-size:14px;line-height:1.65;color:#514b45;margin:0 0 14px 0;">Antwortest du nicht, löschen wir deine E-Mail-Adresse und alle Angaben zu deinen Veranstaltungen nach ${IMPORT_RETENTION_DAYS} Tagen (am ${escapeHtml(deleteOn)}). Dies ist unsere einzige E-Mail an dich. Bei Fragen antworte einfach auf diese E-Mail.</p>
+<h2 style="font-family:Georgia,serif;font-size:22px;font-weight:normal;margin:26px 0 8px 0;">Du möchtest uns kennenlernen?</h2>
+<p style="font-size:14px;line-height:1.65;color:#514b45;margin:0 0 14px 0;">Wenn du Fragen hast oder mehr über unsere Vision erfahren möchtest, antworte einfach auf diese E-Mail – wir melden uns für ein kurzes Gespräch.</p>
+<p style="margin:24px 0 6px 0;line-height:1.7;">Alles Liebe<br><b>Peter, Thomas und Jana</b><br><a href="${escapeHtml(site.url)}" style="color:#687b60;">${escapeHtml(site.host)}</a></p>
+</td></tr>
+<tr><td style="padding:22px 38px 28px;background:#eae8e2;">
+<p style="margin:0 0 6px 0;font-size:12px;font-weight:bold;color:#605e5e;">Datenschutzinformation (Art. 14 DSGVO)</p>
 ${art14
   .map(
     ([label, value]) =>
-      `<p style="margin:0 0 6px 0;"><strong>${escapeHtml(label)}:</strong> ${
+      `<p style="${small}margin:0 0 6px 0;"><strong>${escapeHtml(label)}:</strong> ${
         /^https?:\/\//.test(value) ? link(value) : escapeHtml(value)
       }</p>`
   )
   .join('\n')}
-<p style="margin:16px 0 6px 0;font-weight:bold;">Impressum</p>
-<p style="margin:0;">${imprintLines().map(escapeHtml).join('<br>')}</p>
-</div>
-</div>
+<p style="margin:16px 0 6px 0;font-size:12px;font-weight:bold;color:#605e5e;">Impressum</p>
+<p style="${small}margin:0;">${imprintLines().map(escapeHtml).join('<br>')}</p>
+</td></tr>
+</table></td></tr></table>
 </body>
 </html>`;
 

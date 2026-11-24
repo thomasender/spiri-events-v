@@ -35,6 +35,8 @@ const mail = renderOutreachMail({
   website: 'https://www.yoga-beispiel.at',
   contactEmail: 'info@yoga-beispiel.at',
   regionName: 'Tirol',
+  regionIn: 'in Tirol',
+  country: 'AT',
   events: [
     { title: 'Kakaozeremonie', date: '2026-12-05', link: 'https://www.yoga-beispiel.at/kakao' },
     { title: 'Yin Yoga am Abend', date: '2026-12-12', link: 'https://www.yoga-beispiel.at/yin' },
