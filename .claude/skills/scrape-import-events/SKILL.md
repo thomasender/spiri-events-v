@@ -21,9 +21,13 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
   source), (4) Eventfrog / Meetup only through their official APIs (not available: skip).
 - **Never:** Eversports (its terms forbid it), Facebook, Instagram, Eventbrite search, anything behind a login,
   anything robots.txt forbids, any circumvention. **Stop at the first 403 or 429 of a host**, do not retry.
-- Only facts: title, date, time, place, price, link, a short own-words description, the source page and the
-  verbatim date quote. No copied long texts, no personal names of private persons, **no images** (leave
-  `imageUrl` empty; it is only allowed if it is a URL on the organizer's own domain, and we never copy it).
+- Facts: title, date, time, place, price (with its note), link, the source page and the verbatim date quote. The
+  **description is taken over as the organizer wrote it** (Thomas' decision, 2026-11-24): copy the event's own
+  description paragraph from the page word for word, shortened at a sentence end if it is very long. **No own
+  wording, no summaries, no translations**, whatever the language. Publication only ever happens after the
+  organizer consented in the preview, which shows the description and names it in the consent text. No personal
+  names of private persons, **no images** (leave `imageUrl` empty; it is only allowed if it is a URL on the
+  organizer's own domain, and we never copy it).
 - Organizer record: name, website, `legalForm` (`company` | `verein` | `individual` | `unknown`; sole traders and
   yoga teachers working alone are `individual`, they are excluded from the pilot), and **only a functional
   contact address** (info@, kontakt@, hello@ from the Impressum or contact page). No personal addresses. No
@@ -87,7 +91,7 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
          "contribution": "fee",
          "fee": 90,
          "currency": "CHF",
-         "description": "1-2 own sentences, in the language of the page (German for DE/AT/CH)",
+         "description": "the organizer's own description, verbatim from the page",
          "link": "https://... (the event page)",
          "categoryGuess": "Breathwork",
          "sourceUrl": "https://... (the page you read)",
