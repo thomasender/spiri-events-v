@@ -3,6 +3,7 @@
 //
 //   node scripts/render-import-outreach-mail.mjs          plain text
 //   node scripts/render-import-outreach-mail.mjs --html   HTML
+//   node scripts/render-import-outreach-mail.mjs --schlicht  the image-free look (default: with logo and team photos)
 //   node scripts/render-import-outreach-mail.mjs --test   with the "[TEST]" subject
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
@@ -47,6 +48,8 @@ const mail = renderOutreachMail({
   linkValidUntil: new Date(now.getTime() + 7 * day).toISOString(),
   deleteAfter: new Date(now.getTime() + IMPORT_RETENTION_DAYS * day).toISOString(),
   test: args.has('--test'),
+  variant: args.has('--schlicht') ? 'schlicht' : 'bilder',
+  assetBase: origin,
 });
 
 console.log(`An: ${mail.to}`);

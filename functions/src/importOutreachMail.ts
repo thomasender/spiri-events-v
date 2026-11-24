@@ -11,7 +11,18 @@
 import { escapeHtml } from './emailTemplates';
 
 /** Bump when the meaning of the mail changes; stored on the outreach log. */
-export const OUTREACH_TEMPLATE_VERSION = '2026-11-v1';
+export const OUTREACH_TEMPLATE_VERSION = '2026-11-v2';
+
+/**
+ * Two looks of the same mail (same text, same legal parts):
+ * - `bilder`: logo, step badges and the team photos, loaded from our own
+ *   domain (`<assetBase>/mail/*`, files in public/mail/); no tracking pixel, no third party.
+ * - `schlicht`: the same mail without any image.
+ * `bilder` is the default; `schlicht` is kept but currently unused. It is also what a
+ * render without `assetBase` falls back to (an image URL needs an origin).
+ */
+export type OutreachVariant = 'bilder' | 'schlicht';
+export const OUTREACH_DEFAULT_VARIANT: OutreachVariant = 'bilder';
 
 /** Organizers who do not answer: their data is deleted this many days after the mail. */
 export const IMPORT_RETENTION_DAYS = 90;
@@ -67,6 +78,10 @@ export interface OutreachMailInput {
   deleteAfter: string;
   /** Prefix the subject with "[TEST] " (staging / test recipient). */
   test?: boolean;
+  /** Look of the mail, default `OUTREACH_DEFAULT_VARIANT`. */
+  variant?: OutreachVariant;
+  /** Site origin the mail images are loaded from (`<assetBase>/mail/...`), no trailing slash. */
+  assetBase?: string;
 }
 
 export interface OutreachMail {
@@ -225,8 +240,14 @@ export function renderOutreachMail(input: OutreachMailInput): OutreachMail {
     '</ul>';
   const first = shown[0];
   const site = tribeSiteFor(input.country);
+  const rich = (input.variant ?? OUTREACH_DEFAULT_VARIANT) === 'bilder' && !!input.assetBase;
+  const img = (file: string) => `${(input.assetBase ?? '').replace(/\/$/, '')}/mail/${file}`;
+  const person = (file: string, who: string, role: string) =>
+    `<td align="center" width="33%" style="padding:0 6px;"><img src="${escapeHtml(img(file))}" width="96" height="96" alt="${escapeHtml(who)}" style="display:block;width:96px;height:96px;border-radius:50%;border:3px solid #eae8e2;margin:0 auto;"><div style="margin-top:8px;font-size:14px;font-weight:bold;color:#33302d;">${escapeHtml(who)}</div><div style="font-size:12px;color:#777777;">${escapeHtml(role)}</div></td>`;
   const step = (nr: string, title: string, body: string) =>
-    `<p style="line-height:1.6;margin:0 0 14px 0;"><b style="color:#bd8d6d;">${nr}</b> &nbsp; <b>${escapeHtml(title)}</b><br>${escapeHtml(body)}</p>`;
+    rich
+      ? `<p style="line-height:1.6;margin:0 0 14px 0;"><span style="display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;border-radius:50%;background:#be8e6d;color:#ffffff;font-weight:bold;font-size:13px;margin-right:8px;">${nr}</span><b>${escapeHtml(title)}</b><br>${escapeHtml(body)}</p>`
+      : `<p style="line-height:1.6;margin:0 0 14px 0;"><b style="color:#bd8d6d;">${nr}</b> &nbsp; <b>${escapeHtml(title)}</b><br>${escapeHtml(body)}</p>`;
   const small = 'font-size:12px;line-height:1.5;color:#605e5e;';
   const html = `<!doctype html>
 <html lang="de">
@@ -235,8 +256,7 @@ export function renderOutreachMail(input: OutreachMailInput): OutreachMail {
 <div style="display:none;">Deine Events sichtbar machen – nur mit deiner Zustimmung.</div>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f2ef;"><tr><td align="center" style="padding:28px 12px;">
 <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;">
-<tr><td style="padding:30px 38px 20px;text-align:center;background:#eae8e2;"><div style="font-family:Georgia,serif;font-size:28px;color:#63745c;">dein tribe</div><div style="font-size:11px;letter-spacing:2px;color:#777777;">BEWUSSTE EVENTS · ECHTE BEGEGNUNGEN</div></td></tr>
-<tr><td style="padding:35px 38px 10px;">
+<tr><td style="padding:30px 38px 20px;text-align:center;background:#eae8e2;">${rich ? `<img src="${escapeHtml(img('logo.png'))}" width="60" height="42" alt="" style="display:block;margin:0 auto 6px;border:0;">` : ''}<div style="font-family:Georgia,serif;font-size:28px;color:#63745c;">dein tribe</div><div style="font-size:11px;letter-spacing:2px;color:#777777;">BEWUSSTE EVENTS · ECHTE BEGEGNUNGEN</div></td></tr><tr><td style="padding:35px 38px 10px;">
 <div style="font-size:12px;letter-spacing:2px;color:#bf8b6b;font-weight:bold;">EINE EINLADUNG AN DICH</div>
 <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:30px;line-height:1.2;margin:14px 0;color:#292722;">Deine Events verdienen es, entdeckt zu werden.</h1>
 <p style="line-height:1.65;">Hallo,</p>
@@ -271,7 +291,13 @@ ${step('03', 'Du gibst frei.', 'Erst mit deiner Zustimmung werden die Events sic
 <p style="font-size:14px;line-height:1.65;color:#514b45;margin:0 0 14px 0;">Antwortest du nicht, löschen wir deine E-Mail-Adresse und alle Angaben zu deinen Veranstaltungen nach ${IMPORT_RETENTION_DAYS} Tagen (am ${escapeHtml(deleteOn)}). Dies ist unsere einzige E-Mail an dich. Bei Fragen antworte einfach auf diese E-Mail.</p>
 <h2 style="font-family:Georgia,serif;font-size:22px;font-weight:normal;margin:26px 0 8px 0;">Du möchtest uns kennenlernen?</h2>
 <p style="font-size:14px;line-height:1.65;color:#514b45;margin:0 0 14px 0;">Wenn du Fragen hast oder mehr über unsere Vision erfahren möchtest, antworte einfach auf diese E-Mail – wir melden uns für ein kurzes Gespräch.</p>
-<p style="margin:24px 0 6px 0;line-height:1.7;">Alles Liebe<br><b>Peter, Thomas und Jana</b><br><a href="${escapeHtml(site.url)}" style="color:#687b60;">${escapeHtml(site.host)}</a></p>
+${
+  rich
+    ? `<p style="margin:24px 0 10px 0;line-height:1.7;">Alles Liebe</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:6px 0 4px;"><tr>${person('peter.jpg', 'Peter', 'Gründer')}${person('thomas.jpg', 'Thomas', 'Gründer')}${person('jana.jpg', 'Jana', 'Mitgründerin')}</tr></table>
+<p style="margin:14px 0 6px 0;text-align:center;line-height:1.7;"><b>Peter, Thomas und Jana</b><br><a href="${escapeHtml(site.url)}" style="color:#687b60;">${escapeHtml(site.host)}</a></p>`
+    : `<p style="margin:24px 0 6px 0;line-height:1.7;">Alles Liebe<br><b>Peter, Thomas und Jana</b><br><a href="${escapeHtml(site.url)}" style="color:#687b60;">${escapeHtml(site.host)}</a></p>`
+}
 </td></tr>
 <tr><td style="padding:22px 38px 28px;background:#eae8e2;">
 <p style="margin:0 0 6px 0;font-size:12px;font-weight:bold;color:#605e5e;">Datenschutzinformation (Art. 14 DSGVO)</p>

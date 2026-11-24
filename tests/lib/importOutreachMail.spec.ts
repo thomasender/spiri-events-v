@@ -87,6 +87,25 @@ describe('outreach mail', () => {
     expect(none.text).not.toMatch(/DACH/);
   });
 
+  it('default look loads logo and team photos only from our own domain, no hero, no tracking pixel', () => {
+    const base = 'https://tribe-vbg-staging.web.app';
+    const rich = renderOutreachMail(input({ assetBase: base }));
+    const srcs = [...rich.html.matchAll(/<img\b[^>]*\bsrc="([^"]+)"/g)].map((m) => m[1]);
+    expect(srcs).toEqual(
+      ['logo.png', 'peter.jpg', 'thomas.jpg', 'jana.jpg'].map((f) => `${base}/mail/${f}`)
+    );
+    expect(rich.html).not.toMatch(/hero/i);
+    expect(rich.html).not.toMatch(/width="1"|height="1"/);
+    // same words in text and in both looks (legal parts included)
+    const plain = renderOutreachMail(input({ assetBase: base, variant: 'schlicht' }));
+    expect(plain.html).not.toMatch(/<img\b/i);
+    expect(plain.text).toBe(rich.text);
+    for (const m of [rich, plain]) {
+      expect(m.html).toContain('Datenschutzinformation (Art. 14 DSGVO)');
+      expect(m.html).toContain('aktion=ablehnen');
+    }
+  });
+
   it('has no reminder and no marketing wording', () => {
     const all = `${mail.subject}\n${mail.text}`.toLowerCase();
     for (const word of [
@@ -107,7 +126,8 @@ describe('outreach mail', () => {
     ]) {
       expect(all).not.toContain(word);
     }
-    expect(mail.html).not.toMatch(/<img\b/i); // no tracking pixel, no images
+    // Without an asset origin the mail falls back to the image-free look.
+    expect(mail.html).not.toMatch(/<img\b/i);
   });
 
   it('escapes organizer data in the HTML and marks test sends', () => {

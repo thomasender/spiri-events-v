@@ -261,6 +261,15 @@ token is not routed through Mailgun redirects) -> `outreach/mail` `sent` + `mess
 `consent: asked`, `deleteAfter` = now + 90 days. A failed send is marked `failed` and may be retried.
 **One mail only: there is no reminder logic anywhere.**
 
+Look (`OutreachVariant`): the default `bilder` shows the logo, numbered step badges and the photos of
+Peter, Thomas and Jana (no hero photo, no tracking pixel). The images are plain files on our own
+domain, `<site origin>/mail/{logo.png,peter.jpg,thomas.jpg,jana.jpg}` (`public/mail/`), so the sender
+passes `assetBase: siteOrigin`. `schlicht` is the same mail without any image: kept, currently
+unused (`OUTREACH_DEFAULT_VARIANT` switches it; a render without `assetBase` also falls back to it).
+Text and legal parts are identical in both (`tests/lib/importOutreachMail.spec.ts`). Regional wording
+(Trello 809): the vision sentence names the region (`regionIn`, e.g. "in Tirol") and the footer link
+follows the country (`deintribe.at/.de/.ch`).
+
 Content (`renderOutreachMail`, `OUTREACH_TEMPLATE_VERSION`): who we are, the found events with
 links to the organizer's own pages, where the address came from (Impressum / contact page),
 "Ohne deine Zustimmung veröffentlichen wir nichts", the preview link with its expiry, a one-click
