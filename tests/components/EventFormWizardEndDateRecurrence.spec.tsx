@@ -600,3 +600,29 @@ describe('EventFormWizard — own time per single date (6afd86b4)', () => {
     expect(timeInput(0).value).toBe('10:00');
   });
 });
+
+describe('EventFormWizard — Enddatum only behind "Mehrtägiges Event" (ZpiR4tU8)', () => {
+  it('hides the Enddatum until the multi-day box is ticked, and clears it when unticked', () => {
+    seedDraft({ formData: { endDate: '', recurrence: 'none' } });
+    renderWizard();
+    const box = screen.getByTestId('multi-day-checkbox') as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    expect(document.getElementById('endDate')).toBeNull();
+
+    fireEvent.click(box);
+    expect(document.getElementById('endDate')).not.toBeNull();
+
+    fireEvent.change(document.getElementById('endDate') as HTMLInputElement, {
+      target: { value: '2099-01-05' },
+    });
+    fireEvent.click(box);
+    expect(document.getElementById('endDate')).toBeNull();
+  });
+
+  it('opens the box when a draft already has an end date', () => {
+    seedDraft();
+    renderWizard();
+    expect((screen.getByTestId('multi-day-checkbox') as HTMLInputElement).checked).toBe(true);
+    expect(document.getElementById('endDate')).not.toBeNull();
+  });
+});
