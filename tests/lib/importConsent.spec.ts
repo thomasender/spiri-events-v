@@ -18,6 +18,7 @@ import {
   planOrganizerPurge,
   resolveOutreachRecipient,
   sendOutreachMailHandler,
+  declineOrganizerHandler,
   submitImportConsentHandler,
   type CandidateDoc,
   type ConsentPlan,
@@ -132,6 +133,8 @@ function makeWorld({
   let outreachLog: OutreachLog | null = outreach;
   let tokens = 0;
   let slots = slotsUsed;
+  let realSends = 0;
+  const mailMeta: Array<{ organizerId: string }> = [];
   const slotDays: string[] = [];
 
   const applyPatch = (target: Doc, patch: Patch) => {
@@ -207,9 +210,13 @@ function makeWorld({
     updateOutreach: async (_id, patch) => {
       outreachLog = { ...(outreachLog as OutreachLog), ...patch };
     },
-    sendMail: async (mail) => {
+    recordRealSend: async () => {
+      realSends += 1;
+    },
+    sendMail: async (mail, meta) => {
       if (mailFails) throw new Error('mailgun down');
       mails.push(mail);
+      mailMeta.push(meta);
       return { id: '<msg-1@mg.thetribe.at>' };
     },
     regionNameOf: (id) => (id === 'tirol' ? 'Tirol' : null),
@@ -234,6 +241,8 @@ function makeWorld({
     imageCopies,
     outreach: () => outreachLog,
     slots: () => slots,
+    realSends: () => realSends,
+    mailMeta,
     slotDays,
   };
 }
@@ -538,6 +547,40 @@ describe('submitImportConsent', () => {
     );
   });
 
+  it('Super-Admin marks an organizer as declined (e.g. a "Nein" reply), audited with their uid', async () => {
+    const w = makeWorld();
+    const result = await declineOrganizerHandler(
+      { auth: { uid: 'admin' }, data: { organizerId: 'org1' } },
+      w.deps
+    );
+    expect(result).toMatchObject({ consent: 'declined', changed: true });
+    expect([...w.blocked].sort()).toEqual(
+      [blocklistId('info@yoga-tirol.at'), blocklistId('yoga-tirol.at')].sort()
+    );
+    expect(w.eventDocs.size).toBe(0);
+    expect(w.audit.at(-1)).toMatchObject({ actorUid: 'admin', consentAction: 'decline' });
+    // idempotent
+    const again = await declineOrganizerHandler(
+      { auth: { uid: 'admin' }, data: { organizerId: 'org1' } },
+      w.deps
+    );
+    expect(again.changed).toBe(false);
+    // not for a moderator, not for a claimed organizer
+    await expectCode(
+      declineOrganizerHandler({ auth: { uid: 'mod' }, data: { organizerId: 'org1' } }, w.deps),
+      'permission-denied'
+    );
+    const claimed = makeWorld({ organizer: baseOrganizer({ consent: 'claimed' }) });
+    await expectCode(
+      declineOrganizerHandler(
+        { auth: { uid: 'admin' }, data: { organizerId: 'org1' } },
+        claimed.deps
+      ),
+      'failed-precondition',
+      'claimed'
+    );
+  });
+
   it('a later decline withdraws an approval', async () => {
     const w = makeWorld();
     await submitImportConsentHandler({ data: approve() }, w.deps);
@@ -643,6 +686,8 @@ describe('outreach mail', () => {
     });
     expect(w.mails[0].subject.startsWith('[TEST] ')).toBe(false);
     expect(w.slots()).toBe(1);
+    expect(w.realSends()).toBe(1);
+    expect(w.mailMeta).toEqual([{ organizerId: 'org1' }]);
     expect(w.slotDays).toEqual([outreachDayKey(NOW)]);
     // limit reached: refused, nothing sent, no outreach doc
     const full = prod({}, 2);
@@ -670,6 +715,7 @@ describe('outreach mail', () => {
       t.deps
     );
     expect(t.slots()).toBe(0);
+    expect(t.realSends()).toBe(0);
   });
 
   it('normalizeOutreachSettings: off by default, limit clamped, day key in Vienna time', () => {

@@ -14,7 +14,15 @@ const state = vi.hoisted(() => ({
   organizers: [] as Array<Record<string, unknown>>,
   runs: [] as Array<Record<string, unknown>>,
   production: false,
-  control: { productionEnabled: false, dailyLimit: 10, sentToday: 0, loading: false },
+  lastOutreach: null as Record<string, unknown> | null,
+  control: {
+    productionEnabled: false,
+    dailyLimit: 10,
+    sentToday: 0,
+    pausedReason: null as string | null,
+    stats: { sent: 0, delivered: 0, bounced: 0, complained: 0 },
+    loading: false,
+  },
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -25,7 +33,7 @@ vi.mock('../../src/hooks/useImportData', () => ({
   useRegionCandidates: () => ({ items: state.candidates, loading: false, error: null }),
   useImportOrganizers: () => ({ items: state.organizers, loading: false, error: null }),
   useImportRuns: () => ({ items: state.runs, loading: false, error: null }),
-  useLastOutreach: () => null,
+  useLastOutreach: () => state.lastOutreach,
   useOutreachControl: () => state.control,
   useCandidateCounts: () => ({ found: 2, published: 1 }),
 }));
@@ -45,6 +53,7 @@ const api = vi.hoisted(() => ({
   sendOutreachMail: vi.fn(async (_: unknown) => ({ status: 'sent' })),
   isProductionProject: () => state.production,
   saveOutreachSettings: vi.fn(async (_: unknown) => {}),
+  importDeclineOrganizer: vi.fn(async (_: unknown) => ({ consent: 'declined' })),
   isOnBlocklist: vi.fn(async (_: unknown) => false),
   addToBlocklist: vi.fn(async (..._: unknown[]) => 'hash'),
   removeFromBlocklist: vi.fn(async (_: unknown) => 'hash'),
@@ -91,7 +100,15 @@ beforeEach(() => {
   state.organizers = [organizer()];
   state.runs = [];
   state.production = false;
-  state.control = { productionEnabled: false, dailyLimit: 10, sentToday: 0, loading: false };
+  state.lastOutreach = null;
+  state.control = {
+    productionEnabled: false,
+    dailyLimit: 10,
+    sentToday: 0,
+    pausedReason: null,
+    stats: { sent: 0, delivered: 0, bounced: 0, complained: 0 },
+    loading: false,
+  };
 });
 
 describe('ImportTab access', () => {
@@ -237,6 +254,41 @@ describe('Veranstalter', () => {
         testRecipient: 'ich@test.at',
       })
     );
+  });
+
+  describe('delivery and replies', () => {
+    it('shows how the last mail was delivered, the running totals and a pause with its reason', () => {
+      state.lastOutreach = { status: 'sent', delivery: 'bounced', sentAt: new Date(2026, 10, 24) };
+      state.control = {
+        ...state.control,
+        pausedReason: 'Spam-Beschwerde erhalten (1).',
+        stats: { sent: 20, delivered: 17, bounced: 2, complained: 1 },
+      };
+      open();
+      expect(screen.getByTestId('organizer-outreach')).toHaveTextContent(
+        'nicht zugestellt (Bounce)'
+      );
+      expect(screen.getByTestId('outreach-stats')).toHaveTextContent(
+        'Gesendet insgesamt: 20, zugestellt: 17, nicht zugestellt: 2, als Spam gemeldet: 1'
+      );
+      expect(screen.getByTestId('outreach-paused')).toHaveTextContent('Spam-Beschwerde');
+    });
+
+    it('marks an organizer as declined after a confirm, only while not decided', async () => {
+      open();
+      fireEvent.click(screen.getByTestId('mark-declined'));
+      expect(api.importDeclineOrganizer).not.toHaveBeenCalled();
+      fireEvent.click(confirmButton('Als abgelehnt markieren'));
+      await waitFor(() =>
+        expect(api.importDeclineOrganizer).toHaveBeenCalledWith({ organizerId: 'o1' })
+      );
+    });
+
+    it('offers no decline once the organizer decided', () => {
+      state.organizers = [organizer({ consent: 'manual_ok' })];
+      open();
+      expect(screen.queryByTestId('mark-declined')).toBeNull();
+    });
   });
 
   describe('real outreach mail', () => {

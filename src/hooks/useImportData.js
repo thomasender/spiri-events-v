@@ -147,6 +147,8 @@ export function useOutreachControl(enabled = true) {
     productionEnabled: false,
     dailyLimit: 10,
     sentToday: 0,
+    pausedReason: null,
+    stats: { sent: 0, delivered: 0, bounced: 0, complained: 0 },
     loading: Boolean(enabled),
   });
   useEffect(() => {
@@ -160,6 +162,7 @@ export function useOutreachControl(enabled = true) {
           patch({
             productionEnabled: d.productionEnabled === true,
             dailyLimit: Number.isInteger(d.dailyLimit) ? d.dailyLimit : 10,
+            pausedReason: typeof d.pausedReason === 'string' ? d.pausedReason : null,
           });
         },
         () => patch({})
@@ -167,6 +170,21 @@ export function useOutreachControl(enabled = true) {
       onSnapshot(
         doc(db, 'import_outreach_days', viennaDayKey()),
         (snap) => patch({ sentToday: snap.exists() ? Number(snap.data().count) || 0 : 0 }),
+        () => patch({})
+      ),
+      onSnapshot(
+        doc(db, 'import_outreach_stats', 'all'),
+        (snap) => {
+          const d = snap.exists() ? snap.data() : {};
+          patch({
+            stats: {
+              sent: Number(d.sent) || 0,
+              delivered: Number(d.delivered) || 0,
+              bounced: Number(d.bounced) || 0,
+              complained: Number(d.complained) || 0,
+            },
+          });
+        },
         () => patch({})
       ),
     ];

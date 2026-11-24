@@ -186,8 +186,10 @@ describe('Mailgun tracking switch', () => {
       text: 't',
       html: 'h',
       tracking: false,
+      variables: { organizerId: 'org1' },
     });
     const body = new URLSearchParams(fetchMock.mock.calls[0][1].body);
+    expect(body.get('v:organizerId')).toBe('org1');
     expect(body.get('o:tracking')).toBe('no');
     expect(body.get('o:tracking-clicks')).toBe('no');
     expect(body.get('o:tracking-opens')).toBe('no');

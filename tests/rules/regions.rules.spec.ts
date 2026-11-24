@@ -473,6 +473,10 @@ describe('event import (import_* collections, events.curation)', () => {
       await assertFails(getDoc(doc(db, path)));
       await assertFails(setDoc(doc(db, path), { productionEnabled: true, dailyLimit: 5 }));
     }
+    const stats = 'import_outreach_stats/all';
+    await assertFails(setDoc(doc(admin, stats), { sent: 1 }));
+    await assertSucceeds(getDoc(doc(admin, stats)));
+    await assertFails(getDoc(doc(ctx('mod'), stats)));
     const day = 'import_outreach_days/2026-11-24';
     await assertFails(setDoc(doc(admin, day), { count: 0 }));
     await assertSucceeds(getDoc(doc(admin, day)));

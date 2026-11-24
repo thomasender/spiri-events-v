@@ -723,7 +723,9 @@ export interface ImportDeps {
   claimOutreach: (organizerId: string, log: OutreachLog) => Promise<boolean>;
   updateOutreach: (organizerId: string, patch: Partial<OutreachLog>) => Promise<void>;
   /** Sends one mail (tracking off); returns the Mailgun message id. */
-  sendMail: (mail: OutreachMail) => Promise<{ id: string }>;
+  sendMail: (mail: OutreachMail, meta: { organizerId: string }) => Promise<{ id: string }>;
+  /** Counts one real (non-test) mail in the running totals the bounce rate is measured against. */
+  recordRealSend: () => Promise<void>;
   /** `app_settings/importOutreach`, normalised (missing = off, default limit). */
   getOutreachSettings: () => Promise<OutreachSettings>;
   /** Counts one real mail for `dayKey`; false (nothing counted) once `limit` is reached. */
@@ -846,6 +848,19 @@ export async function submitImportConsentHandler(
   // Token first, so a wrong link never learns anything about the other fields.
   const organizer = await organizerForToken(deps, data.token);
   const input = parseConsentInput(data);
+  return applyConsent(deps, organizer, input, PREVIEW_ACTOR);
+}
+
+/**
+ * Decide and apply a consent action for an organizer (shared by the public preview page and the
+ * Super-Admin's "mark as declined"). `actor` is written to the audit log.
+ */
+async function applyConsent(
+  deps: ImportDeps,
+  organizer: OrganizerRecord,
+  input: ConsentInput,
+  actor: string
+): Promise<ConsentResult> {
   const decision = decideConsent(organizer, input.action, input.scopes);
   if (decision.kind === 'refuse') {
     throw new HttpsError('failed-precondition', 'This decision cannot be changed here.', {
@@ -882,7 +897,7 @@ export async function submitImportConsentHandler(
   const approvedEvents = plan.eventUpdates.filter((u) => u.patch.status === 'approved').length;
   await deps.addAuditEntry({
     action: 'importConsent',
-    actorUid: PREVIEW_ACTOR,
+    actorUid: actor,
     organizerId: organizer.id,
     consentAction: input.action,
     scopes: input.scopes,
@@ -902,6 +917,27 @@ export async function submitImportConsentHandler(
     approvedEvents,
     imagesCopied: images.copied,
   };
+}
+
+/**
+ * Super-Admin: mark an organizer as declined, e.g. after a "Nein" reply by mail. Same effect as the
+ * decline link in the mail (data deleted, blocklist, no further mail). Idempotent.
+ */
+export async function declineOrganizerHandler(
+  request: CallableRequest,
+  deps: ImportDeps
+): Promise<ConsentResult> {
+  const actorUid = request.auth?.uid;
+  await assertSuperAdmin(actorUid, deps.readRoleDoc);
+  const organizerId = parseOrganizerId(request.data);
+  const organizer = await organizerOrNotFound(deps, organizerId);
+  const input: ConsentInput = {
+    token: '',
+    action: 'decline',
+    scopes: { ...NO_SCOPES },
+    wordingVersion: CONSENT_WORDING_VERSION,
+  };
+  return applyConsent(deps, organizer, input, actorUid as string);
 }
 
 export interface OutreachResult {
@@ -1009,7 +1045,7 @@ export async function sendOutreachMailHandler(
 
   let messageId: string;
   try {
-    ({ id: messageId } = await deps.sendMail(mail));
+    ({ id: messageId } = await deps.sendMail(mail, { organizerId }));
   } catch (err) {
     await deps.updateOutreach(organizerId, {
       status: 'failed',
@@ -1022,6 +1058,7 @@ export async function sendOutreachMailHandler(
     sentAt: new Date(deps.now()),
     messageId,
   });
+  if (!recipient.test) await deps.recordRealSend();
   await deps.updateOrganizer(organizerId, {
     consent: 'asked',
     deleteAfter: new Date(deleteAfterMs),
