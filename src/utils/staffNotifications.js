@@ -37,6 +37,23 @@ export function newReviewEventIds(pendingIds, seen, unreadAlerts = {}) {
 }
 
 /**
+ * Pending event ids that still call for the reviewer's attention (JtOsYv7n).
+ * An event "in Klärung" (a message thread exists) is already being handled, so
+ * it drops out until the organizer answers (unread message) or edits it
+ * (unread alert). `hasMessages` / `unreadMessages` are keyed by event id.
+ */
+export function reviewAttentionIds(
+  pendingIds,
+  hasMessages = {},
+  unreadMessages = {},
+  unreadAlerts = {}
+) {
+  return pendingIds.filter(
+    (id) => !hasMessages[id] || (unreadMessages[id] || 0) > 0 || Boolean(unreadAlerts[id])
+  );
+}
+
+/**
  * The staff member a conversation belongs to: whoever wrote the first staff
  * message ("In Klärung mit ..."). Null when no staff member has written yet.
  */

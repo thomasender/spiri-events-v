@@ -621,6 +621,7 @@ is a code change (see section 13).
   reject the query.
 - **Members tab for moderators:** per member of her regions name, username, registration date, Instagram handle and sharing consent, directory state; never the e-mail (`toModeratorMemberRow`).
 - **Coming-soon page** (`RegionComingSoonPage`): progress bar in percent of `REGION_EVENT_GOAL` (30, internal, never shown as a number; approved events of the region via `useRegionEventCount`), "Event eintragen" (events entered there get that region), invite button (share sheet or copied link), a quiet "Andere Regionen erkunden" link; no links to the active regions.
+  **Event teaser (Trello 6b046602):** above the progress bar `FeaturedEventTeaser` shows one hand-picked approved event (cover with focal point/zoom, eyebrow "Eröffnungsfeier", title, date, place, button "Zum Event" to `/event/<slug>`). Hard-wired in `src/config/featuredEventTeaser.js` (region `bodensee`, slug, `endDate`); the event is read by slug via `useFeaturedEvent` (approved only). Nothing renders for other regions, after `endDate`, or when the event is missing, not approved or over. **Remove the config, component and hook after the event** (27.11.2026).
 - Staff may see an inactive region's coming-soon page with a one-line note
   (`useCanPreviewRegion`); a real preview banner is a follow-up.
 - **Applying as Regions-Moderator:in:** `ModeratorApplyCard` (on the "Wo suchst du?" page and on
