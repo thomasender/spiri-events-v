@@ -27,6 +27,10 @@ import {
   type OrganizerRecord,
   type OutreachLog,
   type Patch,
+  normalizeOutreachSettings,
+  outreachDayKey,
+  OUTREACH_DAILY_LIMIT_DEFAULT,
+  OUTREACH_DAILY_LIMIT_MAX,
 } from '../../functions/src/importConsent';
 import { copyConsentedImages, importImagePaths } from '../../functions/src/importImages';
 import { blocklistId } from '../../functions/src/eventImport';
@@ -113,6 +117,8 @@ function makeWorld({
   mailFails = false,
   curatorUid = 'curator' as string | null,
   takenSlugs = [] as string[],
+  outreachSettings = null as Doc | null,
+  slotsUsed = 0,
 } = {}) {
   const organizers = new Map<string, OrganizerRecord & Doc>([[organizer.id, { ...organizer }]]);
   const eventDocs = new Map(events.map((e) => [e.id, { ...e.data }] as [string, Doc]));
@@ -125,6 +131,8 @@ function makeWorld({
   const imageCopies: unknown[] = [];
   let outreachLog: OutreachLog | null = outreach;
   let tokens = 0;
+  let slots = slotsUsed;
+  const slotDays: string[] = [];
 
   const applyPatch = (target: Doc, patch: Patch) => {
     for (const [key, value] of Object.entries(patch)) {
@@ -205,6 +213,13 @@ function makeWorld({
       return { id: '<msg-1@mg.thetribe.at>' };
     },
     regionNameOf: (id) => (id === 'tirol' ? 'Tirol' : null),
+    getOutreachSettings: async () => normalizeOutreachSettings(outreachSettings),
+    takeOutreachSlot: async (day, limit) => {
+      if (slots >= limit) return false;
+      slots += 1;
+      slotDays.push(day);
+      return true;
+    },
   };
   return {
     deps,
@@ -218,6 +233,8 @@ function makeWorld({
     plans,
     imageCopies,
     outreach: () => outreachLog,
+    slots: () => slots,
+    slotDays,
   };
 }
 
@@ -630,6 +647,74 @@ describe('outreach mail', () => {
     });
     await expectCode(send(w), 'failed-precondition', 'disabled-in-production');
     expect(w.mails).toHaveLength(0);
+  });
+
+  it('on production: real mail only with the switch on, counted per day, limited', async () => {
+    const prod = (extra: Doc = {}, slotsUsed = 0) =>
+      makeWorld({
+        projectId: 'spirieventsvbg',
+        organizer: baseOrganizer({ consent: 'none' }),
+        outreachSettings: { productionEnabled: true, dailyLimit: 2, ...extra },
+        slotsUsed,
+      });
+    // switch on: the real address, no [TEST] prefix, one slot taken for the Vienna day
+    const w = prod();
+    const call = (world: ReturnType<typeof makeWorld>) =>
+      sendOutreachMailHandler(
+        { auth: { uid: 'admin' }, data: { organizerId: 'org1' } },
+        world.deps
+      );
+    await expect(call(w)).resolves.toMatchObject({
+      sent: true,
+      test: false,
+      to: 'info@yoga-tirol.at',
+    });
+    expect(w.mails[0].subject.startsWith('[TEST] ')).toBe(false);
+    expect(w.slots()).toBe(1);
+    expect(w.slotDays).toEqual([outreachDayKey(NOW)]);
+    // limit reached: refused, nothing sent, no outreach doc
+    const full = prod({}, 2);
+    await expectCode(call(full), 'failed-precondition', 'daily-limit');
+    expect(full.mails).toHaveLength(0);
+    expect(full.outreach()).toBeNull();
+    // switch off (explicitly or missing): refused even with free slots
+    await expectCode(
+      call(prod({ productionEnabled: false })),
+      'failed-precondition',
+      'disabled-in-production'
+    );
+    const missing = makeWorld({
+      projectId: 'spirieventsvbg',
+      organizer: baseOrganizer({ consent: 'none' }),
+    });
+    await expectCode(call(missing), 'failed-precondition', 'disabled-in-production');
+    // a test mail on production is not counted
+    const t = prod();
+    await sendOutreachMailHandler(
+      {
+        auth: { uid: 'admin' },
+        data: { organizerId: 'org1', testRecipient: 'tester@thetribe.at' },
+      },
+      t.deps
+    );
+    expect(t.slots()).toBe(0);
+  });
+
+  it('normalizeOutreachSettings: off by default, limit clamped, day key in Vienna time', () => {
+    expect(normalizeOutreachSettings(null)).toEqual({
+      productionEnabled: false,
+      dailyLimit: OUTREACH_DAILY_LIMIT_DEFAULT,
+    });
+    expect(normalizeOutreachSettings({ productionEnabled: 'yes' }).productionEnabled).toBe(false);
+    expect(normalizeOutreachSettings({ dailyLimit: 9999 }).dailyLimit).toBe(
+      OUTREACH_DAILY_LIMIT_MAX
+    );
+    expect(normalizeOutreachSettings({ dailyLimit: 0 }).dailyLimit).toBe(1);
+    expect(normalizeOutreachSettings({ dailyLimit: 'x' }).dailyLimit).toBe(
+      OUTREACH_DAILY_LIMIT_DEFAULT
+    );
+    // 23:30 UTC on 24.11. is already 00:30 on 25.11. in Vienna
+    expect(outreachDayKey(Date.UTC(2026, 10, 24, 23, 30))).toBe('2026-11-25');
   });
 
   it('refuses blocklisted, contacted, individual (unless force), address-less organizers', async () => {

@@ -541,6 +541,29 @@ describe('event import (import_* collections, events.curation)', () => {
     await assertFails(getDoc(doc(ctx('mod'), 'app_settings/import')));
   });
 
+  it('app_settings/importOutreach: Super-Admin only, flag + limit 1..50; day counters are read-only', async () => {
+    const path = 'app_settings/importOutreach';
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(
+      setDoc(doc(admin, path), { productionEnabled: true, dailyLimit: 10, updatedAt: 1 })
+    );
+    await assertSucceeds(getDoc(doc(admin, path)));
+    await assertSucceeds(setDoc(doc(admin, path), { productionEnabled: false, dailyLimit: 50 }));
+    await assertFails(setDoc(doc(admin, path), { productionEnabled: true, dailyLimit: 51 }));
+    await assertFails(setDoc(doc(admin, path), { productionEnabled: true, dailyLimit: 0 }));
+    await assertFails(setDoc(doc(admin, path), { productionEnabled: true, dailyLimit: 2.5 }));
+    await assertFails(setDoc(doc(admin, path), { productionEnabled: 'yes', dailyLimit: 5 }));
+    await assertFails(setDoc(doc(admin, path), { productionEnabled: true, dailyLimit: 5, x: 1 }));
+    for (const db of [ctx('mod'), ctx('member'), env.unauthenticatedContext().firestore()]) {
+      await assertFails(getDoc(doc(db, path)));
+      await assertFails(setDoc(doc(db, path), { productionEnabled: true, dailyLimit: 5 }));
+    }
+    const day = 'import_outreach_days/2026-11-24';
+    await assertFails(setDoc(doc(admin, day), { count: 0 }));
+    await assertSucceeds(getDoc(doc(admin, day)));
+    await assertFails(getDoc(doc(ctx('mod'), day)));
+  });
+
   it('owners cannot add, change or remove curation, nor change createdBy', async () => {
     const owner = ctx('owner');
     await assertFails(updateDoc(doc(owner, 'events/own'), { curation }));

@@ -1127,7 +1127,8 @@ service cloud.firestore {
       // rest of this collection.
       // `import` holds the curator account uid of the event import
       // (docs/event-import.md): Super-Admin only as well.
-      allow read: if !(docId in ['instagram', 'import']) || isAdminOrEmulatorAdmin();
+      // `importOutreach` (kill switch + daily limit of the outreach mail) too.
+      allow read: if !(docId in ['instagram', 'import', 'importOutreach']) || isAdminOrEmulatorAdmin();
 
       // Two create paths so an admin is never locked out if the system
       // seeder fails to run:
@@ -1693,6 +1694,25 @@ service cloud.firestore {
                         .hasOnly(['moderatorsSeeInReview', 'updatedAt'])
                     && request.resource.data.moderatorsSeeInReview is bool;
       allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Outreach mail control (docs/event-import.md, "Outreach mail"): { productionEnabled: bool,
+    // dailyLimit: int 1..50, updatedAt }. A missing doc means off. Read by Super-Admins only
+    // (see the app_settings match above); only Super-Admins write. The backend enforces the limit.
+    match /app_settings/importOutreach {
+      allow create, update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly(['productionEnabled', 'dailyLimit', 'updatedAt'])
+                    && request.resource.data.productionEnabled is bool
+                    && request.resource.data.dailyLimit is int
+                    && request.resource.data.dailyLimit >= 1
+                    && request.resource.data.dailyLimit <= 50;
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Real outreach mails sent per Vienna day ({ count }), written by the backend only.
+    match /import_outreach_days/{dayId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
     }
 
     // ---- Vereinsmitgliedschaft "Pioniere" (Trello 6af620c0) ----------------

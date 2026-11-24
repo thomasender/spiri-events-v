@@ -173,8 +173,8 @@ curation: {
 
 ## Preview, consent and outreach
 
-Tickets 5 + 6. Staging only: on production the outreach mail is switched off
-(`OUTREACH_ENABLED_IN_PRODUCTION = false` in `importConsent.ts`).
+Tickets 5 + 6 (+ 10). Staging never mails a real organizer. On production the real mail is
+controlled by `app_settings/importOutreach` (see "Real mail on production").
 
 ### Preview link and page
 
@@ -252,8 +252,24 @@ removes the files with the event.
 
 **Recipient guard** (`resolveOutreachRecipient`): outside production (staging, emulator, any other
 project id) a real organizer address is **never** used: `testRecipient` is required and the subject
-starts with `[TEST] `. On production the mail is refused while `OUTREACH_ENABLED_IN_PRODUCTION` is
-false.
+starts with `[TEST] `. On production the mail is refused (`disabled-in-production`) while the switch
+`productionEnabled` is off, also for a test recipient.
+
+#### Real mail on production (ticket 10)
+
+`app_settings/importOutreach` = `{ productionEnabled: bool, dailyLimit: int 1..50, updatedAt }`:
+Super-Admin only (read and write, rules; `app_settings` is otherwise public, so the doc is excluded
+in the generic read rule). **A missing doc means off** and a limit of 10
+(`normalizeOutreachSettings`, ceiling `OUTREACH_DAILY_LIMIT_MAX = 50` in code). Legal review is done
+(decision Thomas, 2026-11-24); the switch is the kill switch and needs no deploy.
+
+- A real mail (no `testRecipient`) takes one slot of the Vienna day in `import_outreach_days/{yyyy-mm-dd}`
+  (`{ count }`, transaction, backend writes only, Super-Admin reads). At the limit: `daily-limit`, nothing
+  sent. A slot is also used by a send that then fails (conservative). Test mails are not counted.
+- Import tab "Veranstalter": the box "Versand an echte Veranstalter" (switch, limit, "Heute gesendet x von y")
+  and, only on production with the switch on, per organizer with consent `none`, a contact address and
+  events, the button "Mail an Veranstalter senden" with a confirm dialog. Staging has no such button.
+- Refusals are shown in German (`src/utils/outreachErrors.js`), never as "Outreach refused: ... [400]".
 
 Flow: claim `outreach/mail` (`queued`, transaction) -> new preview token (replaces an older link) ->
 render -> Mailgun (From `MAILGUN_FROM`, Reply-To admin@thetribe.at, open/click tracking off so the
@@ -309,10 +325,9 @@ approved after consent.
 ## Region activation (not changed yet)
 
 `regionActivation.ts` counts approved, upcoming, non-online events of a region. Curated events
-cannot be approved before consent, so today only consented curated events can count. Whether
-they should count towards the 15 events at all is open: `countsForActivation(event)` (false for a
-curated event without consent) is ready to count them separately, but activation still counts
-every approved event. Decide before activating a region that holds curated events.
+cannot be approved before consent, so only consented curated events count, as every approved event.
+Decided (Thomas, 2026-11-24): imported events count towards the 15 as soon as they are approved, i.e.
+after consent. `countsForActivation(event)` stays unused for this.
 
 ## Curator account
 

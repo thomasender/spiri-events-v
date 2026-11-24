@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   collection,
+  doc,
   getCountFromServer,
   limit,
   onSnapshot,
@@ -16,6 +17,7 @@ import {
   IMPORT_OUTREACH,
   IMPORT_RUNS,
 } from '../utils/eventImport';
+import { viennaDayKey } from '../utils/outreachErrors';
 
 // Live, bounded reads for the import tab (Super-Admin only, see firestore.rules).
 function useLiveQuery(makeQuery, deps, enabled) {
@@ -134,4 +136,41 @@ export function useCandidateCounts(regionId, refreshKey, enabled = true) {
     };
   }, [enabled, regionId, refreshKey]);
   return counts;
+}
+
+/**
+ * Outreach control (docs/event-import.md): `app_settings/importOutreach` (missing = off, limit 10)
+ * and how many real mails went out today (`import_outreach_days/<Vienna day>`), both live.
+ */
+export function useOutreachControl(enabled = true) {
+  const [state, setState] = useState({
+    productionEnabled: false,
+    dailyLimit: 10,
+    sentToday: 0,
+    loading: Boolean(enabled),
+  });
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const patch = (p) => setState((s) => ({ ...s, ...p, loading: false }));
+    const off = [
+      onSnapshot(
+        doc(db, 'app_settings', 'importOutreach'),
+        (snap) => {
+          const d = snap.exists() ? snap.data() : {};
+          patch({
+            productionEnabled: d.productionEnabled === true,
+            dailyLimit: Number.isInteger(d.dailyLimit) ? d.dailyLimit : 10,
+          });
+        },
+        () => patch({})
+      ),
+      onSnapshot(
+        doc(db, 'import_outreach_days', viennaDayKey()),
+        (snap) => patch({ sentToday: snap.exists() ? Number(snap.data().count) || 0 : 0 }),
+        () => patch({})
+      ),
+    ];
+    return () => off.forEach((fn) => fn());
+  }, [enabled]);
+  return state;
 }

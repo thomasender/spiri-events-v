@@ -13,6 +13,8 @@ const state = vi.hoisted(() => ({
   candidates: [] as Array<Record<string, unknown>>,
   organizers: [] as Array<Record<string, unknown>>,
   runs: [] as Array<Record<string, unknown>>,
+  production: false,
+  control: { productionEnabled: false, dailyLimit: 10, sentToday: 0, loading: false },
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -24,6 +26,7 @@ vi.mock('../../src/hooks/useImportData', () => ({
   useImportOrganizers: () => ({ items: state.organizers, loading: false, error: null }),
   useImportRuns: () => ({ items: state.runs, loading: false, error: null }),
   useLastOutreach: () => null,
+  useOutreachControl: () => state.control,
   useCandidateCounts: () => ({ found: 2, published: 1 }),
 }));
 const visibility = vi.hoisted(() => ({ value: false }));
@@ -40,6 +43,8 @@ const api = vi.hoisted(() => ({
     expiresAt: '2026-12-01',
   })),
   sendOutreachMail: vi.fn(async (_: unknown) => ({ status: 'sent' })),
+  isProductionProject: () => state.production,
+  saveOutreachSettings: vi.fn(async (_: unknown) => {}),
   isOnBlocklist: vi.fn(async (_: unknown) => false),
   addToBlocklist: vi.fn(async (..._: unknown[]) => 'hash'),
   removeFromBlocklist: vi.fn(async (_: unknown) => 'hash'),
@@ -85,6 +90,8 @@ beforeEach(() => {
   state.candidates = [candidate()];
   state.organizers = [organizer()];
   state.runs = [];
+  state.production = false;
+  state.control = { productionEnabled: false, dailyLimit: 10, sentToday: 0, loading: false };
 });
 
 describe('ImportTab access', () => {
@@ -230,6 +237,80 @@ describe('Veranstalter', () => {
         testRecipient: 'ich@test.at',
       })
     );
+  });
+
+  describe('real outreach mail', () => {
+    const openReady = (control: Partial<typeof state.control> = {}) => {
+      state.production = true;
+      state.control = { ...state.control, productionEnabled: true, ...control };
+      state.candidates = [candidate({ eventId: 'e1' })];
+      open();
+    };
+
+    it('has no send button on staging, even with the switch on', () => {
+      state.control = { ...state.control, productionEnabled: true };
+      state.candidates = [candidate({ eventId: 'e1' })];
+      open();
+      expect(screen.queryByTestId('real-send')).toBeNull();
+      expect(screen.getByTestId('staging-banner')).toBeInTheDocument();
+    });
+
+    it('has no send button while the switch is off, the day is full or there is nothing to show', () => {
+      state.production = true;
+      state.candidates = [candidate({ eventId: 'e1' })];
+      open();
+      expect(screen.queryByTestId('real-send')).toBeNull();
+      expect(screen.getByTestId('production-banner')).toBeInTheDocument();
+    });
+
+    it('hides the button at the daily limit and without events', () => {
+      openReady({ sentToday: 10 });
+      expect(screen.queryByTestId('real-send')).toBeNull();
+    });
+
+    it('asks for confirmation, then sends without a test recipient', async () => {
+      openReady({ sentToday: 3, dailyLimit: 10 });
+      fireEvent.click(screen.getByTestId('real-send'));
+      expect(api.sendOutreachMail).not.toHaveBeenCalled();
+      expect(screen.getByText(/Es gibt nur diese eine Mail/)).toHaveTextContent('7 von 10');
+      fireEvent.click(confirmButton('Jetzt senden'));
+      await waitFor(() => expect(api.sendOutreachMail).toHaveBeenCalledWith({ organizerId: 'o1' }));
+    });
+
+    it('shows a German sentence for a refusal, not the backend text', async () => {
+      openReady();
+      api.sendOutreachMail.mockRejectedValueOnce(
+        Object.assign(new Error('Outreach refused: blocklisted. [400]'), {
+          details: { reason: 'blocklisted' },
+        })
+      );
+      fireEvent.click(screen.getByTestId('real-send'));
+      fireEvent.click(confirmButton('Jetzt senden'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('steht auf der Sperrliste');
+      expect(screen.queryByText(/Outreach refused/)).toBeNull();
+    });
+
+    it('switches the sending on and saves the limit', async () => {
+      state.production = true;
+      open();
+      fireEvent.click(screen.getByTestId('outreach-switch'));
+      await waitFor(() =>
+        expect(api.saveOutreachSettings).toHaveBeenCalledWith({
+          productionEnabled: true,
+          dailyLimit: 10,
+        })
+      );
+      fireEvent.change(screen.getByTestId('outreach-limit'), { target: { value: '25' } });
+      fireEvent.click(screen.getByTestId('outreach-limit-save'));
+      await waitFor(() =>
+        expect(api.saveOutreachSettings).toHaveBeenLastCalledWith({
+          productionEnabled: false,
+          dailyLimit: 25,
+        })
+      );
+      fireEvent.change(screen.getByTestId('outreach-limit'), { target: { value: '99' } });
+      expect(screen.getByTestId('outreach-limit-save')).toBeDisabled();
+    });
   });
 
   it('creates and copies the preview link', async () => {
