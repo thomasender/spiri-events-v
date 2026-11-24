@@ -3,7 +3,7 @@
  * (logic and security model: importConsent.ts; docs/event-import.md).
  */
 import { randomUUID } from 'node:crypto';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
@@ -46,6 +46,7 @@ import {
   isImportDataExpired,
   normalizeOutreachSettings,
   planOrganizerPurge,
+  declineOrganizerHandler,
   sendOutreachMailHandler,
   submitImportConsentHandler,
   type ImportDeps,
@@ -60,12 +61,14 @@ import {
   storageDownloadUrl,
 } from './importImages';
 import { OUTREACH_REPLY_TO } from './importOutreachMail';
+import { applyStatsDelta, handleDeliveryWebhook } from './importDelivery';
 import {
   MAILGUN_API_KEY,
   MAILGUN_DOMAIN,
   MAILGUN_EU_BASE,
   MAILGUN_FROM,
   MAILGUN_REPLY_TO,
+  MAILGUN_WEBHOOK_SIGNING_KEY,
   isMailgunDryRun,
   sendMailgunMessage,
 } from './mailgun';
@@ -107,12 +110,10 @@ function firestorePatch(patch: Patch): Record<string, unknown> {
   );
 }
 
-async function sendOutreachViaMailgun(mail: {
-  to: string;
-  subject: string;
-  text: string;
-  html: string;
-}): Promise<{ id: string }> {
+async function sendOutreachViaMailgun(
+  mail: { to: string; subject: string; text: string; html: string },
+  meta: { organizerId: string }
+): Promise<{ id: string }> {
   if (isMailgunDryRun(process.env)) {
     logger.info('MAILGUN dry-run: would send import outreach mail', {
       to: mail.to,
@@ -135,6 +136,8 @@ async function sendOutreachViaMailgun(mail: {
     replyTo: MAILGUN_REPLY_TO.value() || OUTREACH_REPLY_TO,
     // The links carry the private preview token: no click tracking redirects.
     tracking: false,
+    // Mailgun hands this back in every webhook event, so the delivery feedback finds the organizer.
+    variables: { organizerId: meta.organizerId },
   });
   return { id: result.id };
 }
@@ -316,6 +319,11 @@ function firestoreDeps(): ImportDeps {
       await outreachRef(organizerId).update(patch);
     },
     sendMail: sendOutreachViaMailgun,
+    async recordRealSend() {
+      await db
+        .doc(OUTREACH_STATS_DOC)
+        .set({ sent: FieldValue.increment(1), updatedAt: new Date() }, { merge: true });
+    },
     async getOutreachSettings() {
       const snap = await db.doc('app_settings/importOutreach').get();
       return normalizeOutreachSettings(snap.exists ? snap.data() : null);
@@ -334,6 +342,9 @@ function firestoreDeps(): ImportDeps {
     regionMetaOf,
   };
 }
+
+/** Running totals of the real outreach mails and their delivery (docs/event-import.md). */
+const OUTREACH_STATS_DOC = 'import_outreach_stats/all';
 
 const MAIL_SECRETS = [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_REPLY_TO];
 
@@ -365,6 +376,94 @@ export const submitImportConsent = onCall(
       imagesCopied: result.imagesCopied,
     });
     return result;
+  }
+);
+
+/** Super-Admin: mark an organizer as declined (e.g. a "Nein" reply by mail), like the decline link. */
+export const importDeclineOrganizer = onCall(
+  { region: REGION, cors: ALLOWED_ORIGINS, ...appCheckOptions() },
+  async (request) => {
+    logMissingAppCheck('importDeclineOrganizer', request);
+    const result = await declineOrganizerHandler(request, firestoreDeps());
+    logger.info('importDeclineOrganizer', { actorUid: request.auth?.uid, changed: result.changed });
+    return result;
+  }
+);
+
+/**
+ * Mailgun webhook for delivered / failed / complained outreach mails (docs/event-import.md,
+ * "Delivery and bounces"). Public URL, trusted only through Mailgun's HMAC signature.
+ */
+export const mailgunOutreachWebhook = onRequest(
+  { region: REGION, secrets: [MAILGUN_WEBHOOK_SIGNING_KEY] },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'method-not-allowed' });
+      return;
+    }
+    const db = getFirestore();
+    const outreachRef = (organizerId: string) =>
+      db
+        .collection(IMPORT_ORGANIZERS)
+        .doc(organizerId)
+        .collection(IMPORT_OUTREACH)
+        .doc(OUTREACH_DOC_ID);
+    const result = await handleDeliveryWebhook(req.body, {
+      now: () => Date.now(),
+      signingKey: MAILGUN_WEBHOOK_SIGNING_KEY.value(),
+      async getOutreach(organizerId) {
+        const snap = await outreachRef(organizerId).get();
+        return snap.exists ? (snap.data() as DocumentData) : null;
+      },
+      async getOrganizer(organizerId) {
+        const snap = await db.collection(IMPORT_ORGANIZERS).doc(organizerId).get();
+        return snap.exists ? (snap.data() as DocumentData) : null;
+      },
+      async updateOutreach(organizerId, patch) {
+        await outreachRef(organizerId).update(patch);
+      },
+      async addBlocklist(entries, reason) {
+        const batch = db.batch();
+        for (const entry of entries) {
+          batch.set(db.collection(IMPORT_BLOCKLIST).doc(entry.id), {
+            kind: entry.kind,
+            reason,
+            createdAt: FieldValue.serverTimestamp(),
+            createdBy: 'mailgun-webhook',
+          });
+        }
+        await batch.commit();
+      },
+      async bumpStats(delta) {
+        const ref = db.doc(OUTREACH_STATS_DOC);
+        return db.runTransaction(async (tx) => {
+          const snap = await tx.get(ref);
+          const d = (snap.exists ? snap.data() : {}) as DocumentData;
+          const next = applyStatsDelta(
+            {
+              sent: Number(d.sent) || 0,
+              delivered: Number(d.delivered) || 0,
+              bounced: Number(d.bounced) || 0,
+              complained: Number(d.complained) || 0,
+            },
+            delta
+          );
+          tx.set(ref, { ...next, updatedAt: new Date() }, { merge: true });
+          return next;
+        });
+      },
+      async pauseSending(reason) {
+        // The switch goes off; the reason stays visible until a Super-Admin switches it on again.
+        await db
+          .doc('app_settings/importOutreach')
+          .set(
+            { productionEnabled: false, pausedReason: reason, pausedAt: new Date() },
+            { merge: true }
+          );
+      },
+      log: (message, data) => logger.info(message, data),
+    });
+    res.status(result.status).json(result.body);
   }
 );
 

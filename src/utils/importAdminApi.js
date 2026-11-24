@@ -55,6 +55,10 @@ export const saveOutreachSettings = ({ productionEnabled, dailyLimit }) =>
     updatedAt: serverTimestamp(),
   });
 
+/** Super-Admin: mark an organizer as declined (e.g. a "Nein" reply by mail), like the decline link. */
+export const importDeclineOrganizer = ({ organizerId }) =>
+  call('importDeclineOrganizer', { organizerId });
+
 /** Ticket 5/6: outreach mail; without `testRecipient` only on production with the switch on. */
 export const sendOutreachMail = ({ organizerId, testRecipient }) =>
   call('sendOutreachMail', testRecipient ? { organizerId, testRecipient } : { organizerId });

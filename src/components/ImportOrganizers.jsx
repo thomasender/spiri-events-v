@@ -4,6 +4,7 @@ import { useLastOutreach, useOutreachControl, useRegionCandidates } from '../hoo
 import {
   addToBlocklist,
   createPreviewLink,
+  importDeclineOrganizer,
   isOnBlocklist,
   isProductionProject,
   removeFromBlocklist,
@@ -15,6 +16,12 @@ import ConfirmDialog from './ConfirmDialog';
 import { CONSENT_LABELS, LEGAL_FORM_LABELS, normalizeBlocklistValue } from '../utils/eventImport';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const DELIVERY_LABELS = {
+  delivered: 'zugestellt',
+  bounced: 'nicht zugestellt (Bounce)',
+  complained: 'als Spam gemeldet',
+};
 
 function formatTime(value) {
   const date = value?.toDate ? value.toDate() : value ? new Date(value) : null;
@@ -90,6 +97,7 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
   const [notice, setNotice] = useState(null);
   const [preview, setPreview] = useState(null);
   const [confirmSend, setConfirmSend] = useState(false);
+  const [confirmDecline, setConfirmDecline] = useState(false);
   const validRecipient = EMAIL_RE.test(recipient.trim());
   const hasLink = Boolean(organizer.previewTokenHash);
 
@@ -130,6 +138,22 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
       setNotice({ kind: 'error', text: outreachErrorText(err) });
     } finally {
       setConfirmSend(false);
+      setBusy(false);
+    }
+  };
+
+  // "Nein" per Mail: the same as the decline link (data deleted, blocklist, no further mail).
+  const canMarkDeclined = organizer.consent === 'none' || organizer.consent === 'asked';
+  const markDeclined = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await importDeclineOrganizer({ organizerId: organizer.id });
+      setNotice({ kind: 'success', text: 'Als abgelehnt markiert. Die Angaben wurden gelöscht.' });
+    } catch {
+      setNotice({ kind: 'error', text: 'Das hat nicht geklappt. Bitte versuche es noch einmal.' });
+    } finally {
+      setConfirmDecline(false);
       setBusy(false);
     }
   };
@@ -198,7 +222,9 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
             <dt>Letzte Mail</dt>
             <dd data-testid="organizer-outreach">
               {lastOutreach
-                ? `${formatTime(lastOutreach.sentAt)} (${lastOutreach.status})`
+                ? `${formatTime(lastOutreach.sentAt)} (${lastOutreach.status}${
+                    lastOutreach.delivery ? `, ${DELIVERY_LABELS[lastOutreach.delivery]}` : ''
+                  })`
                 : 'noch keine'}
             </dd>
           </div>
@@ -270,6 +296,17 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
             Mail an Veranstalter senden
           </button>
         )}
+        {canMarkDeclined && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={busy}
+            onClick={() => setConfirmDecline(true)}
+            data-testid="mark-declined"
+          >
+            Als abgelehnt markieren
+          </button>
+        )}
         {hasLink && (
           <button
             type="button"
@@ -281,6 +318,21 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
           </button>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmDecline}
+        danger
+        title="Als abgelehnt markieren?"
+        confirmLabel="Als abgelehnt markieren"
+        cancelLabel="Abbrechen"
+        onConfirm={markDeclined}
+        onCancel={() => setConfirmDecline(false)}
+        loading={busy}
+      >
+        <p>
+          {organizer.name} bekommt nichts mehr von uns. Die Events und Angaben werden gelöscht, die
+          Adresse und die Domain kommen auf die Sperrliste. Das lässt sich nicht rückgängig machen.
+        </p>
+      </ConfirmDialog>
       <ConfirmDialog
         isOpen={confirmSend}
         title="Mail an den Veranstalter senden?"
@@ -360,6 +412,15 @@ function OutreachControl({ control }) {
       >
         Limit speichern
       </button>
+      {control.pausedReason && (
+        <span className="moderation-error" role="alert" data-testid="outreach-paused">
+          Versand automatisch pausiert: {control.pausedReason}
+        </span>
+      )}
+      <span data-testid="outreach-stats">
+        Gesendet insgesamt: {control.stats.sent}, zugestellt: {control.stats.delivered}, nicht
+        zugestellt: {control.stats.bounced}, als Spam gemeldet: {control.stats.complained}
+      </span>
       <span data-testid="outreach-today">
         Heute gesendet: {control.sentToday} von {control.dailyLimit}
       </span>

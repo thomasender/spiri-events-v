@@ -253,5 +253,7 @@ export {
   getImportPreview,
   submitImportConsent,
   sendOutreachMail,
+  importDeclineOrganizer,
+  mailgunOutreachWebhook,
   purgeExpiredImportData,
 } from './importConsentFunctions';

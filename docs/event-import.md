@@ -295,6 +295,33 @@ data, source, recipients, retention, rights incl. objection, complaint authority
 `/datenschutz-import`) and the full imprint. Review: `node scripts/render-import-outreach-mail.mjs`
 (`--html`, `--test`).
 
+### Delivery and bounces (ticket 11)
+
+`functions/src/importDelivery.ts` (pure) + the function `mailgunOutreachWebhook` (HTTPS, public URL,
+trusted only through Mailgun's HMAC signature, secret `MAILGUN_WEBHOOK_SIGNING_KEY`).
+
+- The outreach mail carries `v:organizerId` (Mailgun custom variable), which comes back in every
+  webhook event, so an event finds `import_organizers/{id}/outreach/mail` without an index.
+- Events used: `delivered`, `failed` with `severity: permanent` (hard bounce), `complained`. Everything
+  else (temporary failures, other events) is ignored with HTTP 200 so Mailgun does not retry. A bad
+  signature or an old timestamp (15 min) is 401.
+- `outreach/mail` gets `delivery` (`delivered` | `bounced` | `complained`), `deliveryAt`,
+  `deliveryReason`. The state only moves up (delivered < bounced < complained), so retries are no-ops.
+- **Only real mails count and may block.** A bounce of a test mail only fills `delivery`.
+- Bounce: the contact address goes on the blocklist (hash, reason `bounce`). Complaint: address and
+  website domain (reason `complaint`).
+- Totals in `import_outreach_stats/all` (`sent`, `delivered`, `bounced`, `complained`; Super-Admin
+  reads, backend writes). **The sending pauses itself** (`app_settings/importOutreach`
+  `productionEnabled: false` + `pausedReason`) on the first complaint, or when bounces + complaints
+  exceed 5 % of the real mails (judged from 10 real mails on). Switching the sending on again in the
+  Import tab clears the reason. The Import tab shows the totals, the pause and, per organizer, how
+  the last mail was delivered.
+- "Nein" by mail reply: the button "Als abgelehnt markieren" (callable `importDeclineOrganizer`,
+  Super-Admin) does what the decline link does (data deleted, blocklist), audited with the admin's uid.
+- Set up in Mailgun (Sending > Webhooks): the three events `Delivered`, `Permanent Failure`,
+  `Spam Complaints` all point to the function URL; the account's "HTTP webhook signing key" goes into
+  the secret (`firebase functions:secrets:set MAILGUN_WEBHOOK_SIGNING_KEY`, per project).
+
 ### Deleting unanswered data
 
 `purgeExpiredImportData` (daily 04:10 Vienna): organizers with `consent` `none` / `asked` whose

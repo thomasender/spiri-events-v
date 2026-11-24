@@ -1709,6 +1709,13 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // Running totals of real outreach mails and their delivery ({ sent, delivered, bounced,
+    // complained }), written by the backend (Mailgun webhook) only.
+    match /import_outreach_stats/{statId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
+    }
+
     // Real outreach mails sent per Vienna day ({ count }), written by the backend only.
     match /import_outreach_days/{dayId} {
       allow read: if isAdminOrEmulatorAdmin();
