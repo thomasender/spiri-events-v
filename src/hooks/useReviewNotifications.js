@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAdminAlerts } from './useAdminAlerts';
-import { newReviewEventIds, toMillis } from '../utils/staffNotifications';
+import { useEventsWithMessages } from './useEventsWithMessages';
+import { newReviewEventIds, reviewAttentionIds, toMillis } from '../utils/staffNotifications';
 
 // Matches the cap in firestore.rules (users/{uid}/seen/{area}).
 const MAX_SEEN_IDS = 500;
@@ -15,7 +16,21 @@ const MAX_SEEN_IDS = 500;
  * so it holds across devices.
  */
 export function useReviewNotifications(uid, enabled = true) {
-  const { unreadByEvent, pendingIds } = useAdminAlerts(uid, enabled);
+  const { unreadByEvent, pendingIds: allPendingIds } = useAdminAlerts(uid, enabled);
+  const { hasMessagesByEvent, unreadCountByEvent } = useEventsWithMessages();
+  // Events "in Klärung" need no indicator until answered or edited (JtOsYv7n).
+  const pendingIds = useMemo(
+    () =>
+      new Set(
+        reviewAttentionIds(
+          [...allPendingIds],
+          hasMessagesByEvent,
+          unreadCountByEvent,
+          unreadByEvent
+        )
+      ),
+    [allPendingIds, hasMessagesByEvent, unreadCountByEvent, unreadByEvent]
+  );
   const [seen, setSeen] = useState(null);
 
   useEffect(() => {
