@@ -84,4 +84,9 @@ jobs:
         if: ${{ inputs.backend }}
         run: |
           (cd functions && npm ci)
-          npx -y firebase-tools@latest deploy --only functions --project "$PROJECT" --non-interactive
+          # Setting the invoker of one scheduled function fails now and then ("Unable to set the
+          # invoker for the IAM policy", a different function each time, the policy is already
+          # right). One retry after a short pause is enough: functions that are already up to
+          # date are skipped, so it only redoes the failed ones.
+          deploy() { npx -y firebase-tools@latest deploy --only functions --project "$PROJECT" --non-interactive; }
+          deploy || { echo "Functions deploy failed, retrying once"; sleep 45; deploy; }
