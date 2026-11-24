@@ -399,6 +399,12 @@ export default function EventFormWizard() {
   const { findDuplicates } = useDuplicateCheck();
   const [showMultiDayRecurrenceConfirm, setShowMultiDayRecurrenceConfirm] = useState(false);
   const [endDateConflictMarked, setEndDateConflictMarked] = useState(false);
+  // "Mehrtägiges Event" box: the Enddatum field only shows once it is ticked.
+  // A draft or an event being edited that already has an end date opens it.
+  const [multiDay, setMultiDay] = useState(false);
+  useEffect(() => {
+    if (formData.endDate) setMultiDay(true);
+  }, [formData.endDate]);
   const [successState, setSuccessState] = useState(null);
   useConfettiCelebration(successState !== null);
   const [showFocalPointInSummary, setShowFocalPointInSummary] = useState(false);
@@ -1777,24 +1783,6 @@ export default function EventFormWizard() {
         </div>
       </div>
 
-      <div className="form-group">
-        <div className="input-label-row">
-          <label htmlFor="endDate">Enddatum (optional)</label>
-          <span className="input-info">
-            <Info size={14} />
-            <span>Nur bei mehrtätigen Events (z.B. Retreats, Festivals, etc.) notwendig</span>
-          </span>
-        </div>
-        <input
-          id="endDate"
-          name="endDate"
-          type="date"
-          value={formData.endDate}
-          onChange={handleChange}
-          className={showEndDateConflict ? 'input-error' : ''}
-        />
-      </div>
-
       {savedVenueChoices.length > 0 && !formData.isOnline && (
         <div className="form-group">
           <label htmlFor="saved-venues">Frühere Orte</label>
@@ -1950,6 +1938,42 @@ export default function EventFormWizard() {
           classNamePrefix="kategorie"
         />
         {errors.category && <span className="error-text">{errors.category}</span>}
+      </div>
+
+      <div className="form-group">
+        <label className="checkbox-label checkbox-label--inline">
+          <input
+            type="checkbox"
+            checked={multiDay}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setMultiDay(checked);
+              if (!checked) setFormData((prev) => ({ ...prev, endDate: '' }));
+            }}
+            data-testid="multi-day-checkbox"
+          />
+          <span>Mehrtägiges Event (z.B. Festival oder Retreat)</span>
+        </label>
+        {multiDay && (
+          <div className="form-row" style={{ marginTop: '0.75rem' }}>
+            <div className="form-group">
+              <label htmlFor="startDateReadonly">Beginn</label>
+              <input id="startDateReadonly" type="date" value={formData.date} disabled readOnly />
+            </div>
+            <div className="form-group">
+              <label htmlFor="endDate">Enddatum</label>
+              <input
+                id="endDate"
+                name="endDate"
+                type="date"
+                value={formData.endDate}
+                min={formData.date || undefined}
+                onChange={handleChange}
+                className={showEndDateConflict ? 'input-error' : ''}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="form-group">
