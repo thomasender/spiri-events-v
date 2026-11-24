@@ -959,6 +959,7 @@ export async function sendOutreachMailHandler(
     linkValidUntil: new Date(expiresAtMs).toISOString(),
     deleteAfter: new Date(deleteAfterMs).toISOString(),
     test: recipient.test,
+    assetBase: deps.siteOrigin,
   });
 
   let messageId: string;
