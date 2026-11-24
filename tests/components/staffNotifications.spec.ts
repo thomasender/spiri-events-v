@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   messageIsUnreadFor,
   newReviewEventIds,
+  reviewAttentionIds,
   responsibleStaffUid,
 } from '../../src/utils/staffNotifications';
 
@@ -62,5 +63,17 @@ describe('messageIsUnreadFor', () => {
     expect(messageIsUnreadFor(reply, ctx)).toBe(true);
     expect(messageIsUnreadFor(staffMsg, ctx)).toBe(false);
     expect(messageIsUnreadFor({ ...reply, readByRecipient: true }, ctx)).toBe(false);
+  });
+});
+
+describe('reviewAttentionIds (JtOsYv7n)', () => {
+  it('an event in Klärung drops out of the Review indicator', () => {
+    expect(reviewAttentionIds(['a', 'b'], { a: true }, {}, {})).toEqual(['b']);
+  });
+
+  it('comes back with an unread answer or an unread edit', () => {
+    expect(
+      reviewAttentionIds(['a', 'b'], { a: true, b: true }, { a: 1 }, { b: { atMs: 1 } })
+    ).toEqual(['a', 'b']);
   });
 });
