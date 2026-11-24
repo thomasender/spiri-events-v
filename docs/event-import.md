@@ -454,6 +454,17 @@ Follow-ups on this tab:
   Super-Admins). Deferred candidates cannot be accepted until reopened.
 - **Visibility switch** "Import-Events für Moderator:innen im Prüfen-Tab sichtbar" (see below).
 
+### Review tab: own section "Import: wartet auf den Veranstalter"
+
+Pending curated events **without** `curation.consentAt` are not in "Wartend auf Genehmigung":
+the team cannot approve them, only the organizer can (preview link). `ReviewTab.jsx` shows them in
+the collapsed section `ReviewImportAwaiting.jsx`, grouped by `curation.organizerRef`, without the
+approve / send-back buttons. Super-Admins also see the organizer's state there ("noch nicht
+angeschrieben", "Mail gesendet am ...", "will selbst verwalten"), read from `import_organizers`
+and the last `outreach` doc (moderators cannot read `import_*`, they get the grouping only).
+These events are also left out of the pending counts, the region filter count (shown as "· n
+Import") and the Review dot (`attentionIds` in `useAdminAlerts`).
+
 ### Visibility in Review (UI-level hide)
 
 Unclaimed curated events (`curation` set, `claimable !== false`) are shown in the Review tab,

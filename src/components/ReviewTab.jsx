@@ -34,6 +34,8 @@ import { AdminInstagramPreview } from './InstagramPostPreview';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
 import ModerationGuidanceNotice from './ModerationGuidanceNotice';
+import ReviewImportAwaiting from './ReviewImportAwaiting';
+import { useAllImportOrganizers } from '../hooks/useImportData';
 import './ReviewTab.css';
 
 const APPROVED_WINDOW_DAYS = 7;
@@ -144,7 +146,26 @@ export default function ReviewTab() {
   // (the rules forbid her content edits), so she gets no edit link on
   // other people's events.
   const canEdit = (evt) => access.isSuperAdmin || evt.createdBy === user?.uid;
-  const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
+  const {
+    pendingEvents: allPendingEvents,
+    loading: pendingLoading,
+    approveEvent,
+  } = usePendingEvents();
+  // Imported events still waiting for the organizer's consent get their own section: the team
+  // cannot decide them (docs/event-import.md).
+  const pendingEvents = useMemo(
+    () => allPendingEvents.filter((e) => !isCuratedWithoutConsent(e)),
+    [allPendingEvents]
+  );
+  const awaitingOrganizer = useMemo(
+    () => allPendingEvents.filter((e) => isCuratedWithoutConsent(e)),
+    [allPendingEvents]
+  );
+  const organizerDocs = useAllImportOrganizers(access.isSuperAdmin && awaitingOrganizer.length > 0);
+  const organizersById = useMemo(
+    () => Object.fromEntries(organizerDocs.items.map((o) => [o.id, o])),
+    [organizerDocs.items]
+  );
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
   const {
     unreadCountByEvent,
@@ -157,9 +178,14 @@ export default function ReviewTab() {
   // Super-Admin: every region that is active or has items; a moderator: hers).
   const regionOptions = useMemo(() => {
     const counts = {};
+    const importCounts = {};
     pendingEvents.forEach((event) => {
       const id = resolveRegionId(event);
       counts[id] = (counts[id] || 0) + 1;
+    });
+    awaitingOrganizer.forEach((event) => {
+      const id = resolveRegionId(event);
+      importCounts[id] = (importCounts[id] || 0) + 1;
     });
     let ids;
     if (access.isRegionModerator) {
@@ -167,6 +193,7 @@ export default function ReviewTab() {
     } else {
       const withItems = new Set([
         ...Object.keys(counts),
+        ...Object.keys(importCounts),
         ...allApprovedEvents.map((e) => resolveRegionId(e)),
       ]);
       ids = regions.filter((r) => r.active || withItems.has(r.id)).map((r) => r.id);
@@ -174,8 +201,13 @@ export default function ReviewTab() {
         if (!ids.includes(id)) ids.push(id);
       });
     }
-    return ids.map((id) => ({ id, name: nameOf(id), count: counts[id] || 0 }));
-  }, [access, pendingEvents, allApprovedEvents, regions, nameOf]);
+    return ids.map((id) => ({
+      id,
+      name: nameOf(id),
+      count: counts[id] || 0,
+      importCount: importCounts[id] || 0,
+    }));
+  }, [access, pendingEvents, awaitingOrganizer, allApprovedEvents, regions, nameOf]);
   const showRegionFilter = regionOptions.length > 1;
   const regionFilter =
     showRegionFilter && regionOptions.some((o) => o.id === storedRegionFilter)
@@ -204,6 +236,7 @@ export default function ReviewTab() {
     pending: true,
     klaerung: true,
     approved: false,
+    importAwaiting: false,
   });
   const toggleSection = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -358,8 +391,9 @@ export default function ReviewTab() {
     : 'Hier landen alle Events, die auf deine Freigabe warten';
 
   const pendingShown = pendingInKlaerung.length + pendingNeu.length;
+  const awaitingShown = awaitingOrganizer.filter(inFilter);
   const hasAnyContent =
-    pendingEvents.length > 0 || recentlyApproved.length > 0 || regionFilter !== 'all';
+    allPendingEvents.length > 0 || recentlyApproved.length > 0 || regionFilter !== 'all';
 
   if (!hasAnyContent) {
     return (
@@ -412,13 +446,16 @@ export default function ReviewTab() {
           >
             <option value="all">{`Alle (${pendingEvents.length})`}</option>
             {regionOptions.map((o) => (
-              <option key={o.id} value={o.id}>{`${o.name} (${o.count})`}</option>
+              <option key={o.id} value={o.id}>
+                {`${o.name} (${o.count})`}
+                {o.importCount > 0 ? ` · ${o.importCount} Import` : ''}
+              </option>
             ))}
           </select>
         </div>
       )}
 
-      {pendingShown === 0 && recentlyApproved.length === 0 && (
+      {pendingShown === 0 && awaitingShown.length === 0 && recentlyApproved.length === 0 && (
         <p className="review-subsection-empty" data-testid="review-region-empty">
           Für diese Region gibt es aktuell nichts zu prüfen.
         </p>
@@ -557,6 +594,36 @@ export default function ReviewTab() {
             )}
           </div>
         </section>
+      )}
+
+      {awaitingShown.length > 0 && (
+        <ReviewImportAwaiting
+          events={awaitingShown}
+          organizers={organizersById}
+          isSuperAdmin={access.isSuperAdmin}
+          open={openSections.importAwaiting}
+          onToggle={() => toggleSection('importAwaiting')}
+          renderRow={(event) => (
+            <div key={event.id}>
+              <EventAdminListRow
+                event={event}
+                regionLabel={labelFor(event)}
+                showStatus
+                showDuplicate={false}
+                showSubmittedAt
+                fromPath="/admin?tab=review"
+                isAdmin
+                showReject={canReject(event)}
+                showEdit={canEdit(event)}
+                extraBadges={<CurationBadges event={event} />}
+                unreadCount={unreadCountByEvent[event.id] || 0}
+                hasMessages={Boolean(hasMessagesByEvent[event.id])}
+                onReject={openReject}
+                onDeleteClick={(evt) => openDelete(evt)}
+              />
+            </div>
+          )}
+        />
       )}
 
       {recentlyApproved.length > 0 && (
