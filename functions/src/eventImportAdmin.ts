@@ -180,9 +180,7 @@ export async function importAcceptCandidateHandler(
   ) {
     refuse('blocked', 'The organizer is on the blocklist.');
   }
-  if ((candidate.pilotExcluded === true || org.legalForm === 'individual') && !force) {
-    refuse('pilot-excluded', 'Individuals are excluded from the pilot (force: true overrides).');
-  }
+  // No distinction by legal form any more (Thomas, 2026-11-24): individuals are accepted like everyone else.
 
   const curatorUid = await deps.readCuratorUid();
   if (!curatorUid) {

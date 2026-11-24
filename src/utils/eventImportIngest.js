@@ -299,7 +299,7 @@ function organizerDoc(o, regionId, now) {
   return {
     name: o.name,
     website: o.website,
-    ...(o.legalForm !== 'individual' && o.contactEmail ? { contactEmail: o.contactEmail } : {}),
+    ...(o.contactEmail ? { contactEmail: o.contactEmail } : {}),
     legalForm: o.legalForm,
     regionId,
     consent: 'none',
@@ -314,7 +314,6 @@ function organizerDoc(o, regionId, now) {
  * What to write for one organizer: `create`, `update` (only fields that are
  * new: more source URLs, a contact e-mail that was missing) or `unchanged`.
  * Consent, syncMode and legalForm of an existing organizer are never touched.
- * NEVER a contactEmail for legalForm 'individual'.
  */
 export function planOrganizer(o, regionId, existing, now) {
   if (!existing) return { id: o.id, action: 'create', data: organizerDoc(o, regionId, now) };
@@ -322,12 +321,7 @@ export function planOrganizer(o, regionId, existing, now) {
   const have = Array.isArray(existing.sourceUrls) ? existing.sourceUrls : [];
   const merged = [...new Set([...have, ...o.sourceUrls])];
   if (merged.length !== have.length) changes.sourceUrls = merged;
-  if (
-    !existing.contactEmail &&
-    o.contactEmail &&
-    o.legalForm !== 'individual' &&
-    existing.legalForm !== 'individual'
-  ) {
+  if (!existing.contactEmail && o.contactEmail) {
     changes.contactEmail = o.contactEmail;
   }
   if (Object.keys(changes).length === 0) return { id: o.id, action: 'unchanged', data: {} };
@@ -374,7 +368,6 @@ export function planIngest(file, ctx) {
     accepted: 0,
     duplicates: 0,
     imageDropped: 0,
-    pilotExcluded: 0,
   };
   const skipped = [];
   const skip = (reason, c, detail) => {
@@ -491,7 +484,6 @@ export function planIngest(file, ctx) {
       status: match ? 'duplicate' : 'found',
       eventId: null,
       imageUrl: c.imageUrl,
-      ...(organizer.legalForm === 'individual' ? { pilotExcluded: true } : {}),
       ...(match ? { duplicateOf: { kind: match.kind, id: match.id } } : {}),
       fetchedAt: now,
     };
@@ -501,7 +493,6 @@ export function planIngest(file, ctx) {
       skip('duplicate', c, `${match.kind} ${match.id}`);
     } else {
       counts.accepted += 1;
-      if (data.pilotExcluded) counts.pilotExcluded += 1;
       pool.push({ kind: 'candidate', id, title: c.title, date: c.date, time: c.time });
     }
   }

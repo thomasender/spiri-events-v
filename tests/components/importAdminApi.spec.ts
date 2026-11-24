@@ -53,12 +53,10 @@ describe('importAdminApi blocklist', () => {
 });
 
 describe('importAdminApi callables', () => {
-  it('sends force only when set and unwraps data', async () => {
-    await importAcceptCandidate({ candidateId: 'c1' });
+  it('sends only the candidate id and unwraps data', async () => {
+    expect(await importAcceptCandidate({ candidateId: 'c1' })).toEqual({ ok: true });
     expect(callable).toHaveBeenLastCalledWith('importAcceptCandidate');
     expect(call).toHaveBeenLastCalledWith({ candidateId: 'c1' });
-    expect(await importAcceptCandidate({ candidateId: 'c1', force: true })).toEqual({ ok: true });
-    expect(call).toHaveBeenLastCalledWith({ candidateId: 'c1', force: true });
   });
 
   it('passes testRecipient to sendOutreachMail', async () => {

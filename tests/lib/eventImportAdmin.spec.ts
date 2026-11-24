@@ -189,25 +189,23 @@ describe('importAcceptCandidate', () => {
     expect(await reason(accept(declined.deps, { candidateId: 'c1' }))).toBe('organizer-declined');
   });
 
-  it('refuses pilotExcluded candidates and individuals unless force is set', async () => {
+  it('accepts individuals like everyone else (no pilot exclusion), without a name on the event', async () => {
     const { deps, world } = setup({
       candidates: { c1: candidateDoc({ pilotExcluded: true }) },
       organizers: { 'soulcity-ch': organizerDoc({ legalForm: 'individual' }) },
     });
-    expect(await reason(accept(deps, { candidateId: 'c1' }))).toBe('pilot-excluded');
-    expect(world.accepts).toHaveLength(0);
-    await accept(deps, { candidateId: 'c1', force: true });
-    expect(world.accepts[0].audit.force).toBe(true);
+    await accept(deps, { candidateId: 'c1' });
+    expect(world.accepts).toHaveLength(1);
     // Individuals never get a name on the event.
     expect((world.accepts[0].eventData.organizer as Doc).name).toBe('');
   });
 
-  it('refuses a blocked organizer even with force', async () => {
+  it('refuses a blocked organizer', async () => {
     const { deps } = setup({
       blocked: [blocklistId('soulcity.ch')],
-      candidates: { c1: candidateDoc({ pilotExcluded: true }) },
+      candidates: { c1: candidateDoc() },
     });
-    expect(await reason(accept(deps, { candidateId: 'c1', force: true }))).toBe('blocked');
+    expect(await reason(accept(deps, { candidateId: 'c1' }))).toBe('blocked');
   });
 
   it('needs the curator account, an existing organizer and an open candidate', async () => {

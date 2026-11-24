@@ -6,8 +6,6 @@ export const OUTREACH_REFUSAL_TEXTS = {
   blocklisted: 'Diese Adresse oder Domain steht auf der Sperrliste. Es wird nichts gesendet.',
   'already-sent': 'An diesen Veranstalter wurde schon eine Mail gesendet. Es gibt nur eine Mail.',
   'consent-not-none': 'Dieser Veranstalter wurde schon angeschrieben oder hat schon geantwortet.',
-  individual:
-    'Das ist eine Einzelperson. Sie wird im Pilot nicht angeschrieben (höheres rechtliches Risiko).',
   'no-contact': 'Es ist keine Kontaktadresse hinterlegt.',
   'no-events': 'Es gibt noch keine angenommenen Events dieses Veranstalters.',
   'disabled-in-production':

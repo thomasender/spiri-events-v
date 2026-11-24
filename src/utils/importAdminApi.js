@@ -30,9 +30,9 @@ async function call(name, data) {
   return result.data;
 }
 
-/** Ticket 3: write the event for a candidate. `force` overrides pilotExcluded. */
-export const importAcceptCandidate = ({ candidateId, force = false }) =>
-  call('importAcceptCandidate', force ? { candidateId, force: true } : { candidateId });
+/** Ticket 3: write the event for a candidate (every candidate is accepted the same way). */
+export const importAcceptCandidate = ({ candidateId }) =>
+  call('importAcceptCandidate', { candidateId });
 
 export const importRejectCandidate = ({ candidateId, reason }) =>
   call('importRejectCandidate', { candidateId, reason });

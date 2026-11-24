@@ -82,9 +82,6 @@ export function filterCuratedForReview(events, { isSuperAdmin, moderatorsSeeInRe
   return events.filter((e) => !isUnclaimedCuratedEvent(e));
 }
 
-export const PILOT_EXCLUDED_HELP =
-  'Einzelperson oder Einzelunternehmen. Wir fragen solche Veranstalter:innen im Pilot nicht an, weil für sie strengere Datenschutz- und Werberegeln gelten. Annehmen nur, wenn du sie bewusst trotzdem aufnehmen willst.';
-
 export const NO_CONSENT_APPROVE_MESSAGE =
   'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.';
 

@@ -9,7 +9,6 @@ import {
   CANDIDATE_STATUSES,
   CANDIDATE_STATUS_LABELS,
   LEGAL_FORM_LABELS,
-  PILOT_EXCLUDED_HELP,
   REJECT_REASONS,
 } from '../utils/eventImport';
 import ConfirmDialog from './ConfirmDialog';
@@ -48,11 +47,11 @@ export default function ImportCandidates({ regionId, organizersById }) {
     setRefreshKey((k) => k + 1);
   };
 
-  const accept = async (candidate, force) => {
+  const accept = async (candidate) => {
     setBusy(true);
     setNotice(null);
     try {
-      await importAcceptCandidate({ candidateId: candidate.id, force });
+      await importAcceptCandidate({ candidateId: candidate.id });
       done(
         `„${candidate.rawExtract?.title ?? 'Event'}“ wurde als Event angelegt (wartet auf Consent).`
       );
@@ -89,15 +88,6 @@ export default function ImportCandidates({ regionId, organizersById }) {
     } finally {
       setBusy(false);
     }
-  };
-
-  const onConfirmAccept = () => {
-    const { candidate, step } = confirm;
-    if (candidate.pilotExcluded && step === 'first') {
-      setConfirm({ kind: 'accept', candidate, step: 'force' });
-      return;
-    }
-    accept(candidate, Boolean(candidate.pilotExcluded));
   };
 
   return (
@@ -152,15 +142,6 @@ export default function ImportCandidates({ regionId, organizersById }) {
               <div className="import-card-main">
                 <div className="import-card-title">
                   <span className="moderation-card-name">{x.title || '(ohne Titel)'}</span>
-                  {c.pilotExcluded && (
-                    <span
-                      className="import-badge import-badge--warn"
-                      data-testid="badge-pilot"
-                      title={PILOT_EXCLUDED_HELP}
-                    >
-                      Pilot ausgeschlossen
-                    </span>
-                  )}
                   <span className="import-badge" data-testid="badge-confidence">
                     Konfidenz {Math.round((Number(c.confidence) || 0) * 100)} %
                   </span>
@@ -230,7 +211,7 @@ export default function ImportCandidates({ regionId, organizersById }) {
                     type="button"
                     className="btn btn-primary btn-sm"
                     disabled={busy}
-                    onClick={() => setConfirm({ kind: 'accept', candidate: c, step: 'first' })}
+                    onClick={() => setConfirm({ kind: 'accept', candidate: c })}
                   >
                     Annehmen
                   </button>
@@ -275,36 +256,17 @@ export default function ImportCandidates({ regionId, organizersById }) {
       </ul>
 
       <ConfirmDialog
-        isOpen={confirm?.kind === 'accept' && confirm.step === 'first'}
+        isOpen={confirm?.kind === 'accept'}
         title="Kandidat annehmen?"
         confirmLabel="Annehmen"
         cancelLabel="Abbrechen"
-        onConfirm={onConfirmAccept}
+        onConfirm={() => accept(confirm.candidate)}
         onCancel={() => setConfirm(null)}
         loading={busy}
       >
         <p>
           Es wird ein Event „{confirm?.candidate?.rawExtract?.title}“ angelegt. Es bleibt
           unsichtbar, bis der Veranstalter zugestimmt hat.
-        </p>
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        isOpen={confirm?.kind === 'accept' && confirm.step === 'force'}
-        danger
-        title="Vom Pilot ausgeschlossen: trotzdem annehmen?"
-        confirmLabel="Trotzdem annehmen"
-        cancelLabel="Abbrechen"
-        onConfirm={onConfirmAccept}
-        onCancel={() => setConfirm(null)}
-        loading={busy}
-      >
-        <p>
-          Dieser Kandidat ist vom Pilot ausgeschlossen. Wenn du ihn trotzdem annimmst, wird der
-          Ausschluss übergangen.
-        </p>
-        <p className="import-hint" data-testid="pilot-help">
-          {PILOT_EXCLUDED_HELP}
         </p>
       </ConfirmDialog>
 

@@ -141,41 +141,26 @@ describe('Kandidaten', () => {
     expect(screen.getByTestId('import-count-found')).toHaveTextContent('2');
   });
 
-  it('accepts after a confirm dialog, without force', async () => {
+  it('accepts after a confirm dialog', async () => {
     render(<ImportTab />);
     fireEvent.click(screen.getByText('Annehmen'));
     expect(api.importAcceptCandidate).not.toHaveBeenCalled();
     fireEvent.click(confirmButton('Annehmen'));
     await waitFor(() =>
-      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1', force: false })
+      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1' })
     );
   });
 
-  it('asks a second time and sends force for pilotExcluded candidates', async () => {
-    state.candidates = [candidate({ pilotExcluded: true })];
+  it('accepts every candidate the same way: no pilot badge, no second question, no force', async () => {
+    state.candidates = [candidate({ pilotExcluded: true })]; // old data may still carry the flag
     render(<ImportTab />);
-    expect(screen.getByTestId('badge-pilot')).toBeInTheDocument();
+    expect(screen.queryByTestId('badge-pilot')).toBeNull();
     fireEvent.click(screen.getByText('Annehmen'));
     fireEvent.click(confirmButton('Annehmen'));
-    expect(api.importAcceptCandidate).not.toHaveBeenCalled();
-    fireEvent.click(await screen.findByRole('button', { name: 'Trotzdem annehmen' }));
     await waitFor(() =>
-      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1', force: true })
+      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1' })
     );
-  });
-
-  it('explains the pilot badge in a tooltip and in the confirm dialog', () => {
-    state.candidates = [candidate({ pilotExcluded: true })];
-    render(<ImportTab />);
-    expect(screen.getByTestId('badge-pilot')).toHaveAttribute(
-      'title',
-      expect.stringContaining('strengere Datenschutz- und Werberegeln')
-    );
-    fireEvent.click(screen.getByText('Annehmen'));
-    fireEvent.click(confirmButton('Annehmen'));
-    expect(screen.getByTestId('pilot-help')).toHaveTextContent(
-      'Einzelperson oder Einzelunternehmen'
-    );
+    expect(screen.queryByRole('button', { name: 'Trotzdem annehmen' })).toBeNull();
   });
 
   it('defers a found candidate and reopens a deferred one', async () => {

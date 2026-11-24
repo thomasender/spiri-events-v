@@ -269,10 +269,11 @@ removes the files with the event.
 
 ### Outreach mail (`sendOutreachMail`)
 
-`{ organizerId, testRecipient?, force? }`, Super-Admin. Refused (`failed-precondition`, `reason`):
+`{ organizerId, testRecipient? }`, Super-Admin. Refused (`failed-precondition`, `reason`):
 `blocklisted` (address, its domain or the website domain incl. parents), `already-sent` (an
-`outreach/mail` doc that is not `failed`), `consent-not-none`, `individual` (unless `force: true`),
-`no-contact`, `no-events`.
+`outreach/mail` doc that is not `failed`), `consent-not-none`,
+`no-contact`, `no-events`. **No distinction by legal form** (Thomas, 2026-11-24): companies, associations and
+individuals get the mail alike (a former `individual` refusal and the pilot exclusion are gone).
 
 **Recipient guard** (`resolveOutreachRecipient`): outside production (staging, emulator, any other
 project id) a real organizer address is **never** used: `testRecipient` is required and the subject
@@ -424,9 +425,9 @@ Verwaltung -> Regionen -> **Import** (`?tab=import`, Super-Admin only; everyone 
 
 - **Kandidaten**: `import_candidates` of the region by status (default `found`), live, max 100,
   newest first (index `regionId + status + fetchedAt`); counts per status via `getCountFromServer`.
-  Shows facts, `confidence`, `pilotExcluded`, the verbatim `dateQuote`, source link and the image
+  Shows facts, `confidence`, the verbatim `dateQuote`, source link and the image
   URL as a **text link** (no third-party `<img>`). "Annehmen" confirms, then calls
-  `importAcceptCandidate`; for `pilotExcluded` a second confirm follows and `force: true` is sent.
+  `importAcceptCandidate` (every candidate alike, no second question).
   "Ablehnen" asks for a reason (kein Fit, Duplikat, falsches Datum, Sonstiges).
 - **Veranstalter**: `import_organizers` (index `regionId + name`, max 200) with consent badge,
   candidate / event counts (from the region's candidates, max 500), last `outreach` entry, preview
@@ -446,9 +447,7 @@ Follow-ups on this tab:
 - **Layout**: the intro paragraph is a flex item of a column here; its `flex: 1 1 320px` from
   `ModerationTab.css` (meant for a header row) turned into a 320px height, the gap above the
   region select. `ImportTab.css` sets `flex: 0 0 auto` and a `--space-3` gap for all three views.
-- **"Pilot ausgeschlossen"** (`pilotExcluded`: individuals / sole proprietors, higher legal
-  risk) has a tooltip and the same plain-German explanation in the confirm dialog
-  (`PILOT_EXCLUDED_HELP`).
+- (Removed: the badge "Pilot ausgeschlossen" and its second confirm; individuals are accepted like everyone else.)
 - **"Zurückgestellt"** (stored value stays `reviewed`, label was "Geprüft"): "Zurückstellen" on a
   `found` candidate and "Wieder öffnen" on a deferred one write `status` directly
   (`setCandidateStatus`; the `import_candidates` rules already allow any valid status for
@@ -515,13 +514,13 @@ node scripts/import-curated-events.mjs --file $D/tirol.json --apply             
 - Writes only `import_organizers`, `import_candidates` (status `found`, or `duplicate`) and one
   `import_runs` doc per file (counts, skip reasons, errors, source `file:<name>`). **No events.**
 - Organizer: id = website host (`www.` stripped, non-alphanumerics -> `-`), `consent: none`,
-  `syncMode: curated_once`, `legalForm` from the file. **`contactEmail` is never set for
-  `legalForm: individual`.** Existing organizers only get new `sourceUrls` (and a missing mail);
+  `syncMode: curated_once`, `legalForm` from the file; the functional `contactEmail` is kept for every legal form. Existing organizers only get
+  new `sourceUrls` (and a missing mail);
   consent / syncMode / legalForm are never touched.
 - Candidate id = first 40 hex chars of `fingerprint(sourceUrl, date, title)`, created with
   "must not exist": a second run on the same file writes nothing new (and leaves no run doc).
-  Individuals' candidates are `found` but carry `pilotExcluded: true`.
-- Candidate fields beyond the table above: `pilotExcluded`, `duplicateOf: { kind: 'event' |
+  Old candidates of individuals may still carry `pilotExcluded: true`; nothing reads it any more.
+- Candidate fields beyond the table above: `duplicateOf: { kind: 'event' |
 'candidate', id }`; `rawExtract` additionally holds `bezirk` and `contribution: 'unknown'`
   where the page named no price. The rules do not restrict extra candidate keys.
 
@@ -558,12 +557,11 @@ the file's region. `lat`/`lng` are not set (no geocoding).
 
 | Callable                                         | Effect                                                                                                                                                                                                                                                                                                                                    |
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `importAcceptCandidate({ candidateId, force? })` | Writes the `pending` event (`candidateToEventData`, slug from `generateEventSlug` + `findFreeSlug`, `createdBy` = curator, `curation` without `consentAt`, no image, empty organizer mail), sets the candidate to `published` + `eventId`, adds an `admin_audit_log` entry (one transaction). Accepting twice returns the existing event. |
+| `importAcceptCandidate({ candidateId })`         | Writes the `pending` event (`candidateToEventData`, slug from `generateEventSlug` + `findFreeSlug`, `createdBy` = curator, `curation` without `consentAt`, no image, empty organizer mail), sets the candidate to `published` + `eventId`, adds an `admin_audit_log` entry (one transaction). Accepting twice returns the existing event. |
 | `importRejectCandidate({ candidateId, reason })` | Candidate -> `rejected` (+ `rejectReason`), audit entry.                                                                                                                                                                                                                                                                                  |
 
-Refusals (`failed-precondition`, `details.reason`): `blocked` (also with `force`), `organizer-declined`,
-`organizer-missing`, `pilot-excluded` (candidate flagged or organizer `individual`, unless
-`force: true`), `no-curator`, `status` (candidate not `found` / `reviewed` / `duplicate`).
+Refusals (`failed-precondition`, `details.reason`): `blocked`, `organizer-declined`,
+`organizer-missing`, `no-curator`, `status` (candidate not `found` / `reviewed` / `duplicate`).
 The candidate is `published` only together with the event (same transaction).
 
 **No submission mails for curated events:** `onEventCreated` / `onEventStatusChanged` would send

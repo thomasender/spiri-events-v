@@ -28,10 +28,11 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
   organizer consented in the preview, which shows the description and names it in the consent text. No personal
   names of private persons, **no images** (leave `imageUrl` empty; it is only allowed if it is a URL on the
   organizer's own domain, and we never copy it).
-- Organizer record: name, website, `legalForm` (`company` | `verein` | `individual` | `unknown`; sole traders and
-  yoga teachers working alone are `individual`, they are excluded from the pilot), and **only a functional
-  contact address** (info@, kontakt@, hello@ from the Impressum or contact page). No personal addresses. No
-  address found: leave `contactEmail` empty (no mail can go there, the candidate is still fine).
+- Organizer record: name, website, `legalForm` (`company` | `verein` | `individual` | `unknown`; it only decides
+  whether a personal name appears on the event, **not** whether we accept or mail: companies, associations and
+  individuals are treated alike, Thomas' decision 2026-11-24), and a **functional contact address** (info@,
+  kontakt@, hello@ from the Impressum or contact page; a public address of the business, not a private one).
+  No address found: leave `contactEmail` empty (no mail can go there, the candidate is still fine).
 - One request per 6 s per host, robots.txt first, generic User-Agent `TribeEventBot/1.0`: all of this is built into
   `scripts/import-scrape/fetch.mjs`. **Fetch pages only with it** (not with curl or WebFetch): WebFetch returns a
   summary, so quotes and iCal/JSON-LD cannot be checked.
@@ -123,7 +124,7 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
    Look at every `NOT ON PAGE` and `UNREACHABLE` line, fix or drop. Never import a candidate whose quote you
    could not find.
 6. **Dry run**, then show Thomas the numbers per region (new organizers, candidates accepted, duplicates,
-   individuals, dropped past dates):
+   dropped past dates):
    ```
    node scripts/import-curated-events.mjs --file <region>.verified.json --dry-run --remote --project spirieventsvbg --allow-prod
    ```
@@ -135,7 +136,7 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
 ## Wrap-up for Thomas
 
 Short German summary: per region the number of organizers and candidates found, verified, imported, what was
-skipped and why (Eversports, robots.txt, 403, no functional address, individuals), and which sources were
+skipped and why (Eversports, robots.txt, 403, no functional address), and which sources were
 especially good (feeds) so the next run can start there. Mention hosts that blocked us.
 
 ## Known limits

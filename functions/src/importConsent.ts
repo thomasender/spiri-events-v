@@ -588,7 +588,7 @@ export function planConsent({
 // ── Outreach ─────────────────────────────────────────────────────────────
 
 export type OutreachRefusal =
-  'blocklisted' | 'consent-not-none' | 'individual' | 'no-contact' | 'already-sent' | 'no-events';
+  'blocklisted' | 'consent-not-none' | 'no-contact' | 'already-sent' | 'no-events';
 
 /** Why the one mail must not go out, or null. Order = most important first. */
 export function outreachRefusal(
@@ -603,7 +603,7 @@ export function outreachRefusal(
   if (blocked) return 'blocklisted';
   if (outreachExists) return 'already-sent';
   if (organizer.consent !== 'none') return 'consent-not-none';
-  if (organizer.legalForm === 'individual' && !force) return 'individual';
+  // No distinction by legal form any more (Thomas, 2026-11-24): everyone with a functional address gets the mail.
   if (!organizer.contactEmail) return 'no-contact';
   if (eventCount === 0) return 'no-events';
   return null;
