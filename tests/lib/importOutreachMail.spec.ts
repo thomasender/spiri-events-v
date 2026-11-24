@@ -18,8 +18,8 @@ const input = (over: Partial<OutreachMailInput> = {}): OutreachMailInput => ({
   events: [
     { title: 'Kakaozeremonie', date: '2026-12-05', link: 'https://www.yoga-tirol.at/kakao' },
   ],
-  previewUrl: 'https://tribe-vbg-staging.web.app/vorschau/TOKEN',
-  declineUrl: 'https://tribe-vbg-staging.web.app/vorschau/TOKEN?aktion=ablehnen',
+  previewUrl: 'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN',
+  declineUrl: 'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen',
   privacyUrl: 'https://tribe-vbg-staging.web.app/datenschutz-import',
   linkValidUntil: '2026-11-25T10:00:00.000Z',
   deleteAfter: '2027-02-16T10:00:00.000Z',
@@ -34,8 +34,8 @@ describe('outreach mail', () => {
       'gemeinnützigen Vereins Tribe Vorarlberg',
       '05.12.2026: Kakaozeremonie (https://www.yoga-tirol.at/kakao)',
       'aus dem Impressum bzw. den Kontaktangaben dieser Website',
-      'https://tribe-vbg-staging.web.app/vorschau/TOKEN',
-      'https://tribe-vbg-staging.web.app/vorschau/TOKEN?aktion=ablehnen',
+      'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN',
+      'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen',
       'Ohne deine Zustimmung veröffentlichen wir nichts.',
       `nach ${IMPORT_RETENTION_DAYS} Tagen (am 16.02.2027)`,
       'gültig bis 25.11.2026',
@@ -44,7 +44,7 @@ describe('outreach mail', () => {
       expect(mail.text).toContain(part);
     }
     expect(mail.html).toContain(
-      'href="https://tribe-vbg-staging.web.app/vorschau/TOKEN?aktion=ablehnen"'
+      'href="https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen"'
     );
   });
 

@@ -66,14 +66,14 @@ describe('Permissions-Policy', () => {
   });
 });
 
-describe('private event-import preview (/vorschau/**)', () => {
+describe('private previews: event import and pre-entries (/vorschau/**)', () => {
   const rule = config.hosting.headers.find(
     (h: { source: string }) => h.source === '/vorschau/**'
   ) as { headers: { key: string; value: string }[] };
   const header = (key: string) => rule.headers.find((h) => h.key === key)?.value;
 
   it('is never indexed, never cached and sends no referrer', () => {
-    expect(header('X-Robots-Tag')).toBe('noindex, nofollow');
+    expect(header('X-Robots-Tag')).toBe('noindex, nofollow, noarchive');
     expect(header('Cache-Control')).toBe('private, no-store');
     expect(header('Referrer-Policy')).toBe('no-referrer');
   });

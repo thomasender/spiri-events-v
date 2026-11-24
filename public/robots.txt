@@ -6,3 +6,5 @@ Sitemap: https://www.thetribe.at/sitemap.xml
 # Block admin pages from indexing
 Disallow: /admin/
 Disallow: /login/
+# Secret preview links of the event import (docs/event-import.md)
+Disallow: /vorschau/

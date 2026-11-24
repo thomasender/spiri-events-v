@@ -1,4 +1,4 @@
-// Preview page of the event import (/vorschau/:token, docs/event-import.md):
+// Preview page of the event import (/vorschau/import/:token, docs/event-import.md):
 // consent texts, formatting and the privacy helpers of the page. Pure, no
 // Firebase imports.
 
@@ -21,15 +21,24 @@ export const CONSENT_TEXTS = Object.freeze({
 });
 
 export const PREVIEW_PATH_PREFIX = '/vorschau';
+/** Route of ImportPreviewPage; /vorschau/:token is the pre-entry preview (docs/pre-entries.md). */
+export const IMPORT_PREVIEW_PATH = '/vorschau/import';
 export const IMPORT_PRIVACY_PATH = '/datenschutz-import';
 export const PREVIEW_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+/** Claim flow of ticket 7 (src/pages/ClaimEventsPage.jsx) for "Selbst verwalten". */
+export const CLAIM_PATH = '/uebernehmen';
+
+export function claimPathFor(token) {
+  return `${CLAIM_PATH}?claim=${encodeURIComponent(token)}`;
+}
+
 /** `?aktion=ablehnen` (the decline link of the mail). */
 export const DECLINE_PARAM = 'aktion';
 export const DECLINE_VALUE = 'ablehnen';
 
 /**
- * Path without private tokens, for analytics: `/vorschau/<token>` becomes
- * `/vorschau`, so the link never reaches Google Analytics.
+ * Path without private tokens, for analytics: `/vorschau/<token>` (pre-entries)
+ * and `/vorschau/import/<token>` become `/vorschau`, so the link never reaches Google Analytics.
  */
 export function redactPrivatePath(path) {
   const value = String(path ?? '');

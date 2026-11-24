@@ -207,7 +207,7 @@ function AppLayout() {
               <Route path="/impressum" element={<LegalPage page="impressum" />} />
               <Route path="/datenschutz-import" element={<LegalPage page="datenschutz-import" />} />
               {/* Private preview of the event import: noindex, never in sitemap/prerender. */}
-              <Route path="/vorschau/:token" element={<ImportPreviewPage />} />
+              <Route path="/vorschau/import/:token" element={<ImportPreviewPage />} />
               <Route
                 path="/nutzungsbedingungen"
                 element={<LegalPage page="nutzungsbedingungen" />}
