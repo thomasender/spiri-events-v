@@ -50,6 +50,12 @@ export function isRegionId(value: unknown): value is string {
   return typeof value === 'string' && REGION_IDS.includes(value);
 }
 
+/** In-phrase ("in Zürich") and country of a region, else null. */
+export function regionMetaOf(id: string): { inPhrase: string; country: string } | null {
+  const r = REGION_DATA.find((x) => x.slug === id);
+  return r ? { inPhrase: r.inPhrase, country: r.country } : null;
+}
+
 /** Display name of a region, else null. */
 export function regionNameOf(id: string): string | null {
   return REGION_DATA.find((r) => r.slug === id)?.name ?? null;

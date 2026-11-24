@@ -717,6 +717,8 @@ export interface ImportDeps {
   /** Sends one mail (tracking off); returns the Mailgun message id. */
   sendMail: (mail: OutreachMail) => Promise<{ id: string }>;
   regionNameOf: (regionId: string) => string | null;
+  /** inPhrase ("in Tirol") and country of a region, for the mail's regional wording. */
+  regionMetaOf?: (regionId: string) => { inPhrase: string; country: string } | null;
 }
 
 interface CallableRequest {
@@ -966,6 +968,8 @@ export async function sendOutreachMailHandler(
     website: organizer.website,
     contactEmail: organizer.contactEmail as string,
     regionName: deps.regionNameOf(organizer.regionId),
+    regionIn: deps.regionMetaOf?.(organizer.regionId)?.inPhrase ?? null,
+    country: deps.regionMetaOf?.(organizer.regionId)?.country ?? null,
     events: events.map((e) => ({
       title: s(e.data.title, 200),
       date: s(e.data.date, 10),

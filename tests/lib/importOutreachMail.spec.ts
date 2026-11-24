@@ -74,6 +74,19 @@ describe('outreach mail', () => {
     expect(mail.html).toContain(`ZVR-Zahl: ${ASSOCIATION_IMPRINT.zvr}`);
   });
 
+  it('words the vision per region and links the regional domain (Trello vlEQpyMW)', () => {
+    const de = renderOutreachMail(input({ regionIn: 'in Berlin', country: 'DE' }));
+    expect(de.text).toContain('sichtbar machen und Menschen vor Ort');
+    expect(de.text).toContain('in Berlin sichtbar machen');
+    expect(de.text).toContain('Zugehörigkeit in Berlin.');
+    expect(de.text).toContain('www.deintribe.de');
+    expect(renderOutreachMail(input({ country: 'CH' })).html).toContain('www.deintribe.ch');
+    const none = renderOutreachMail(input());
+    expect(none.text).toContain('in deiner Region sichtbar machen');
+    expect(none.text).toContain('www.deintribe.at');
+    expect(none.text).not.toMatch(/DACH/);
+  });
+
   it('has no reminder and no marketing wording', () => {
     const all = `${mail.subject}\n${mail.text}`.toLowerCase();
     for (const word of [

@@ -21,7 +21,7 @@ import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { AUDIT_LOG_COLLECTION } from './adminModerators';
 import { readRoleDoc } from './staffRoles';
 import { enforceRateLimit } from './rateLimit';
-import { regionNameOf } from './regions';
+import { regionMetaOf, regionNameOf } from './regions';
 import { projectSiteOrigin } from './siteOrigin';
 import { findFreeSlug } from './eventSlug';
 import { deleteEventAssets } from './eventStorageCleanup';
@@ -316,6 +316,7 @@ function firestoreDeps(): ImportDeps {
     },
     sendMail: sendOutreachViaMailgun,
     regionNameOf,
+    regionMetaOf,
   };
 }
 
