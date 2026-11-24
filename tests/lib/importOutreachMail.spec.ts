@@ -31,7 +31,7 @@ describe('outreach mail', () => {
 
   it('contains who we are, the events with links, the source of the address and both links', () => {
     for (const part of [
-      'gemeinnützigen Vereins Tribe Vorarlberg',
+      'gemeinnützigen Vereins Tribe.',
       '05.12.2026: Kakaozeremonie (https://www.yoga-tirol.at/kakao)',
       'aus dem Impressum bzw. den Kontaktangaben dieser Website',
       'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN',

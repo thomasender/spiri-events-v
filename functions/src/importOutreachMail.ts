@@ -201,7 +201,7 @@ export function renderOutreachMail(input: OutreachMailInput): OutreachMail {
 
   const paragraphs: string[] = [
     'Hallo,',
-    `wir sind tribe, ein ehrenamtlich betriebener Veranstaltungskalender des gemeinnützigen Vereins Tribe Vorarlberg. Wir sammeln Veranstaltungen rund um eine bewusste, ganzheitliche Lebensweise.${region}`,
+    `wir sind tribe, ein ehrenamtlich betriebener Veranstaltungskalender des gemeinnützigen Vereins Tribe. Wir sammeln Veranstaltungen rund um eine bewusste, ganzheitliche Lebensweise.${region}`,
     visionText(input.regionIn),
     `Auf deiner Website ${input.website} haben wir diese Veranstaltungen von ${name} gefunden:`,
     eventLines.join('\n'),
@@ -260,7 +260,7 @@ export function renderOutreachMail(input: OutreachMailInput): OutreachMail {
 <div style="font-size:12px;letter-spacing:2px;color:#bf8b6b;font-weight:bold;">EINE EINLADUNG AN DICH</div>
 <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:30px;line-height:1.2;margin:14px 0;color:#292722;">Deine Events verdienen es, entdeckt zu werden.</h1>
 <p style="line-height:1.65;">Hallo,</p>
-<p style="line-height:1.65;">wir sind <b>Dein Tribe</b> – ein ehrenamtlich betriebener Veranstaltungskalender des gemeinnützigen Vereins Tribe Vorarlberg, für bewusste Veranstaltungen, echte Begegnungen und Menschen, die gemeinsam wachsen möchten.${escapeHtml(region)}</p>
+<p style="line-height:1.65;">wir sind <b>Dein Tribe</b> – ein ehrenamtlich betriebener Veranstaltungskalender des gemeinnützigen Vereins Tribe, für bewusste Veranstaltungen, echte Begegnungen und Menschen, die gemeinsam wachsen möchten.${escapeHtml(region)}</p>
 <p style="line-height:1.65;">${escapeHtml(visionText(input.regionIn))}</p>
 <p style="line-height:1.65;">Auf deiner Website ${link(input.website)} haben wir diese Veranstaltungen von <b>${escapeHtml(name)}</b> gefunden:</p>
 ${eventsHtml}

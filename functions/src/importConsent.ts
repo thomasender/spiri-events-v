@@ -521,6 +521,8 @@ export function planConsent({
       contactEmail: null,
       sourceUrls: [],
       deleteAfter: null,
+      // Only a number, so the Import tab can say "Abgelehnt am ..., n Events gelöscht" (nothing else is kept).
+      declinedEventCount: events.length,
     });
     plan.blocklist = blocklistEntriesFor(organizer);
     plan.eventDeletes = events.map((e) => e.id);

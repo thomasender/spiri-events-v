@@ -10,6 +10,7 @@ import {
   CANDIDATE_STATUS_LABELS,
   LEGAL_FORM_LABELS,
   REJECT_REASONS,
+  declineNote,
 } from '../utils/eventImport';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -37,6 +38,7 @@ export default function ImportCandidates({ regionId, organizersById }) {
   const { items, loading, error } = useImportCandidates(regionId, status);
   const counts = useCandidateCounts(regionId, refreshKey);
   const [confirm, setConfirm] = useState(null);
+  const shownDeclined = new Set();
   const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -133,6 +135,29 @@ export default function ImportCandidates({ regionId, organizersById }) {
         {items.map((c) => {
           const x = c.rawExtract ?? {};
           const organizer = organizersById?.[c.organizerRef];
+          // After a decline every detail is deleted (the candidates keep no title): one note per
+          // organizer instead of a row of empty cards.
+          if (!c.rawExtract && organizer?.consent === 'declined') {
+            if (shownDeclined.has(c.organizerRef)) return null;
+            shownDeclined.add(c.organizerRef);
+            return (
+              <li
+                key={c.id}
+                className="moderation-card import-card"
+                data-testid={`import-candidate-${c.id}`}
+              >
+                <div className="import-card-main">
+                  <div className="import-card-title">
+                    <span className="moderation-card-name">Vom Veranstalter abgelehnt</span>
+                  </div>
+                  <p data-testid="decline-note">
+                    {organizer.name}: {declineNote(organizer)}. Alle Angaben sind gelöscht, er
+                    bekommt nichts mehr von uns.
+                  </p>
+                </div>
+              </li>
+            );
+          }
           return (
             <li
               key={c.id}

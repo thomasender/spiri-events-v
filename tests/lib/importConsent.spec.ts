@@ -543,6 +543,8 @@ describe('submitImportConsent', () => {
     const org = w.organizers.get('org1')!;
     expect(org.contactEmail).toBeNull();
     expect(JSON.stringify(org)).not.toContain('info@yoga-tirol.at');
+    // all that is left to say about it: how many events were deleted
+    expect(org.declinedEventCount).toBe(2); // the two events of the test organizer
     expect((org.consentRecord as Doc).action).toBe('decline');
 
     const again = await submitImportConsentHandler(

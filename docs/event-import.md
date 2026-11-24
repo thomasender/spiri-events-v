@@ -311,7 +311,7 @@ Text and legal parts are identical in both (`tests/lib/importOutreachMail.spec.t
 (Trello 809): the vision sentence names the region (`regionIn`, e.g. "in Tirol") and the footer link
 follows the country (`deintribe.at/.de/.ch`).
 
-Content (`renderOutreachMail`, `OUTREACH_TEMPLATE_VERSION`): who we are, the found events with
+Content (`renderOutreachMail`, `OUTREACH_TEMPLATE_VERSION`): who we are ("gemeinnützigen Vereins Tribe", the body text never names Vorarlberg, whatever the region; only the legal imprint carries the registered name), the found events with
 links to the organizer's own pages, where the address came from (Impressum / contact page),
 "Ohne deine Zustimmung veröffentlichen wir nichts", the preview link with its expiry, a one-click
 decline link (`/vorschau/import/<token>?aktion=ablehnen`, opens the page with "Ja, ablehnen" on top) or a

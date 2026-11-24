@@ -427,3 +427,37 @@ describe('blocklist hashing', () => {
     await expect(blocklistIdAsync('  ')).rejects.toThrow();
   });
 });
+
+describe('declined organizers (Möglichkeit C: only a note is left)', () => {
+  const declinedOrg = (over: Record<string, unknown> = {}) =>
+    organizer({
+      consent: 'declined',
+      contactEmail: null,
+      declinedEventCount: 1,
+      consentRecord: { at: new Date(2026, 10, 24, 15, 27), action: 'decline' },
+      ...over,
+    });
+
+  it('shows one note per organizer instead of empty cards without a title', () => {
+    state.organizers = [declinedOrg()];
+    state.candidates = [
+      candidate({ id: 'c1', status: 'rejected', rawExtract: undefined, dateQuote: undefined }),
+      candidate({ id: 'c2', status: 'rejected', rawExtract: undefined, dateQuote: undefined }),
+    ];
+    render(<ImportTab />);
+    expect(screen.queryByText('(ohne Titel)')).toBeNull();
+    expect(screen.getAllByTestId('decline-note')).toHaveLength(1);
+    expect(screen.getByTestId('decline-note')).toHaveTextContent(
+      'Yoga Haus: Abgelehnt am 24.11.2026, 1 Event gelöscht'
+    );
+  });
+
+  it('shows the decline in the organizer list too', () => {
+    state.organizers = [declinedOrg({ declinedEventCount: 3 })];
+    render(<ImportTab />);
+    fireEvent.click(screen.getByTestId('import-view-organizers'));
+    expect(screen.getByTestId('organizer-declined')).toHaveTextContent(
+      'Abgelehnt am 24.11.2026, 3 Events gelöscht'
+    );
+  });
+});
