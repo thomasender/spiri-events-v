@@ -29,7 +29,8 @@
  *   sending, a second call is refused. There is no reminder anywhere.
  * - Outside production no real organizer address is ever used: a test
  *   recipient is required and the subject starts with "[TEST]". On production
- *   the mail is switched off entirely (OUTREACH_ENABLED_IN_PRODUCTION).
+ *   the mail only goes out while the Super-Admin switch app_settings/importOutreach
+ *   (productionEnabled, default off) is on, and at most `dailyLimit` real mails per day.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -83,11 +84,40 @@ export const PREVIEW_ACTOR = 'import-preview';
 export const PROD_PROJECT_ID = 'spirieventsvbg';
 
 /**
- * Master switch for real outreach mails on production. While false,
- * sendOutreachMail refuses on production, even with a test recipient
- * (the import runs on staging only). Turn on only after the legal review.
+ * Real outreach mails on production are controlled by `app_settings/importOutreach`
+ * `{ productionEnabled, dailyLimit }` (Super-Admin writes, default OFF and a small limit), so the
+ * kill switch needs no deploy. Outside production a real address is never used at all.
  */
-export const OUTREACH_ENABLED_IN_PRODUCTION = false;
+export const OUTREACH_DAILY_LIMIT_DEFAULT = 10;
+/** Hard ceiling in code: the setting can never raise the limit above this. */
+export const OUTREACH_DAILY_LIMIT_MAX = 50;
+
+export interface OutreachSettings {
+  productionEnabled: boolean;
+  dailyLimit: number;
+}
+
+/** Missing or malformed settings mean: off, default limit. The limit is clamped to 1..MAX. */
+export function normalizeOutreachSettings(raw: unknown): OutreachSettings {
+  const d = (raw && typeof raw === 'object' ? raw : {}) as Doc;
+  const n = typeof d.dailyLimit === 'number' && Number.isFinite(d.dailyLimit) ? d.dailyLimit : NaN;
+  return {
+    productionEnabled: d.productionEnabled === true,
+    dailyLimit: Number.isNaN(n)
+      ? OUTREACH_DAILY_LIMIT_DEFAULT
+      : Math.min(OUTREACH_DAILY_LIMIT_MAX, Math.max(1, Math.floor(n))),
+  };
+}
+
+/** "2026-11-24" in Vienna: the day a real mail counts for. */
+export function outreachDayKey(nowMs: number): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Vienna',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(nowMs));
+}
 
 export const CONSENT_ACTIONS = ['approve_once', 'approve_sync', 'self_manage', 'decline'] as const;
 export type ConsentAction = (typeof CONSENT_ACTIONS)[number];
@@ -567,13 +597,13 @@ export type RecipientDecision =
 /**
  * Who gets the mail. Outside production a real organizer address is NEVER
  * used: only a test recipient, and the subject says "[TEST]". On production
- * nothing goes out while OUTREACH_ENABLED_IN_PRODUCTION is false.
+ * nothing goes out while the production switch (`productionEnabled`) is off.
  */
 export function resolveOutreachRecipient({
   projectId,
   contactEmail,
   testRecipient,
-  productionEnabled = OUTREACH_ENABLED_IN_PRODUCTION,
+  productionEnabled = false,
 }: {
   projectId: string | undefined;
   contactEmail: string;
@@ -694,6 +724,10 @@ export interface ImportDeps {
   updateOutreach: (organizerId: string, patch: Partial<OutreachLog>) => Promise<void>;
   /** Sends one mail (tracking off); returns the Mailgun message id. */
   sendMail: (mail: OutreachMail) => Promise<{ id: string }>;
+  /** `app_settings/importOutreach`, normalised (missing = off, default limit). */
+  getOutreachSettings: () => Promise<OutreachSettings>;
+  /** Counts one real mail for `dayKey`; false (nothing counted) once `limit` is reached. */
+  takeOutreachSlot: (dayKey: string, limit: number) => Promise<boolean>;
   regionNameOf: (regionId: string) => string | null;
   /** inPhrase ("in Tirol") and country of a region, for the mail's regional wording. */
   regionMetaOf?: (regionId: string) => { inPhrase: string; country: string } | null;
@@ -911,10 +945,12 @@ export async function sendOutreachMailHandler(
       reason: refusal,
     });
   }
+  const settings = await deps.getOutreachSettings();
   const recipient = resolveOutreachRecipient({
     projectId: deps.projectId,
     contactEmail: organizer.contactEmail as string,
     testRecipient: data.testRecipient,
+    productionEnabled: settings.productionEnabled,
   });
   if (!recipient.ok) {
     throw new HttpsError('failed-precondition', `Outreach refused: ${recipient.reason}.`, {
@@ -923,6 +959,15 @@ export async function sendOutreachMailHandler(
   }
 
   const nowMs = deps.now();
+  // Only real mails count towards the daily limit (test mails go to our own address).
+  if (
+    !recipient.test &&
+    !(await deps.takeOutreachSlot(outreachDayKey(nowMs), settings.dailyLimit))
+  ) {
+    throw new HttpsError('failed-precondition', 'Outreach refused: daily-limit.', {
+      reason: 'daily-limit',
+    });
+  }
   const claimed = await deps.claimOutreach(organizerId, {
     status: 'queued',
     templateVersion: OUTREACH_TEMPLATE_VERSION,

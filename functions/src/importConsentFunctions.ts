@@ -44,6 +44,7 @@ import {
   generatePreviewToken,
   getImportPreviewHandler,
   isImportDataExpired,
+  normalizeOutreachSettings,
   planOrganizerPurge,
   sendOutreachMailHandler,
   submitImportConsentHandler,
@@ -315,6 +316,20 @@ function firestoreDeps(): ImportDeps {
       await outreachRef(organizerId).update(patch);
     },
     sendMail: sendOutreachViaMailgun,
+    async getOutreachSettings() {
+      const snap = await db.doc('app_settings/importOutreach').get();
+      return normalizeOutreachSettings(snap.exists ? snap.data() : null);
+    },
+    async takeOutreachSlot(dayKey, limit) {
+      const ref = db.collection('import_outreach_days').doc(dayKey);
+      return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const count = snap.exists ? Number((snap.data() as Record<string, unknown>).count) || 0 : 0;
+        if (count >= limit) return false;
+        tx.set(ref, { count: count + 1, updatedAt: new Date() }, { merge: true });
+        return true;
+      });
+    },
     regionNameOf,
     regionMetaOf,
   };

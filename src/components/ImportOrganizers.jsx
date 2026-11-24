@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useLastOutreach, useRegionCandidates } from '../hooks/useImportData';
+import { useLastOutreach, useOutreachControl, useRegionCandidates } from '../hooks/useImportData';
 import {
   addToBlocklist,
   createPreviewLink,
   isOnBlocklist,
+  isProductionProject,
   removeFromBlocklist,
+  saveOutreachSettings,
   sendOutreachMail,
 } from '../utils/importAdminApi';
+import { outreachErrorText } from '../utils/outreachErrors';
+import ConfirmDialog from './ConfirmDialog';
 import { CONSENT_LABELS, LEGAL_FORM_LABELS, normalizeBlocklistValue } from '../utils/eventImport';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -79,12 +83,13 @@ function BlockRow({ label, value, uid }) {
   );
 }
 
-function OrganizerCard({ organizer, candidateCount, eventCount, uid }) {
+function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) {
   const lastOutreach = useLastOutreach(organizer.id);
   const [recipient, setRecipient] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [confirmSend, setConfirmSend] = useState(false);
   const validRecipient = EMAIL_RE.test(recipient.trim());
   const hasLink = Boolean(organizer.previewTokenHash);
 
@@ -107,6 +112,28 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid }) {
     }
   };
 
+  const canSendReal =
+    isProductionProject() &&
+    control.productionEnabled &&
+    organizer.consent === 'none' &&
+    Boolean(organizer.contactEmail) &&
+    eventCount > 0 &&
+    control.sentToday < control.dailyLimit;
+
+  const sendReal = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await sendOutreachMail({ organizerId: organizer.id });
+      setNotice({ kind: 'success', text: `Mail an ${organizer.contactEmail} gesendet.` });
+    } catch (err) {
+      setNotice({ kind: 'error', text: outreachErrorText(err) });
+    } finally {
+      setConfirmSend(false);
+      setBusy(false);
+    }
+  };
+
   const sendTest = async () => {
     setBusy(true);
     setNotice(null);
@@ -120,7 +147,7 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid }) {
         text: `Testmail an ${recipient.trim()}: ${result?.status ?? 'gesendet'}.`,
       });
     } catch (err) {
-      setNotice({ kind: 'error', text: errorText(err) });
+      setNotice({ kind: 'error', text: outreachErrorText(err) });
     } finally {
       setBusy(false);
     }
@@ -232,6 +259,17 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid }) {
         >
           Vorschau-Link kopieren
         </button>
+        {canSendReal && (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={busy}
+            onClick={() => setConfirmSend(true)}
+            data-testid="real-send"
+          >
+            Mail an Veranstalter senden
+          </button>
+        )}
         {hasLink && (
           <button
             type="button"
@@ -243,7 +281,99 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid }) {
           </button>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmSend}
+        title="Mail an den Veranstalter senden?"
+        confirmLabel="Jetzt senden"
+        cancelLabel="Abbrechen"
+        onConfirm={sendReal}
+        onCancel={() => setConfirmSend(false)}
+        loading={busy}
+      >
+        <p>
+          Die Mail geht an <strong>{organizer.contactEmail}</strong> ({organizer.name}), mit{' '}
+          {eventCount} {eventCount === 1 ? 'Event' : 'Events'} und dem privaten Vorschau-Link. Es
+          gibt nur diese eine Mail, sie kann nicht zurückgeholt werden. Heute noch möglich:{' '}
+          {Math.max(0, control.dailyLimit - control.sentToday)} von {control.dailyLimit}.
+        </p>
+      </ConfirmDialog>
     </li>
+  );
+}
+
+/** Switch and daily limit of the real outreach mail (backend enforces both). */
+function OutreachControl({ control }) {
+  const [limit, setLimit] = useState(String(control.dailyLimit));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  useEffect(() => setLimit(String(control.dailyLimit)), [control.dailyLimit]);
+  const production = isProductionProject();
+
+  const save = async (patch) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await saveOutreachSettings({
+        productionEnabled: control.productionEnabled,
+        dailyLimit: control.dailyLimit,
+        ...patch,
+      });
+    } catch {
+      setError('Das hat nicht geklappt. Die Einstellung wurde nicht gespeichert.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const limitNumber = Number(limit);
+  const limitValid = Number.isInteger(limitNumber) && limitNumber >= 1 && limitNumber <= 50;
+
+  return (
+    <fieldset className="import-outreach-control" data-testid="outreach-control">
+      <legend>Versand an echte Veranstalter</legend>
+      <label>
+        <input
+          type="checkbox"
+          checked={control.productionEnabled}
+          disabled={busy || control.loading}
+          onChange={(e) => save({ productionEnabled: e.target.checked })}
+          data-testid="outreach-switch"
+        />{' '}
+        eingeschaltet
+      </label>
+      <label>
+        Tageslimit (1 bis 50){' '}
+        <input
+          type="number"
+          min="1"
+          max="50"
+          value={limit}
+          onChange={(e) => setLimit(e.target.value)}
+          data-testid="outreach-limit"
+        />
+      </label>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={busy || !limitValid || limitNumber === control.dailyLimit}
+        onClick={() => save({ dailyLimit: limitNumber })}
+        data-testid="outreach-limit-save"
+      >
+        Limit speichern
+      </button>
+      <span data-testid="outreach-today">
+        Heute gesendet: {control.sentToday} von {control.dailyLimit}
+      </span>
+      {!production && (
+        <span className="import-hint">
+          Auf Staging wirkt das nicht: dort geht nie eine Mail an echte Adressen.
+        </span>
+      )}
+      {error && (
+        <span className="moderation-error" role="alert">
+          {error}
+        </span>
+      )}
+    </fieldset>
   );
 }
 
@@ -251,6 +381,7 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid }) {
 export default function ImportOrganizers({ organizers, loading, error, regionId }) {
   const { user } = useAuth();
   const { items: candidates } = useRegionCandidates(regionId);
+  const control = useOutreachControl();
   const stats = useMemo(() => {
     const byOrganizer = {};
     for (const c of candidates) {
@@ -263,10 +394,19 @@ export default function ImportOrganizers({ organizers, loading, error, regionId 
 
   return (
     <div data-testid="import-organizers">
-      <p className="import-staging-banner" data-testid="staging-banner" role="note">
-        Staging: echte Veranstalter-Adressen werden nie angeschrieben. Mails gehen nur als Testmail
-        an eine Adresse, die du selbst einträgst.
-      </p>
+      {isProductionProject() ? (
+        <p className="import-staging-banner" data-testid="production-banner" role="note">
+          Production: Mails an echte Veranstalter gehen nur bei eingeschaltetem Versand, höchstens
+          bis zum Tageslimit, und nur eine Mail pro Veranstalter. Testmails gehen an eine Adresse,
+          die du selbst einträgst.
+        </p>
+      ) : (
+        <p className="import-staging-banner" data-testid="staging-banner" role="note">
+          Staging: echte Veranstalter-Adressen werden nie angeschrieben. Mails gehen nur als
+          Testmail an eine Adresse, die du selbst einträgst.
+        </p>
+      )}
+      <OutreachControl control={control} />
       {error && (
         <p className="moderation-error" role="alert">
           Veranstalter konnten nicht geladen werden.
@@ -283,6 +423,7 @@ export default function ImportOrganizers({ organizers, loading, error, regionId 
             candidateCount={stats[o.id]?.candidates ?? 0}
             eventCount={stats[o.id]?.events ?? 0}
             uid={user?.uid}
+            control={control}
           />
         ))}
       </ul>

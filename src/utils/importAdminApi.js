@@ -14,7 +14,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
-import { callable, db } from '../lib/firebase';
+import app, { callable, db } from '../lib/firebase';
 import {
   IMPORT_BLOCKLIST,
   IMPORT_CANDIDATES,
@@ -41,7 +41,21 @@ export const importRejectCandidate = ({ candidateId, reason }) =>
 export const createPreviewLink = ({ organizerId, regenerate = false }) =>
   call('createPreviewLink', regenerate ? { organizerId, regenerate: true } : { organizerId });
 
-/** Ticket 5/6: outreach mail; on staging only with `testRecipient`. */
+/** True only in the production Firebase project (the one place real organizers are mailed). */
+export const isProductionProject = () => app?.options?.projectId === 'spirieventsvbg';
+
+/**
+ * Kill switch and daily limit of the real outreach mail (app_settings/importOutreach, rules:
+ * Super-Admin only, limit 1..50). The backend enforces both; this only writes them.
+ */
+export const saveOutreachSettings = ({ productionEnabled, dailyLimit }) =>
+  setDoc(doc(db, 'app_settings', 'importOutreach'), {
+    productionEnabled: productionEnabled === true,
+    dailyLimit: Math.min(50, Math.max(1, Math.floor(Number(dailyLimit)) || 1)),
+    updatedAt: serverTimestamp(),
+  });
+
+/** Ticket 5/6: outreach mail; without `testRecipient` only on production with the switch on. */
 export const sendOutreachMail = ({ organizerId, testRecipient }) =>
   call('sendOutreachMail', testRecipient ? { organizerId, testRecipient } : { organizerId });
 
