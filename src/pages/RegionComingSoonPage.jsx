@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarPlus, Check, Share2 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import ModeratorApplyCard from '../components/ModeratorApplyCard';
+import FeaturedEventTeaser from '../components/FeaturedEventTeaser';
 import { BRAND_NAME } from '../config/brand';
 import { useAuth } from '../hooks/useAuth';
 import { useRegion } from '../hooks/useRegion';
@@ -74,6 +75,7 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
         )}
         {region && (
           <>
+            <FeaturedEventTeaser regionId={region.id} />
             <div className="coming-soon-progress" data-testid="region-progress">
               <div
                 className="coming-soon-progress-bar"
