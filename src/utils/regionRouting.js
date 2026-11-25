@@ -115,6 +115,7 @@ export const NEUTRAL_PAGE_PATHS = [
   '/impressum',
   '/datenschutz',
   '/datenschutz-import',
+  '/weihnachtsfeier',
   '/nutzungsbedingungen',
   '/login',
 ];

@@ -119,6 +119,7 @@ export const ADMIN_TABS = [
   'import',
   'about',
   'faq',
+  'weihnachtsfeier',
 ];
 const MODERATOR_TABS = [
   'events',

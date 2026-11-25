@@ -64,3 +64,7 @@ import '../pages/ModeratorOnboardingPage.css';
 import '../components/EventClaim.css';
 // ImportPreviewPage
 import '../pages/ImportPreviewPage.css';
+
+// ChristmasPage (and its admin tab in AdminPage)
+import '../components/ChristmasTab.css';
+import '../pages/ChristmasPage.css';

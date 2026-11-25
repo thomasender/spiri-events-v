@@ -1113,6 +1113,54 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // Staff-edited pages (the Weihnachtsfeier page, /weihnachtsfeier). Super-Admins
+    // read and write; everybody else reads a page only once `published` is true,
+    // so an unreleased page is invisible. `registrations` are filled by guests
+    // (only while the page is published) and read / deleted by Super-Admins.
+    match /site_pages/{pageId} {
+      function isValidSitePage(d) {
+        return pageId == 'weihnachtsfeier'
+          && d.keys().hasOnly(['published', 'content', 'updatedAt', 'updatedBy'])
+          && d.published is bool
+          && d.content is map
+          && d.content.keys().hasOnly([
+            'eyebrow', 'title', 'intro', 'dateLabel', 'timeLabel', 'place', 'placeNote',
+            'capacityLabel', 'capacityNote', 'flyerUrl', 'bringTitle', 'bringText',
+            'bringIdeas', 'scheduleTitle', 'steps', 'formTitle', 'formIntro',
+            'thanksTitle', 'thanksText'
+          ])
+          && d.content.bringIdeas is list && d.content.bringIdeas.size() <= 16
+          && d.content.steps is list && d.content.steps.size() <= 12
+          && d.updatedBy == request.auth.uid;
+      }
+
+      allow read: if isAdminOrEmulatorAdmin()
+                  || (resource != null && resource.data.published == true);
+      allow create, update: if isAdminOrEmulatorAdmin() && isValidSitePage(request.resource.data);
+      allow delete: if false;
+
+      match /registrations/{regId} {
+        function isValidSiteRegistration(d) {
+          return pageId == 'weihnachtsfeier'
+            && d.keys().hasOnly(['name', 'contact', 'persons', 'bring', 'note', 'createdAt'])
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+            && d.contact is string && d.contact.size() >= 5 && d.contact.size() <= 200
+            && d.persons is int && d.persons >= 1 && d.persons <= 10
+            && d.bring is list && d.bring.size() <= 10
+            && d.note is string && d.note.size() <= 500
+            && d.createdAt == request.time;
+        }
+
+        allow read, delete: if isAdminOrEmulatorAdmin();
+        allow create: if isValidSiteRegistration(request.resource.data)
+                      && (isAdminOrEmulatorAdmin()
+                        || (exists(/databases/$(database)/documents/site_pages/$(pageId))
+                          && get(/databases/$(database)/documents/site_pages/$(pageId)).data.published == true));
+        allow update: if false;
+      }
+    }
+
+
     // App-level settings — currently a single `theme` doc that holds the
     // admin-managed CSS color variables. Public read (clients need to
     // resolve the live values to paint `:root`), admin-only write. The

@@ -1,0 +1,597 @@
+.xmas {
+  --xmas-green: #2f4a3f;
+  --xmas-green-deep: #223730;
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-16);
+  color: var(--text-secondary);
+}
+.xmas--editing {
+  padding-bottom: 120px;
+}
+
+/* ── Admin bar ── */
+.xmas-admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  padding: var(--space-2-5) var(--space-4);
+  background: var(--pending-bg);
+  color: var(--pending-text);
+  border-radius: var(--radius-md);
+  font-size: var(--text-90);
+  font-weight: 600;
+}
+.xmas-admin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Buttons ── */
+.xmas-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border: 1.5px solid var(--accent-primary-hover);
+  border-radius: 999px;
+  background: var(--accent-primary-hover);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+.xmas-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: var(--accent-primary-strong);
+}
+.xmas-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.xmas-btn--small {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-90);
+}
+.xmas-btn--ghost {
+  background: transparent;
+  color: var(--accent-primary-strong);
+}
+.xmas-btn--ghost:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.xmas-btn--light {
+  background: #fff;
+  border-color: #fff;
+  color: var(--xmas-green-deep);
+}
+.xmas-btn--light:hover:not(:disabled) {
+  background: #f3ece3;
+}
+
+/* ── Hero ── */
+.xmas-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: var(--space-10);
+  align-items: center;
+  padding: var(--space-12) var(--space-10);
+  border-radius: var(--radius-lg);
+  color: #f4efe6;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.16) 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.2) 0 2px, transparent 3px),
+    radial-gradient(circle at 90% 70%, rgba(255, 255, 255, 0.14) 0 3px, transparent 4px),
+    radial-gradient(circle at 35% 85%, rgba(255, 255, 255, 0.14) 0 2px, transparent 3px),
+    radial-gradient(circle at 60% 40%, rgba(229, 167, 46, 0.18) 0 120px, transparent 121px),
+    linear-gradient(145deg, var(--xmas-green) 0%, var(--xmas-green-deep) 100%);
+  box-shadow: var(--shadow-lg);
+}
+.xmas-hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+.xmas-eyebrow {
+  margin: 0;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #e8c98a;
+  font-weight: 600;
+}
+.xmas-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--fs-hero);
+  line-height: 1.02;
+  color: #fff;
+  font-weight: 600;
+}
+.xmas-lead {
+  margin: 0;
+  max-width: 34em;
+  font-size: var(--fs-intro);
+  line-height: 1.55;
+  color: #e6e0d4;
+}
+
+/* ── Flyer ── */
+.xmas-flyer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+.xmas-flyer {
+  margin: 0;
+  width: min(100%, 340px);
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+  transform: rotate(2.5deg);
+  overflow: hidden;
+}
+.xmas-flyer img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+.xmas-flyer-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-3);
+  height: calc(100% - var(--space-6));
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  text-align: center;
+  padding: var(--space-4);
+}
+.xmas-flyer-placeholder strong {
+  font-family: var(--font-heading);
+  font-size: var(--text-160);
+  color: var(--accent-primary-strong);
+}
+.xmas-flyer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: center;
+}
+.xmas-flyer-tools .xmas-btn--ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.xmas-flyer-tools .xmas-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+.xmas-flyer-tools .xmas-error {
+  color: #ffd4cc;
+  flex-basis: 100%;
+  text-align: center;
+}
+
+/* ── Facts ── */
+.xmas-facts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin: calc(var(--space-8) * -1) var(--space-6) 0;
+  position: relative;
+}
+.xmas-fact {
+  padding: var(--space-5);
+  background: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+.xmas-fact > svg {
+  color: var(--accent-primary);
+  margin-bottom: var(--space-2);
+}
+.xmas-fact h2 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  font-family: var(--font-body);
+}
+.xmas-fact p {
+  margin: 0;
+}
+.xmas-fact-main {
+  font-family: var(--font-heading);
+  font-size: var(--text-130);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.xmas-fact-note {
+  margin-top: var(--space-2) !important;
+  font-size: var(--text-88);
+  line-height: 1.5;
+}
+
+/* ── Sections ── */
+.xmas-section {
+  max-width: 760px;
+  margin: var(--space-16) auto 0;
+}
+.xmas-section h2 {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-heading);
+  font-size: var(--fs-section);
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.xmas-body {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-105);
+  line-height: 1.65;
+}
+
+.xmas-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.xmas-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-4);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-calendar);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-95);
+  cursor: pointer;
+}
+.xmas-chip--on {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  color: #fff;
+}
+.xmas-chip--static {
+  cursor: default;
+  background: var(--chip-bg);
+  border-color: transparent;
+  color: var(--chip-text);
+  font-weight: 600;
+}
+.xmas-chip--static button {
+  display: inline-flex;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.xmas-chip--add {
+  border-style: dashed;
+  color: var(--accent-primary-strong);
+}
+
+/* ── Timeline ── */
+.xmas-steps {
+  list-style: none;
+  margin: var(--space-6) 0;
+  padding: 0;
+  position: relative;
+}
+.xmas-steps::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--border);
+}
+.xmas-step {
+  position: relative;
+  display: flex;
+  gap: var(--space-5);
+  padding-bottom: var(--space-6);
+}
+.xmas-step-no {
+  flex: none;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-secondary);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 0 5px var(--bg-primary);
+}
+.xmas-step-body {
+  flex: 1;
+  min-width: 0;
+}
+.xmas-step-body h3 {
+  margin: var(--space-1) 0 var(--space-1);
+  font-size: var(--text-120);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+.xmas-step-body .xmas-body {
+  margin: 0;
+}
+.xmas-step-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.xmas-step-tools button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-calendar);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.xmas-step-tools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Registration ── */
+.xmas-register {
+  padding: var(--space-8);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  scroll-margin-top: var(--space-16);
+}
+.xmas-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+}
+.xmas-form--done {
+  align-items: center;
+  text-align: center;
+  padding: var(--space-6) 0;
+}
+.xmas-form--done h3 {
+  margin: var(--space-3) 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--text-200);
+  color: var(--text-primary);
+}
+.xmas-form-done-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-secondary);
+  color: #fff;
+}
+.xmas-form-hint {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--pending-bg);
+  color: var(--pending-text);
+  font-size: var(--text-88);
+}
+.xmas-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.xmas-field label,
+.xmas-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: var(--text-95);
+}
+.xmas-field input,
+.xmas-field textarea {
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-calendar);
+  font: inherit;
+  color: var(--text-primary);
+}
+.xmas-field input:focus,
+.xmas-field textarea:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.xmas-field input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+.xmas-error {
+  color: var(--error);
+  font-size: var(--text-88);
+  margin: 0;
+}
+.xmas-stepper {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-calendar);
+}
+.xmas-stepper button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  font-size: var(--text-150);
+  color: var(--accent-primary-strong);
+  cursor: pointer;
+}
+.xmas-stepper output {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.xmas-add-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.xmas-add-row input {
+  flex: 1;
+  min-width: 180px;
+}
+.xmas-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.xmas-form-privacy {
+  margin: 0;
+  font-size: var(--text-85);
+  color: var(--text-light);
+}
+.xmas-thanks-edit {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 1.5px dashed var(--accent-primary);
+  border-radius: var(--radius-md);
+}
+.xmas-thanks-edit h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
+}
+.xmas-edit-label {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-85);
+  color: var(--accent-primary-strong);
+  font-weight: 600;
+}
+
+/* ── Inline editing ── */
+.xmas-text {
+  white-space: pre-line;
+}
+.xmas-text--edit {
+  outline: 1.5px dashed transparent;
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+  cursor: text;
+  transition:
+    outline-color 0.15s ease,
+    background 0.15s ease;
+}
+.xmas-text--edit:hover {
+  outline-color: rgba(196, 142, 106, 0.7);
+}
+.xmas-text--edit:focus {
+  outline: 2px solid var(--accent-primary);
+  background: rgba(255, 255, 255, 0.12);
+}
+.xmas-fact .xmas-text--edit:focus,
+.xmas-register .xmas-text--edit:focus,
+.xmas-section .xmas-text--edit:focus {
+  background: var(--accent-soft);
+}
+.xmas-text--edit[data-empty]::before {
+  content: attr(data-placeholder);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.xmas-chip .xmas-text--edit {
+  min-width: 3ch;
+}
+
+/* ── Sticky save bar ── */
+.xmas-savebar {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: max-content;
+  max-width: calc(100vw - var(--space-6));
+  padding: var(--space-3) var(--space-4);
+  background: var(--text-primary);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+}
+.xmas-savebar-status {
+  font-size: var(--text-88);
+  padding: 0 var(--space-2);
+}
+.xmas-savebar .xmas-btn--ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.xmas-savebar .xmas-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 900px) {
+  .xmas-hero {
+    grid-template-columns: 1fr;
+    padding: var(--space-8) var(--space-5);
+  }
+  .xmas-facts {
+    grid-template-columns: 1fr 1fr;
+    margin: var(--space-4) 0 0;
+  }
+  .xmas-register {
+    padding: var(--space-5);
+  }
+}
+@media (max-width: 560px) {
+  .xmas-facts {
+    grid-template-columns: 1fr;
+  }
+  .xmas-savebar {
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+  }
+  .xmas-savebar-status {
+    flex-basis: 100%;
+    text-align: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xmas-btn,
+  .xmas-text--edit {
+    transition: none;
+  }
+}

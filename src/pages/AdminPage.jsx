@@ -26,6 +26,7 @@ import {
   HelpCircle,
   ScrollText,
   Sparkles,
+  TreePine,
   Bell,
   Download,
 } from 'lucide-react';
@@ -66,6 +67,7 @@ import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
 import { useStaffNotifications } from '../hooks/useStaffNotifications';
 import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
+import ChristmasTab from '../components/ChristmasTab';
 import './AdminPage.css';
 
 // Tabs are grouped into drop-down menus (QhQJFz04). `id` is the ?tab= value.
@@ -103,6 +105,7 @@ const TAB_GROUPS = [
       { id: 'instagram', label: 'Instagram', Icon: Instagram },
       { id: 'mailgun', label: 'E-Mail-Versand', Icon: MailCheck },
       { id: 'faq', label: 'FAQ', Icon: HelpCircle },
+      { id: 'weihnachtsfeier', label: 'Weihnachtsfeier', Icon: TreePine },
     ],
   },
   {
@@ -156,6 +159,7 @@ const PANELS = {
   regions: RegionsTab,
   import: ImportTab,
   about: RegionAboutTab,
+  weihnachtsfeier: ChristmasTab,
 };
 
 const VALID_TABS = new Set(ADMIN_TABS);
@@ -226,6 +230,7 @@ export default function AdminPage() {
       mailgun: isAdmin,
       ledger: isAdmin,
       faq: isAdmin,
+      weihnachtsfeier: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
 

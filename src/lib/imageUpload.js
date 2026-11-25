@@ -329,6 +329,22 @@ export async function uploadRegionImage(file, regionId, options = {}) {
 }
 
 /**
+ * Upload an image of a staff-edited page (e.g. the Weihnachtsfeier flyer) to
+ * pages/{pageId}/. Compressed client-side; the Storage rule allows Super-Admins only.
+ * @returns {Promise<string>} - Download URL of the uploaded image
+ */
+export async function uploadPageImage(file, pageId, options = {}) {
+  if (!pageId) throw new Error('Page ID is required for page image upload');
+  const { onProgress } = options;
+
+  const compressedBlob = await compressImage(file);
+  const filename = `${Date.now()}_${sanitizeFilename(file.name)}`;
+  const pageImageRef = await storageRefAt(`pages/${pageId}/${filename}`);
+
+  return uploadCompressedBlob(compressedBlob, pageImageRef, onProgress);
+}
+
+/**
  * Upload a feedback screenshot to Firebase Storage under feedback/{feedbackId}/.
  * Compresses the image client-side before upload.
  * @param {File} file - The screenshot file to upload

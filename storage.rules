@@ -23,6 +23,16 @@ service firebase.storage {
                        || request.resource.contentType == 'application/pdf');
     }
 
+    // Images of staff-edited pages (e.g. the Weihnachtsfeier flyer, /weihnachtsfeier):
+    // public read like every page image, Super-Admins only write. Images, max 15 MB.
+    match /pages/{pageId}/{filename} {
+      allow read: if true;
+      allow create, update: if isLedgerAdmin()
+                   && request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if isLedgerAdmin();
+    }
+
     // Event images: anyone can read (public, served on event pages),
     // only authenticated users can upload images up to 15MB
     match /events/{eventId}/{filename} {

@@ -157,3 +157,106 @@ describe('faqs', () => {
     }
   });
 });
+
+// Weihnachtsfeier page (`site_pages/weihnachtsfeier`): invisible until published.
+describe('site_pages/weihnachtsfeier', () => {
+  const content = { title: 'Tribe-Weihnachtsfeier', bringIdeas: ['Brot'], steps: [] };
+  const page = (published: boolean, uid = 'adminDoc') => ({
+    published,
+    content,
+    updatedAt: serverTimestamp(),
+    updatedBy: uid,
+  });
+  const registration = (overrides: Record<string, unknown> = {}) => ({
+    name: 'Gast',
+    contact: 'gast@example.com',
+    persons: 2,
+    bring: ['Brot'],
+    note: '',
+    createdAt: serverTimestamp(),
+    ...overrides,
+  });
+
+  async function seed(published: boolean | null) {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'admin_users/adminDoc'), { role: 'Admin' });
+      if (published !== null) {
+        await setDoc(doc(db, 'site_pages/weihnachtsfeier'), { published, content });
+      }
+    });
+  }
+
+  it('hides an unpublished page from guests and members, shows it to admins', async () => {
+    await seed(false);
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'site_pages/weihnachtsfeier'))
+    );
+    await assertFails(
+      getDoc(doc(env.authenticatedContext('member').firestore(), 'site_pages/weihnachtsfeier'))
+    );
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('adminDoc').firestore(), 'site_pages/weihnachtsfeier'))
+    );
+  });
+
+  it('shows a published page to everybody', async () => {
+    await seed(true);
+    await assertSucceeds(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'site_pages/weihnachtsfeier'))
+    );
+  });
+
+  it('lets only admins write the page, with known fields only', async () => {
+    await seed(null);
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(
+      setDoc(
+        doc(env.authenticatedContext('member').firestore(), 'site_pages/weihnachtsfeier'),
+        page(true, 'member')
+      )
+    );
+    await assertFails(setDoc(doc(admin, 'site_pages/other'), page(false)));
+    await assertFails(
+      setDoc(doc(admin, 'site_pages/weihnachtsfeier'), {
+        ...page(false),
+        content: { ...content, evil: 1 },
+      })
+    );
+    await assertFails(setDoc(doc(admin, 'site_pages/weihnachtsfeier'), page(false, 'someoneElse')));
+    await assertSucceeds(setDoc(doc(admin, 'site_pages/weihnachtsfeier'), page(false)));
+  });
+
+  it('accepts registrations only while published, validated, and reads them for admins only', async () => {
+    const guestPath = 'site_pages/weihnachtsfeier/registrations/r1';
+    await seed(false);
+    const guest = env.unauthenticatedContext().firestore();
+    await assertFails(setDoc(doc(guest, guestPath), registration()));
+    await assertSucceeds(
+      setDoc(doc(env.authenticatedContext('adminDoc').firestore(), guestPath), registration())
+    );
+
+    await seed(true);
+    await assertSucceeds(setDoc(doc(guest, guestPath), registration()));
+    for (const bad of [
+      registration({ persons: 0 }),
+      registration({ persons: 11 }),
+      registration({ name: '' }),
+      registration({ contact: 'x' }),
+      registration({ bring: Array(11).fill('a') }),
+      registration({ note: 'x'.repeat(501) }),
+      registration({ extra: true }),
+      registration({ createdAt: new Date(0) }),
+    ]) {
+      await assertFails(setDoc(doc(guest, 'site_pages/weihnachtsfeier/registrations/bad'), bad));
+    }
+    await assertFails(getDoc(doc(guest, guestPath)));
+    await assertFails(getDocs(collection(guest, 'site_pages/weihnachtsfeier/registrations')));
+    await assertFails(updateDoc(doc(guest, guestPath), { persons: 3 }));
+    await assertFails(deleteDoc(doc(guest, guestPath)));
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertSucceeds(getDocs(collection(admin, 'site_pages/weihnachtsfeier/registrations')));
+    await assertSucceeds(deleteDoc(doc(admin, guestPath)));
+  });
+});

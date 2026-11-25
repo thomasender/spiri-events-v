@@ -1,0 +1,128 @@
+/* Admin tab "Weihnachtsfeier" (ChristmasTab.jsx). */
+.xmas-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 860px;
+}
+.xmas-tab-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-5);
+  background: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.xmas-tab-card--col {
+  flex-direction: column;
+}
+.xmas-tab-card h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-130);
+  color: var(--text-primary);
+}
+.xmas-tab-card p {
+  margin: 0 0 var(--space-2);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.xmas-tab-state {
+  font-weight: 600;
+  color: var(--pending-text) !important;
+}
+.xmas-tab-state--live {
+  color: var(--free-text) !important;
+}
+.xmas-tab-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.xmas-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1.5px solid var(--accent-primary-hover);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent-primary-strong);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.xmas-tab-btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.xmas-tab-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.xmas-tab-stats {
+  display: flex;
+  gap: var(--space-8);
+}
+.xmas-tab-stats div {
+  display: flex;
+  flex-direction: column;
+}
+.xmas-tab-stats strong {
+  font-size: var(--text-200);
+  color: var(--text-primary);
+}
+.xmas-tab-stats span {
+  color: var(--text-light);
+  font-size: var(--text-85);
+}
+.xmas-tab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.xmas-tab-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.xmas-tab-reg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: var(--text-92);
+}
+.xmas-tab-reg strong {
+  color: var(--text-primary);
+}
+.xmas-tab-note {
+  font-style: italic;
+}
+.xmas-tab-icon {
+  flex: none;
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  color: var(--error);
+  cursor: pointer;
+  padding: var(--space-1);
+}
+.xmas-tab-empty {
+  color: var(--text-light);
+}
+.xmas-tab-error {
+  margin: 0;
+  color: var(--error);
+}
