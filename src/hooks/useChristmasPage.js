@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import {
@@ -108,7 +109,12 @@ export function useChristmasRegistrations(enabled) {
  * Function; readable once the page is published (and by admins). Empty on any error.
  */
 export function useChristmasBringSummary() {
-  const [summary, setSummary] = useState({ items: [], persons: 0, registrations: 0 });
+  const [summary, setSummary] = useState({
+    items: [],
+    persons: 0,
+    registrations: 0,
+    attendees: [],
+  });
   useEffect(() => {
     const unsubscribe = onSnapshot(
       doc(db, 'site_pages', CHRISTMAS_PAGE_ID, 'summary', 'bring'),
@@ -121,9 +127,12 @@ export function useChristmasBringSummary() {
             : [],
           persons: Number.isInteger(data.persons) && data.persons > 0 ? data.persons : 0,
           registrations: Number.isInteger(data.registrations) ? data.registrations : 0,
+          attendees: Array.isArray(data.attendees)
+            ? data.attendees.filter((a) => a && typeof a.name === 'string')
+            : [],
         });
       },
-      () => setSummary({ items: [], persons: 0, registrations: 0 })
+      () => setSummary({ items: [], persons: 0, registrations: 0, attendees: [] })
     );
     return unsubscribe;
   }, []);
@@ -153,4 +162,8 @@ export function useMyChristmasRegistration(uid) {
 
 export async function withdrawChristmasRegistration(uid) {
   await deleteDoc(doc(registrationsRef(), uid));
+}
+
+export async function setMyChristmasShowPublic(uid, showPublic) {
+  await updateDoc(doc(registrationsRef(), uid), { showPublic: Boolean(showPublic) });
 }

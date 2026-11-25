@@ -3,7 +3,7 @@
  *
  * Registrations (`site_pages/weihnachtsfeier/registrations/*`) are readable by
  * admins only. This trigger rebuilds `site_pages/weihnachtsfeier/summary/bring`
- * = { items: [{ label, count }], persons, registrations } after every registration change, so the public
+ * = { items, persons, registrations, attendees } (attendees = opt-in only) after every registration change, so the public
  * page can show what is covered without ever exposing names or contacts. The
  * summary doc is written only here (Admin SDK); the rules forbid client writes.
  */
@@ -40,6 +40,29 @@ export function buildBringSummary(registrations: Array<{ bring?: unknown }>): Br
   );
 }
 
+export interface Attendee {
+  name: string;
+  photoURL: string | null;
+}
+
+/** Only people who ticked "others may see that I am coming", oldest registration first. */
+export function buildAttendees(
+  registrations: Array<{ showPublic?: unknown; name?: unknown; photoURL?: unknown }>
+): Attendee[] {
+  const out: Attendee[] = [];
+  for (const reg of registrations) {
+    if (reg.showPublic !== true || typeof reg.name !== 'string') continue;
+    const name = reg.name.trim().slice(0, 60);
+    if (!name) continue;
+    out.push({
+      name,
+      photoURL: typeof reg.photoURL === 'string' && reg.photoURL ? reg.photoURL : null,
+    });
+    if (out.length >= 80) break;
+  }
+  return out;
+}
+
 /** Total head count of all registrations (invalid values count as 0). */
 export function countPersons(registrations: Array<{ persons?: unknown }>): number {
   return registrations.reduce((sum, reg) => {
@@ -52,12 +75,16 @@ export const onChristmasRegistrationWritten = onDocumentWritten(
   { region: 'europe-west3', document: 'site_pages/weihnachtsfeier/registrations/{regId}' },
   async () => {
     const db = getFirestore();
-    const snap = await db.collection('site_pages/weihnachtsfeier/registrations').get();
+    const snap = await db
+      .collection('site_pages/weihnachtsfeier/registrations')
+      .orderBy('createdAt', 'asc')
+      .get();
     const regs = snap.docs.map((d) => d.data());
     await db.doc('site_pages/weihnachtsfeier/summary/bring').set({
       items: buildBringSummary(regs),
       persons: countPersons(regs),
       registrations: regs.length,
+      attendees: buildAttendees(regs),
       updatedAt: FieldValue.serverTimestamp(),
     });
   }

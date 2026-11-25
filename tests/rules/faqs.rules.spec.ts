@@ -173,6 +173,7 @@ describe('site_pages/weihnachtsfeier', () => {
     persons: 2,
     bring: ['Brot'],
     note: '',
+    showPublic: false,
     createdAt: serverTimestamp(),
     ...overrides,
   });
@@ -302,5 +303,34 @@ describe('site_pages/weihnachtsfeier', () => {
     );
     await assertFails(deleteDoc(doc(other, own)));
     await assertSucceeds(deleteDoc(doc(me, own)));
+  });
+
+  it('validates the opt-in fields and lets the owner flip only the tick', async () => {
+    await seed(true);
+    const me = env.authenticatedContext('member').firestore();
+    const own = 'site_pages/weihnachtsfeier/registrations/member';
+    const bad = 'site_pages/weihnachtsfeier/registrations/bad';
+    await assertFails(setDoc(doc(me, bad), registration({ showPublic: 'yes' })));
+    const { showPublic: _omit, ...noTick } = registration();
+    await assertFails(setDoc(doc(me, bad), noTick));
+    await assertFails(
+      setDoc(doc(me, bad), registration({ photoURL: 'https://evil.example/a.jpg' }))
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(me, own),
+        registration({
+          uid: 'member',
+          showPublic: true,
+          photoURL: 'https://firebasestorage.googleapis.com/v0/b/x/o/a.jpg?alt=media',
+        })
+      )
+    );
+    await assertSucceeds(updateDoc(doc(me, own), { showPublic: false }));
+    await assertFails(updateDoc(doc(me, own), { persons: 9 }));
+    await assertFails(updateDoc(doc(me, own), { showPublic: 'x' }));
+    await assertFails(
+      updateDoc(doc(env.authenticatedContext('other').firestore(), own), { showPublic: true })
+    );
   });
 });

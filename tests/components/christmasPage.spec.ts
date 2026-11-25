@@ -6,6 +6,7 @@ import {
   registrationsToCsv,
   sanitizeContent,
   summarizeRegistrations,
+  seatStatus,
   validateRegistration,
 } from '../../src/lib/christmasPage';
 
@@ -57,6 +58,7 @@ describe('validateRegistration', () => {
       persons: 2,
       bring: ['Brot'],
       note: '',
+      showPublic: false,
     });
   });
 
@@ -87,5 +89,33 @@ describe('registrations overview', () => {
     const csv = registrationsToCsv(list);
     expect(csv.split('\n')).toHaveLength(3);
     expect(csv).toContain(`"'=cmd"`);
+  });
+});
+
+describe('seatStatus and the opt-in photo', () => {
+  it('maps head counts to open / few / full', () => {
+    expect([0, 59, 60, 79, 80, 95].map(seatStatus)).toEqual([
+      'open',
+      'open',
+      'few',
+      'few',
+      'full',
+      'full',
+    ]);
+  });
+
+  it('keeps showPublic only when exactly true and drops photo URLs the rules would refuse', () => {
+    const base = { name: 'A', contact: 'a@b.at', persons: 1, bring: [], note: '' };
+    expect(validateRegistration({ ...base, showPublic: 'yes' }).value.showPublic).toBe(false);
+    expect(validateRegistration({ ...base, showPublic: true }).value.showPublic).toBe(true);
+    expect(
+      validateRegistration({ ...base, photoURL: 'https://evil.example/x.jpg' }).value
+    ).not.toHaveProperty('photoURL');
+    expect(
+      validateRegistration({
+        ...base,
+        photoURL: 'https://firebasestorage.googleapis.com/v0/b/x/o/a.jpg',
+      }).value.photoURL
+    ).toContain('firebasestorage');
   });
 });

@@ -902,67 +902,6 @@
   margin: var(--space-8) auto 0;
 }
 
-/* ── Seat counter ── */
-.xmas-seats {
-  margin-top: var(--space-3);
-}
-.xmas-seats p {
-  margin: var(--space-1-5) 0 0;
-  font-size: var(--text-88);
-}
-.xmas-seats-bar {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  overflow: hidden;
-}
-.xmas-seats-bar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent-secondary);
-  transition: width 0.6s ease;
-}
-.xmas-seats--low .xmas-seats-bar span {
-  background: var(--accent-create-event);
-}
-.xmas-seats--full .xmas-seats-bar span {
-  background: var(--error);
-}
-@media (prefers-reduced-motion: reduce) {
-  .xmas-seats-bar span {
-    transition: none;
-  }
-}
-
-/* ── One-click registration for signed-in people ── */
-.xmas-quick {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  margin-top: var(--space-5);
-  padding: var(--space-5);
-  background: var(--bg-calendar);
-  border: 1.5px solid var(--accent-secondary);
-  border-radius: var(--radius-md);
-}
-.xmas-quick h3 {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: var(--text-150);
-  color: var(--text-primary);
-}
-.xmas-quick p {
-  margin: 0;
-  font-size: var(--text-92);
-}
-.xmas-quick-or {
-  margin: var(--space-5) 0 0;
-  text-align: center;
-  font-size: var(--text-88);
-  color: var(--text-light);
-}
 .xmas-full-note {
   margin: var(--space-4) 0 0;
   padding: var(--space-3) var(--space-4);
@@ -970,4 +909,120 @@
   background: var(--pending-bg);
   color: var(--pending-text);
   font-size: var(--text-92);
+}
+
+/* ── Seats hint (no numbers) ── */
+.xmas-seats-hint {
+  display: inline-block;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: 999px;
+  background: var(--pending-bg);
+  color: var(--pending-text);
+  font-size: var(--text-88);
+  font-weight: 600;
+}
+.xmas-seats-hint--full {
+  background: rgba(191, 91, 78, 0.14);
+  color: var(--error-hover);
+}
+.xmas-register > .xmas-seats-hint {
+  margin-bottom: var(--space-2);
+}
+
+/* ── Opt-in tick ── */
+.xmas-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--text-primary);
+  font-size: var(--text-95);
+  font-weight: 600;
+  cursor: pointer;
+}
+.xmas-check input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  accent-color: var(--accent-secondary);
+}
+.xmas-check small {
+  display: block;
+  margin-top: var(--space-0-5);
+  font-weight: 400;
+  font-size: var(--text-85);
+  color: var(--text-light);
+}
+
+/* ── Wer kommt ── */
+.xmas-faces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.xmas-face {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 2px solid var(--bg-calendar);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-sm);
+  overflow: visible;
+  cursor: default;
+}
+.xmas-face-img,
+.xmas-face .avatar-zoom {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.xmas-face-initial {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--accent-secondary);
+  color: #fff;
+  font-weight: 700;
+}
+.xmas-face::after {
+  content: attr(data-name);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%) translateY(4px);
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  color: #fff;
+  font-size: var(--text-85);
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  z-index: 2;
+}
+.xmas-face:hover::after,
+.xmas-face:focus-visible::after,
+.xmas-face:focus::after {
+  opacity: 1;
+  transform: translateX(-50%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .xmas-face::after {
+    transition: none;
+  }
 }

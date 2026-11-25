@@ -8,6 +8,21 @@
 export const CHRISTMAS_PAGE_ID = 'weihnachtsfeier';
 export const CHRISTMAS_PATH = '/weihnachtsfeier';
 export const CHRISTMAS_CAPACITY = 80;
+// The public page never names the limit: from this head count on it only says "few places left".
+export const FEW_PLACES_LEFT_FROM = 60;
+
+/** 'open' | 'few' | 'full' by head count (never shown as a number). */
+export function seatStatus(persons) {
+  if (persons >= CHRISTMAS_CAPACITY) return 'full';
+  if (persons >= FEW_PLACES_LEFT_FROM) return 'few';
+  return 'open';
+}
+
+// Photo URLs the Firestore rule accepts (same as in the chat).
+const PHOTO_URL_RE =
+  /^(https:\/\/(firebasestorage\.googleapis\.com|[a-z0-9-]+\.googleusercontent\.com)|http:\/\/(127\.0\.0\.1|localhost):[0-9]+)\/.*/;
+export const registrationPhotoUrl = (url) =>
+  typeof url === 'string' && url.length <= 1000 && PHOTO_URL_RE.test(url) ? url : null;
 
 export const MAX_PERSONS = 10;
 export const MAX_BRING_ITEMS = 10;
@@ -26,9 +41,8 @@ export const DEFAULT_CONTENT = {
   timeLabel: '14:00–18:00 Uhr',
   place: 'Gelbe Fabrik',
   placeNote: 'Widagasse 11, 6850 Dornbirn',
-  capacityLabel: 'Maximal 80 Personen',
-  capacityNote:
-    'Das ist eine vorläufige Grenze. Anmeldung erforderlich. Je nach Anmeldezahlen und bestätigter Ausstattung kann die Grenze überprüft werden.',
+  capacityLabel: 'Anmeldung erforderlich',
+  capacityNote: 'Die Plätze sind begrenzt, deshalb melde dich bitte bald an.',
   flyerUrl: '',
   bringTitle: 'Potpourri & Mitbringliste',
   bringText:
@@ -188,10 +202,19 @@ export function validateRegistration(input) {
   if (!Number.isInteger(persons) || persons < 1 || persons > MAX_PERSONS) {
     errors.persons = `Bitte wähle 1 bis ${MAX_PERSONS} Personen.`;
   }
+  const photoURL = registrationPhotoUrl(input?.photoURL);
   return {
     ok: Object.keys(errors).length === 0,
     errors,
-    value: { name, contact, persons, bring, note },
+    value: {
+      name,
+      contact,
+      persons,
+      bring,
+      note,
+      showPublic: input?.showPublic === true,
+      ...(photoURL ? { photoURL } : {}),
+    },
   };
 }
 

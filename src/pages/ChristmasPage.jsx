@@ -27,16 +27,17 @@ import {
 } from '../hooks/useChristmasPage';
 import { uploadPageImage } from '../lib/imageUpload';
 import {
-  CHRISTMAS_CAPACITY,
   CHRISTMAS_PAGE_ID,
   MAX_IDEAS,
   MAX_STEPS,
   contentEquals,
   sanitizeContent,
+  seatStatus,
 } from '../lib/christmasPage';
 import EditableText from '../components/christmas/EditableText';
 import CandleRoom from '../components/chat/CandleRoom';
-import SeatsCounter from '../components/christmas/SeatsCounter';
+import SeatsHint from '../components/christmas/SeatsHint';
+import Attendees from '../components/christmas/Attendees';
 import RouteSketch from '../components/christmas/RouteSketch';
 import FlyerLightbox from '../components/christmas/FlyerLightbox';
 import ChristmasRegistrationForm from '../components/christmas/ChristmasRegistrationForm';
@@ -57,7 +58,7 @@ export default function ChristmasPage() {
   const seats = useChristmasBringSummary();
   const bringSummary = seats.items;
   const mine = useMyChristmasRegistration(user?.uid);
-  const seatsFree = Math.max(0, CHRISTMAS_CAPACITY - seats.persons);
+  const seatsFull = seatStatus(seats.persons) === 'full';
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | failed
@@ -314,7 +315,7 @@ export default function ChristmasPage() {
             multiline: true,
             placeholder: 'Hinweis',
           })}
-          <SeatsCounter taken={seats.persons} capacity={CHRISTMAS_CAPACITY} />
+          <SeatsHint persons={seats.persons} />
         </div>
       </section>
 
@@ -500,6 +501,11 @@ export default function ChristmasPage() {
         </div>
       </section>
 
+      <Attendees
+        attendees={seats.attendees}
+        hasMore={seats.registrations > seats.attendees.length}
+      />
+
       <section className="xmas-section xmas-register" id="anmeldung">
         {T('formTitle', { as: 'h2', placeholder: 'Überschrift' })}
         {T('formIntro', {
@@ -522,14 +528,14 @@ export default function ChristmasPage() {
             })}
           </div>
         )}
-        <SeatsCounter taken={seats.persons} capacity={CHRISTMAS_CAPACITY} />
+        <SeatsHint persons={seats.persons} />
         <ChristmasRegistrationForm
           content={content}
           covered={bringSummary}
           adminPreview={isSuperAdmin}
           user={user}
           myRegistration={mine.registration}
-          seatsFree={seatsFree}
+          seatsFull={seatsFull}
         />
       </section>
 

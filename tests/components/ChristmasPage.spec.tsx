@@ -9,7 +9,10 @@ const state = vi.hoisted(() => ({
   page: { loading: false, published: false, denied: false, exists: true, content: null as unknown },
 }));
 const submit = vi.hoisted(() => vi.fn());
-const seats = vi.hoisted(() => ({ persons: 0 }));
+const seats = vi.hoisted(() => ({
+  persons: 0,
+  attendees: [] as Array<{ name: string; photoURL: string | null }>,
+}));
 const covered = vi.hoisted(() => ({ items: [] as Array<{ label: string; count: number }> }));
 
 const auth = vi.hoisted(() => ({
@@ -25,8 +28,10 @@ vi.mock('../../src/hooks/useChristmasPage', () => ({
   useChristmasBringSummary: () => ({
     items: covered.items,
     persons: seats.persons,
-    registrations: 0,
+    registrations: seats.attendees.length,
+    attendees: seats.attendees,
   }),
+  setMyChristmasShowPublic: vi.fn(),
   useMyChristmasRegistration: () => ({ loading: false, registration: mine.registration }),
   withdrawChristmasRegistration: vi.fn(),
   saveChristmasContent: vi.fn(),
@@ -57,6 +62,7 @@ beforeEach(() => {
   submit.mockReset();
   covered.items = [];
   seats.persons = 0;
+  seats.attendees = [];
   auth.user = null;
   mine.registration = null;
 });
@@ -122,6 +128,7 @@ describe('ChristmasPage', () => {
         persons: 2,
         bring: ['Hummus', 'Linsensuppe'],
         note: '',
+        showPublic: false,
       },
       null
     );
@@ -165,43 +172,71 @@ describe('ChristmasPage', () => {
     expect(screen.queryByTestId('xmas-lightbox')).not.toBeInTheDocument();
   });
 
-  it('shows the anonymous seat counter with the free places', () => {
+  it('never shows a number of places: nothing below 60 people, "few left" from 60', () => {
     state.page = { ...state.page, published: true };
-    seats.persons = 37;
+    seats.persons = 59;
     renderPage();
-    const counters = screen.getAllByTestId('xmas-seats');
-    expect(counters[0]).toHaveTextContent('37 von 80 Plätzen belegt');
-    expect(counters[0]).toHaveTextContent('noch 43 Plätze frei');
-    expect(screen.queryByTestId('xmas-full-note')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('xmas-seats-hint')).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/\b80\b/);
+    cleanup();
+    seats.persons = 60;
+    renderPage();
+    expect(screen.getAllByTestId('xmas-seats-hint')[0]).toHaveTextContent(
+      'Nur noch wenige Plätze frei'
+    );
+    expect(document.body.textContent).not.toMatch(/\b(60|80)\b/);
   });
 
   it('says so when all places are taken, but still lets people sign up', () => {
     state.page = { ...state.page, published: true };
     seats.persons = 80;
     renderPage();
-    expect(screen.getAllByTestId('xmas-seats')[0]).toHaveTextContent('aktuell ausgebucht');
+    expect(screen.getAllByTestId('xmas-seats-hint')[0]).toHaveTextContent('ausgebucht');
     expect(screen.getByTestId('xmas-full-note')).toBeInTheDocument();
     expect(screen.getByTestId('xmas-registration-form')).toBeInTheDocument();
   });
 
-  it('offers signed-in people a one-click registration with their account data', async () => {
+  it('prefills the name and e-mail of a signed-in person (editable), without a one-click button', () => {
+    state.page = { ...state.page, published: true };
+    auth.user = { uid: 'u7', displayName: 'Anna', email: 'anna@example.com' };
+    renderPage();
+    expect(screen.getByLabelText('Name')).toHaveValue('Anna');
+    expect(screen.getByLabelText('E-Mail oder Telefonnummer')).toHaveValue('anna@example.com');
+    expect(screen.queryByRole('button', { name: /mit einem klick/i })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Anna Maria' } });
+    expect(screen.getByLabelText('Name')).toHaveValue('Anna Maria');
+  });
+
+  it('sends the opt-in "others may see that I am coming" only when ticked', async () => {
     state.page = { ...state.page, published: true };
     auth.user = { uid: 'u7', displayName: 'Anna', email: 'anna@example.com' };
     submit.mockResolvedValue(undefined);
     renderPage();
-    expect(screen.getByLabelText('Name')).toHaveValue('Anna');
-    fireEvent.click(screen.getByRole('button', { name: 'Mit einem Klick anmelden' }));
-    expect(await screen.findByTestId('xmas-registration-done')).toBeInTheDocument();
-    expect(submit).toHaveBeenCalledWith(
-      { name: 'Anna', contact: 'anna@example.com', persons: 1, bring: [], note: '' },
-      'u7'
-    );
+    fireEvent.click(screen.getByRole('checkbox', { name: /andere dürfen sehen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /verbindlich anmelden/i }));
+    await screen.findByTestId('xmas-registration-done');
+    expect(submit.mock.calls[0][0]).toMatchObject({ name: 'Anna', persons: 1, showPublic: true });
+    expect(submit.mock.calls[0][1]).toBe('u7');
   });
 
-  it('shows no one-click offer to guests, and "Du bist angemeldet" to registered people', () => {
+  it('shows who is coming (opt-in only) with the name as hover text, and nothing if nobody opted in', () => {
     state.page = { ...state.page, published: true };
     renderPage();
-    expect(screen.queryByTestId('xmas-quick')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('xmas-attendees')).not.toBeInTheDocument();
+    cleanup();
+    seats.attendees = [
+      { name: 'Anna', photoURL: null },
+      { name: 'Ben', photoURL: 'https://example.com/b.jpg' },
+    ];
+    renderPage();
+    expect(screen.getByTestId('xmas-attendees')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Anna' })).toHaveAttribute('data-name', 'Anna');
+    expect(screen.getByRole('button', { name: 'Ben' })).toBeInTheDocument();
+  });
+
+  it('shows "Du bist angemeldet" to registered people', () => {
+    state.page = { ...state.page, published: true };
+    renderPage();
     cleanup();
     auth.user = { uid: 'u7', displayName: 'Anna', email: 'anna@example.com' };
     mine.registration = { persons: 2, bring: ['Brot'] };

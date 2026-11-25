@@ -1152,7 +1152,11 @@ service cloud.firestore {
       match /registrations/{regId} {
         function isValidSiteRegistration(d) {
           return pageId == 'weihnachtsfeier'
-            && d.keys().hasOnly(['name', 'contact', 'persons', 'bring', 'note', 'createdAt', 'uid'])
+            && d.keys().hasOnly(['name', 'contact', 'persons', 'bring', 'note', 'createdAt', 'uid', 'showPublic', 'photoURL'])
+            && d.showPublic is bool
+            && (!('photoURL' in d)
+                || (d.photoURL is string && d.photoURL.size() <= 1000
+                    && d.photoURL.matches('^(https://(firebasestorage\\.googleapis\\.com|[a-z0-9-]+\\.googleusercontent\\.com)|http://(127\\.0\\.0\\.1|localhost):[0-9]+)/.*')))
             && (!('uid' in d) || (isAuthenticated() && d.uid == request.auth.uid))
             && d.name is string && d.name.size() > 0 && d.name.size() <= 100
             && d.contact is string && d.contact.size() >= 5 && d.contact.size() <= 200
@@ -1171,7 +1175,10 @@ service cloud.firestore {
                       && (isAdminOrEmulatorAdmin()
                         || (exists(/databases/$(database)/documents/site_pages/$(pageId))
                           && get(/databases/$(database)/documents/site_pages/$(pageId)).data.published == true));
-        allow update: if false;
+        // The owner may only switch the public "I am coming" tick.
+        allow update: if isAuthenticated() && request.auth.uid == regId
+                      && request.resource.data.showPublic is bool
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['showPublic']);
       }
     }
 

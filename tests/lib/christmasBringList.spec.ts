@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildBringSummary, countPersons } from '../../functions/src/christmasBringList';
+import {
+  buildAttendees,
+  buildBringSummary,
+  countPersons,
+} from '../../functions/src/christmasBringList';
 
 describe('buildBringSummary', () => {
   it('counts case-insensitively, keeps the first spelling and sorts by count', () => {
@@ -24,5 +28,21 @@ describe('countPersons', () => {
     expect(
       countPersons([{ persons: 2 }, { persons: 3 }, { persons: 'x' }, { persons: 99 }, {}])
     ).toBe(5);
+  });
+});
+
+describe('buildAttendees', () => {
+  it('lists only people who opted in, never contact data', () => {
+    const out = buildAttendees([
+      { showPublic: true, name: ' Anna ', photoURL: 'https://x/a.jpg' },
+      { showPublic: false, name: 'Hidden' },
+      { name: 'Also hidden' },
+      { showPublic: true, name: 'Ben' },
+      { showPublic: true, name: ' ' },
+    ]);
+    expect(out).toEqual([
+      { name: 'Anna', photoURL: 'https://x/a.jpg' },
+      { name: 'Ben', photoURL: null },
+    ]);
   });
 });

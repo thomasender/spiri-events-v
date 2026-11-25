@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import {
+  setMyChristmasShowPublic,
   submitChristmasRegistration,
   withdrawChristmasRegistration,
 } from '../../hooks/useChristmasPage';
+import { useProfile } from '../../hooks/useProfile';
+import { chatAuthorName, chatPhotoUrl } from '../../utils/chat';
 import { MAX_BRING_ITEMS, MAX_PERSONS, validateRegistration } from '../../lib/christmasPage';
 
 // Registration form of the Weihnachtsfeier: name, one contact, head count and the
@@ -14,10 +17,14 @@ export default function ChristmasRegistrationForm({
   covered = [],
   user = null,
   myRegistration = null,
-  seatsFree = Infinity,
+  seatsFull = false,
 }) {
   const uid = user?.uid || null;
-  const accountName = user?.displayName || (user?.email ? user.email.split('@')[0] : '');
+  const { profile } = useProfile(uid);
+  const profileName = user ? chatAuthorName(profile, user) : '';
+  const accountName =
+    profileName && profileName !== 'Gast' ? profileName : user?.email?.split('@')[0] || '';
+  const photoURL = user ? chatPhotoUrl(profile?.photoURL || user?.photoURL) : null;
   const coveredCount = (item) =>
     covered.find((c) => c.label.toLowerCase() === item.toLowerCase())?.count || 0;
   const [name, setName] = useState(accountName);
@@ -27,6 +34,7 @@ export default function ChristmasRegistrationForm({
   const [custom, setCustom] = useState('');
   const [note, setNote] = useState('');
   const [website, setWebsite] = useState('');
+  const [showPublic, setShowPublic] = useState(false);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | sending | done | failed
 
@@ -65,39 +73,23 @@ export default function ChristmasRegistrationForm({
     }
     const pending = custom.trim();
     const items = pending ? [...bring, pending] : bring;
-    const result = validateRegistration({ name, contact, persons, bring: items, note });
+    const result = validateRegistration({
+      name,
+      contact,
+      persons,
+      bring: items,
+      note,
+      showPublic,
+      photoURL,
+    });
     setErrors(result.errors);
     if (!result.ok) return;
-    setStatus('sending');
-    try {
-      await submitChristmasRegistration({ name, contact, persons, bring: items, note }, uid);
-      setStatus('done');
-    } catch (err) {
-      console.warn('Weihnachtsfeier registration failed:', err?.code || err);
-      setStatus('failed');
-    }
-  };
-
-  // One click for signed-in people: account name and e-mail, one person, nothing to bring yet.
-  const quickRegister = async () => {
-    const result = validateRegistration({
-      name: accountName,
-      contact: user?.email || '',
-      persons: 1,
-      bring: [],
-      note: '',
-    });
-    if (!result.ok) {
-      setErrors(result.errors);
-      document.getElementById('xmas-name')?.focus();
-      return;
-    }
     setStatus('sending');
     try {
       await submitChristmasRegistration(result.value, uid);
       setStatus('done');
     } catch (err) {
-      console.warn('Weihnachtsfeier quick registration failed:', err?.code || err);
+      console.warn('Weihnachtsfeier registration failed:', err?.code || err);
       setStatus('failed');
     }
   };
@@ -125,6 +117,16 @@ export default function ChristmasRegistrationForm({
           {myRegistration.bring?.length > 0 && ` · bringt mit: ${myRegistration.bring.join(', ')}`}
         </p>
         <p className="xmas-text">{content.thanksText}</p>
+        <label className="xmas-check">
+          <input
+            type="checkbox"
+            checked={myRegistration.showPublic === true}
+            onChange={(e) =>
+              setMyChristmasShowPublic(uid, e.target.checked).catch(() => setStatus('failed'))
+            }
+          />
+          Andere dürfen sehen, dass ich komme
+        </label>
         <button
           type="button"
           className="xmas-btn xmas-btn--ghost xmas-btn--small"
@@ -152,26 +154,11 @@ export default function ChristmasRegistrationForm({
 
   return (
     <>
-      {seatsFree <= 0 && (
+      {seatsFull && (
         <p className="xmas-full-note" data-testid="xmas-full-note">
           Aktuell sind alle Plätze vergeben. Du kannst dich trotzdem eintragen, wir melden uns,
           sobald etwas frei wird.
         </p>
-      )}
-      {uid && (
-        <div className="xmas-quick" data-testid="xmas-quick">
-          <h3>Hallo {accountName || 'du'}!</h3>
-          <p>Mit deinem Konto anmelden: 1 Person, ohne Formular.</p>
-          <button
-            type="button"
-            className="xmas-btn"
-            onClick={quickRegister}
-            disabled={status === 'sending'}
-          >
-            Mit einem Klick anmelden
-          </button>
-          <p className="xmas-quick-or">Oder mit mehr Personen und Mitbringliste:</p>
-        </div>
       )}
       <form className="xmas-form" onSubmit={submit} noValidate data-testid="xmas-registration-form">
         {adminPreview && (
@@ -302,6 +289,21 @@ export default function ChristmasRegistrationForm({
           value={website}
           onChange={(e) => setWebsite(e.target.value)}
         />
+
+        <label className="xmas-check">
+          <input
+            type="checkbox"
+            checked={showPublic}
+            onChange={(e) => setShowPublic(e.target.checked)}
+          />
+          <span>
+            Andere dürfen sehen, dass ich komme
+            <small>
+              Dein Profilbild (falls vorhanden) erscheint in „Wer kommt“, dein Name beim
+              Drüberfahren.
+            </small>
+          </span>
+        </label>
 
         <p className="xmas-form-privacy">
           Deine Angaben nutzen wir nur zur Organisation der Weihnachtsfeier.
