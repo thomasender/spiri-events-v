@@ -204,6 +204,20 @@ describe('LegalPage Instagram channels (per region)', () => {
   });
 });
 
+describe('LegalPage Vereinsmitglieder', () => {
+  it('has section 20 "Vereinsmitglieder" with an anchor, Mollie and legal bases; "Änderungen" is 21', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const heading = container.querySelector('h2#vereinsmitglieder');
+    expect(heading).toHaveTextContent('20. Vereinsmitglieder');
+    const text = heading?.closest('section')?.textContent ?? '';
+    expect(text).toContain('Mollie');
+    expect(text).toContain('Art. 6 Abs. 1 lit. b DSGVO');
+    expect(text).toContain('Art. 6 Abs. 1 lit. a DSGVO');
+    const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
+    expect(headings.some((h) => /^21\. Änderungen/.test(h ?? ''))).toBe(true);
+  });
+});
+
 describe('LegalPage back link', () => {
   it('leads to the region the visitor came from, not to Vorarlberg', () => {
     render(
