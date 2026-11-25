@@ -5,7 +5,6 @@ import {
   ArrowUp,
   CalendarDays,
   Clock,
-  ImagePlus,
   MapPin,
   Pencil,
   Plus,
@@ -195,6 +194,20 @@ export default function ChristmasPage() {
             className={`xmas-flyer${editing ? ' xmas-flyer--drop' : ''}${dragging ? ' xmas-flyer--over' : ''}`}
             data-testid="xmas-flyer-drop"
             {...dropProps}
+            {...(editing
+              ? {
+                  role: 'button',
+                  tabIndex: 0,
+                  'aria-label': 'Flyer hochladen: Bild hierher ziehen oder klicken zum Auswählen',
+                  onClick: () => !uploading && fileRef.current?.click(),
+                  onKeyDown: (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      if (!uploading) fileRef.current?.click();
+                    }
+                  },
+                }
+              : {})}
           >
             {content.flyerUrl ? (
               <img src={content.flyerUrl} alt={`Flyer: ${content.title}`} />
@@ -207,7 +220,7 @@ export default function ChristmasPage() {
             )}
             {editing && (
               <figcaption className="xmas-flyer-hint">
-                {uploading ? 'Lädt hoch …' : 'Bild hierher ziehen oder unten auswählen'}
+                {uploading ? 'Lädt hoch …' : 'Bild hierher ziehen oder klicken zum Auswählen'}
               </figcaption>
             )}
           </figure>
@@ -221,19 +234,6 @@ export default function ChristmasPage() {
                 onChange={onFlyer}
                 data-testid="xmas-flyer-input"
               />
-              <button
-                type="button"
-                className="xmas-btn xmas-btn--small"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-              >
-                <ImagePlus size={15} aria-hidden="true" />
-                {uploading
-                  ? 'Lädt hoch …'
-                  : content.flyerUrl
-                    ? 'Flyer ersetzen'
-                    : 'Flyer hochladen'}
-              </button>
               {content.flyerUrl && (
                 <button
                   type="button"

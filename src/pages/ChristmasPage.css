@@ -643,3 +643,10 @@
   text-align: center;
   pointer-events: none;
 }
+
+.xmas-flyer--drop {
+  cursor: pointer;
+}
+.xmas-flyer--drop:focus-visible {
+  outline: 3px solid var(--accent-create-event);
+}

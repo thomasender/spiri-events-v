@@ -125,6 +125,8 @@ describe('ChristmasPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /seite bearbeiten/i }));
     const zone = screen.getByTestId('xmas-flyer-drop');
     expect(zone).toHaveClass('xmas-flyer--drop');
+    expect(zone).toHaveAttribute('role', 'button');
+    expect(screen.queryByRole('button', { name: /^flyer hochladen$/i })).not.toBeInTheDocument();
     fireEvent.dragOver(zone);
     expect(zone).toHaveClass('xmas-flyer--over');
     fireEvent.dragLeave(zone);
