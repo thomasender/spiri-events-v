@@ -163,6 +163,34 @@ describe('Kandidaten', () => {
     expect(screen.queryByRole('button', { name: 'Trotzdem annehmen' })).toBeNull();
   });
 
+  it('accepts a selection in one go and reports failures', async () => {
+    state.candidates = [
+      candidate({ id: 'c1' }),
+      candidate({ id: 'c2', rawExtract: { title: 'Zweites' } }),
+      candidate({ id: 'c3', rawExtract: { title: 'Drittes' } }),
+    ];
+    api.importAcceptCandidate.mockImplementation(async (arg: unknown) => {
+      if ((arg as { candidateId: string }).candidateId === 'c2') throw new Error('blocked');
+      return { eventId: 'e' };
+    });
+    render(<ImportTab />);
+    expect(screen.getByTestId('import-bulk-accept')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('import-select-all'));
+    expect(screen.getByTestId('import-bulk-accept')).toHaveTextContent('(3)');
+    fireEvent.click(screen.getByTestId('import-select-c3'));
+    fireEvent.click(screen.getByTestId('import-bulk-accept'));
+    expect(api.importAcceptCandidate).not.toHaveBeenCalled();
+    fireEvent.click(confirmButton('2 annehmen'));
+    const failures = await screen.findByTestId('import-bulk-failures');
+    expect(failures).toHaveTextContent('Zweites: blocked');
+    expect(api.importAcceptCandidate).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('alert')).toHaveTextContent('1 von 2');
+    // the failed one stays selected for a retry
+    expect(screen.getByTestId('import-select-c2')).toBeChecked();
+    api.importAcceptCandidate.mockReset();
+    api.importAcceptCandidate.mockResolvedValue({ eventId: 'e1' });
+  });
+
   it('defers a found candidate and reopens a deferred one', async () => {
     const { unmount } = render(<ImportTab />);
     fireEvent.click(screen.getByTestId('import-defer-c1'));

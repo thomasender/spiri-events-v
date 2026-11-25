@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useImportCandidates, useCandidateCounts } from '../hooks/useImportData';
 import {
   importAcceptCandidate,
@@ -27,6 +27,30 @@ function priceText(extract) {
   return '–';
 }
 
+// Parallel requests while accepting a selection: fast enough, gentle on the callable.
+const BULK_CONCURRENCY = 3;
+
+/** Runs `worker` over `items` with at most `limit` in flight; never throws (results per item). */
+async function runPool(items, limit, worker, onStep) {
+  const results = new Array(items.length);
+  let next = 0;
+  let finished = 0;
+  const lane = async () => {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = { ok: true, value: await worker(items[i]) };
+      } catch (error) {
+        results[i] = { ok: false, error };
+      }
+      finished += 1;
+      onStep(finished);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane));
+  return results;
+}
+
 function errorText(err) {
   return err?.message ? `Das hat nicht geklappt: ${err.message}` : 'Das hat nicht geklappt.';
 }
@@ -42,6 +66,79 @@ export default function ImportCandidates({ regionId, organizersById }) {
   const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulk, setBulk] = useState(null); // { done, total } while a bulk accept runs
+  const [bulkFailures, setBulkFailures] = useState([]);
+  const selectAllRef = useRef(null);
+
+  const isSelectable = (c) => Boolean(c.rawExtract);
+  const selectable = items.filter(isSelectable);
+  const chosen = selectable.filter((c) => selected.has(c.id));
+  const allChosen = selectable.length > 0 && chosen.length === selectable.length;
+
+  // Selection never outlives the list: switching status/region or an accepted card dropping out.
+  useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(items.map((c) => c.id));
+      const kept = [...prev].filter((id) => ids.has(id));
+      return kept.length === prev.size ? prev : new Set(kept);
+    });
+  }, [items]);
+  useEffect(() => {
+    setSelected(new Set());
+    setBulkFailures([]);
+  }, [regionId, status]);
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = chosen.length > 0 && !allChosen;
+    }
+  }, [chosen.length, allChosen]);
+
+  const toggle = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () => setSelected(allChosen ? new Set() : new Set(selectable.map((c) => c.id)));
+
+  const acceptMany = async (candidates) => {
+    setBusy(true);
+    setNotice(null);
+    setBulkFailures([]);
+    setBulk({ done: 0, total: candidates.length });
+    const results = await runPool(
+      candidates,
+      BULK_CONCURRENCY,
+      (c) => importAcceptCandidate({ candidateId: c.id }),
+      (finished) => setBulk({ done: finished, total: candidates.length })
+    );
+    const failed = candidates
+      .map((c, i) => ({ c, r: results[i] }))
+      .filter(({ r }) => !r.ok)
+      .map(({ c, r }) => ({
+        id: c.id,
+        title: c.rawExtract?.title ?? 'Event',
+        message: r.error?.message ?? 'Unbekannter Fehler',
+      }));
+    const okCount = candidates.length - failed.length;
+    setBulk(null);
+    setConfirm(null);
+    setBulkFailures(failed);
+    // Accepted candidates leave the list on their own (live query); failed ones stay selected to retry.
+    setSelected(new Set(failed.map((f) => f.id)));
+    setNotice({
+      kind: failed.length ? 'error' : 'success',
+      text: failed.length
+        ? `${okCount} von ${candidates.length} Events angelegt, ${failed.length} ${
+            failed.length === 1 ? 'hat' : 'haben'
+          } nicht geklappt.`
+        : `${okCount} ${okCount === 1 ? 'Event wurde' : 'Events wurden'} angelegt (warten auf Consent).`,
+    });
+    setRefreshKey((k) => k + 1);
+    setBusy(false);
+  };
 
   const done = (text) => {
     setConfirm(null);
@@ -131,6 +228,47 @@ export default function ImportCandidates({ regionId, organizersById }) {
         </p>
       )}
 
+      {status === 'found' && selectable.length > 0 && (
+        <div className="import-bulk" data-testid="import-bulk-bar">
+          <label className="import-bulk-all">
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              checked={allChosen}
+              disabled={busy}
+              onChange={toggleAll}
+              data-testid="import-select-all"
+            />
+            Alle auswählen ({selectable.length})
+          </label>
+          <span className="import-bulk-count" aria-live="polite" data-testid="import-bulk-count">
+            {bulk
+              ? `${bulk.done} von ${bulk.total} angelegt …`
+              : chosen.length > 0
+                ? `${chosen.length} ausgewählt`
+                : ''}
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={busy || chosen.length === 0}
+            data-testid="import-bulk-accept"
+            onClick={() => setConfirm({ kind: 'bulk', candidates: chosen })}
+          >
+            Ausgewählte annehmen{chosen.length > 0 ? ` (${chosen.length})` : ''}
+          </button>
+        </div>
+      )}
+      {bulkFailures.length > 0 && (
+        <ul className="import-errors" data-testid="import-bulk-failures">
+          {bulkFailures.map((f) => (
+            <li key={f.id}>
+              {f.title}: {f.message}
+            </li>
+          ))}
+        </ul>
+      )}
+
       <ul className="moderation-list">
         {items.map((c) => {
           const x = c.rawExtract ?? {};
@@ -166,6 +304,17 @@ export default function ImportCandidates({ regionId, organizersById }) {
             >
               <div className="import-card-main">
                 <div className="import-card-title">
+                  {status === 'found' && (
+                    <input
+                      type="checkbox"
+                      className="import-select"
+                      checked={selected.has(c.id)}
+                      disabled={busy}
+                      onChange={() => toggle(c.id)}
+                      aria-label={`„${x.title || 'ohne Titel'}“ auswählen`}
+                      data-testid={`import-select-${c.id}`}
+                    />
+                  )}
                   <span className="moderation-card-name">{x.title || '(ohne Titel)'}</span>
                   <span className="import-badge" data-testid="badge-confidence">
                     Konfidenz {Math.round((Number(c.confidence) || 0) * 100)} %
@@ -293,6 +442,29 @@ export default function ImportCandidates({ regionId, organizersById }) {
           Es wird ein Event „{confirm?.candidate?.rawExtract?.title}“ angelegt. Es bleibt
           unsichtbar, bis der Veranstalter zugestimmt hat.
         </p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        isOpen={confirm?.kind === 'bulk'}
+        title={`${confirm?.candidates?.length ?? 0} Kandidaten annehmen?`}
+        confirmLabel={`${confirm?.candidates?.length ?? 0} annehmen`}
+        cancelLabel="Abbrechen"
+        onConfirm={() => acceptMany(confirm.candidates)}
+        onCancel={() => !busy && setConfirm(null)}
+        loading={busy}
+      >
+        <p>
+          Es werden {confirm?.candidates?.length} Events angelegt. Sie bleiben unsichtbar, bis der
+          jeweilige Veranstalter zugestimmt hat.
+        </p>
+        <ul className="import-bulk-titles">
+          {(confirm?.candidates ?? []).slice(0, 8).map((c) => (
+            <li key={c.id}>{c.rawExtract?.title || '(ohne Titel)'}</li>
+          ))}
+          {(confirm?.candidates?.length ?? 0) > 8 && (
+            <li>… und {confirm.candidates.length - 8} weitere</li>
+          )}
+        </ul>
       </ConfirmDialog>
 
       <ConfirmDialog
