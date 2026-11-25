@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBringSummary } from '../../functions/src/christmasBringList';
+import { buildBringSummary, countPersons } from '../../functions/src/christmasBringList';
 
 describe('buildBringSummary', () => {
   it('counts case-insensitively, keeps the first spelling and sorts by count', () => {
@@ -16,5 +16,13 @@ describe('buildBringSummary', () => {
       { label: 'Salat', count: 2 },
       { label: 'Kekse', count: 1 },
     ]);
+  });
+});
+
+describe('countPersons', () => {
+  it('sums valid head counts and ignores junk', () => {
+    expect(
+      countPersons([{ persons: 2 }, { persons: 3 }, { persons: 'x' }, { persons: 99 }, {}])
+    ).toBe(5);
   });
 });

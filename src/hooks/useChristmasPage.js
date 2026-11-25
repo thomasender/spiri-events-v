@@ -68,10 +68,16 @@ export async function saveChristmasContent({ content, published, uid }) {
   });
 }
 
-export async function submitChristmasRegistration(input) {
+// Signed in: the doc id is the uid (a second registration is refused by the rules, the
+// person can withdraw and register again). Guests get a random id.
+export async function submitChristmasRegistration(input, uid = null) {
   const { ok, errors, value } = validateRegistration(input);
   if (!ok) throw Object.assign(new Error('invalid'), { errors });
-  await addDoc(registrationsRef(), { ...value, createdAt: serverTimestamp() });
+  if (uid) {
+    await setDoc(doc(registrationsRef(), uid), { ...value, uid, createdAt: serverTimestamp() });
+  } else {
+    await addDoc(registrationsRef(), { ...value, createdAt: serverTimestamp() });
+  }
 }
 
 /** Admin only: all registrations, newest first. */
@@ -102,21 +108,49 @@ export function useChristmasRegistrations(enabled) {
  * Function; readable once the page is published (and by admins). Empty on any error.
  */
 export function useChristmasBringSummary() {
-  const [items, setItems] = useState([]);
+  const [summary, setSummary] = useState({ items: [], persons: 0, registrations: 0 });
   useEffect(() => {
     const unsubscribe = onSnapshot(
       doc(db, 'site_pages', CHRISTMAS_PAGE_ID, 'summary', 'bring'),
       (snap) => {
-        const list = snap.data()?.items;
-        setItems(
-          Array.isArray(list)
+        const data = snap.data() || {};
+        const list = data.items;
+        setSummary({
+          items: Array.isArray(list)
             ? list.filter((x) => x && typeof x.label === 'string' && Number(x.count) > 0)
-            : []
-        );
+            : [],
+          persons: Number.isInteger(data.persons) && data.persons > 0 ? data.persons : 0,
+          registrations: Number.isInteger(data.registrations) ? data.registrations : 0,
+        });
       },
-      () => setItems([])
+      () => setSummary({ items: [], persons: 0, registrations: 0 })
     );
     return unsubscribe;
   }, []);
-  return items;
+  return summary;
+}
+
+/** The signed-in person's own registration (doc id = uid), or null. */
+export function useMyChristmasRegistration(uid) {
+  const [state, setState] = useState({ loading: Boolean(uid), registration: null });
+  useEffect(() => {
+    if (!uid) {
+      setState({ loading: false, registration: null });
+      return undefined;
+    }
+    return onSnapshot(
+      doc(registrationsRef(), uid),
+      (snap) =>
+        setState({
+          loading: false,
+          registration: snap.exists() ? { id: snap.id, ...snap.data() } : null,
+        }),
+      () => setState({ loading: false, registration: null })
+    );
+  }, [uid]);
+  return state;
+}
+
+export async function withdrawChristmasRegistration(uid) {
+  await deleteDoc(doc(registrationsRef(), uid));
 }

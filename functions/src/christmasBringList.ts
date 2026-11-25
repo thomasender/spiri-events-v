@@ -3,7 +3,7 @@
  *
  * Registrations (`site_pages/weihnachtsfeier/registrations/*`) are readable by
  * admins only. This trigger rebuilds `site_pages/weihnachtsfeier/summary/bring`
- * = { items: [{ label, count }] } after every registration change, so the public
+ * = { items: [{ label, count }], persons, registrations } after every registration change, so the public
  * page can show what is covered without ever exposing names or contacts. The
  * summary doc is written only here (Admin SDK); the rules forbid client writes.
  */
@@ -40,14 +40,25 @@ export function buildBringSummary(registrations: Array<{ bring?: unknown }>): Br
   );
 }
 
+/** Total head count of all registrations (invalid values count as 0). */
+export function countPersons(registrations: Array<{ persons?: unknown }>): number {
+  return registrations.reduce((sum, reg) => {
+    const n = Number(reg.persons);
+    return sum + (Number.isInteger(n) && n > 0 && n <= 10 ? n : 0);
+  }, 0);
+}
+
 export const onChristmasRegistrationWritten = onDocumentWritten(
   { region: 'europe-west3', document: 'site_pages/weihnachtsfeier/registrations/{regId}' },
   async () => {
     const db = getFirestore();
     const snap = await db.collection('site_pages/weihnachtsfeier/registrations').get();
-    const items = buildBringSummary(snap.docs.map((d) => d.data()));
-    await db
-      .doc('site_pages/weihnachtsfeier/summary/bring')
-      .set({ items, updatedAt: FieldValue.serverTimestamp() });
+    const regs = snap.docs.map((d) => d.data());
+    await db.doc('site_pages/weihnachtsfeier/summary/bring').set({
+      items: buildBringSummary(regs),
+      persons: countPersons(regs),
+      registrations: regs.length,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
   }
 );

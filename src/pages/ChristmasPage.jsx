@@ -23,9 +23,11 @@ import {
   saveChristmasContent,
   useChristmasBringSummary,
   useChristmasPage,
+  useMyChristmasRegistration,
 } from '../hooks/useChristmasPage';
 import { uploadPageImage } from '../lib/imageUpload';
 import {
+  CHRISTMAS_CAPACITY,
   CHRISTMAS_PAGE_ID,
   MAX_IDEAS,
   MAX_STEPS,
@@ -34,6 +36,7 @@ import {
 } from '../lib/christmasPage';
 import EditableText from '../components/christmas/EditableText';
 import CandleRoom from '../components/chat/CandleRoom';
+import SeatsCounter from '../components/christmas/SeatsCounter';
 import RouteSketch from '../components/christmas/RouteSketch';
 import FlyerLightbox from '../components/christmas/FlyerLightbox';
 import ChristmasRegistrationForm from '../components/christmas/ChristmasRegistrationForm';
@@ -51,7 +54,10 @@ export default function ChristmasPage() {
   const { user } = useAuth();
   const { isSuperAdmin, loading: roleLoading } = useStaffRole();
   const page = useChristmasPage();
-  const bringSummary = useChristmasBringSummary();
+  const seats = useChristmasBringSummary();
+  const bringSummary = seats.items;
+  const mine = useMyChristmasRegistration(user?.uid);
+  const seatsFree = Math.max(0, CHRISTMAS_CAPACITY - seats.persons);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | failed
@@ -308,6 +314,7 @@ export default function ChristmasPage() {
             multiline: true,
             placeholder: 'Hinweis',
           })}
+          <SeatsCounter taken={seats.persons} capacity={CHRISTMAS_CAPACITY} />
         </div>
       </section>
 
@@ -515,10 +522,14 @@ export default function ChristmasPage() {
             })}
           </div>
         )}
+        <SeatsCounter taken={seats.persons} capacity={CHRISTMAS_CAPACITY} />
         <ChristmasRegistrationForm
           content={content}
           covered={bringSummary}
           adminPreview={isSuperAdmin}
+          user={user}
+          myRegistration={mine.registration}
+          seatsFree={seatsFree}
         />
       </section>
 

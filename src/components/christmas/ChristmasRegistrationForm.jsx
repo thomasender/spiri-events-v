@@ -1,15 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
-import { submitChristmasRegistration } from '../../hooks/useChristmasPage';
+import {
+  submitChristmasRegistration,
+  withdrawChristmasRegistration,
+} from '../../hooks/useChristmasPage';
 import { MAX_BRING_ITEMS, MAX_PERSONS, validateRegistration } from '../../lib/christmasPage';
 
 // Registration form of the Weihnachtsfeier: name, one contact, head count and the
 // Mitbringliste (suggestions as chips plus free entries). `website` is a honeypot.
-export default function ChristmasRegistrationForm({ content, adminPreview, covered = [] }) {
+export default function ChristmasRegistrationForm({
+  content,
+  adminPreview,
+  covered = [],
+  user = null,
+  myRegistration = null,
+  seatsFree = Infinity,
+}) {
+  const uid = user?.uid || null;
+  const accountName = user?.displayName || (user?.email ? user.email.split('@')[0] : '');
   const coveredCount = (item) =>
     covered.find((c) => c.label.toLowerCase() === item.toLowerCase())?.count || 0;
-  const [name, setName] = useState('');
-  const [contact, setContact] = useState('');
+  const [name, setName] = useState(accountName);
+  const [contact, setContact] = useState(user?.email || '');
   const [persons, setPersons] = useState(1);
   const [bring, setBring] = useState([]);
   const [custom, setCustom] = useState('');
@@ -17,6 +29,12 @@ export default function ChristmasRegistrationForm({ content, adminPreview, cover
   const [website, setWebsite] = useState('');
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | sending | done | failed
+
+  // The account may arrive after the first render: prefill, never overwrite typing.
+  useEffect(() => {
+    setName((n) => n || accountName);
+    setContact((c) => c || user?.email || '');
+  }, [accountName, user?.email]);
 
   const toggle = (item) =>
     setBring((prev) =>
@@ -52,13 +70,71 @@ export default function ChristmasRegistrationForm({ content, adminPreview, cover
     if (!result.ok) return;
     setStatus('sending');
     try {
-      await submitChristmasRegistration({ name, contact, persons, bring: items, note });
+      await submitChristmasRegistration({ name, contact, persons, bring: items, note }, uid);
       setStatus('done');
     } catch (err) {
       console.warn('Weihnachtsfeier registration failed:', err?.code || err);
       setStatus('failed');
     }
   };
+
+  // One click for signed-in people: account name and e-mail, one person, nothing to bring yet.
+  const quickRegister = async () => {
+    const result = validateRegistration({
+      name: accountName,
+      contact: user?.email || '',
+      persons: 1,
+      bring: [],
+      note: '',
+    });
+    if (!result.ok) {
+      setErrors(result.errors);
+      document.getElementById('xmas-name')?.focus();
+      return;
+    }
+    setStatus('sending');
+    try {
+      await submitChristmasRegistration(result.value, uid);
+      setStatus('done');
+    } catch (err) {
+      console.warn('Weihnachtsfeier quick registration failed:', err?.code || err);
+      setStatus('failed');
+    }
+  };
+
+  const withdraw = async () => {
+    if (!window.confirm('Deine Anmeldung wirklich zurückziehen?')) return;
+    try {
+      await withdrawChristmasRegistration(uid);
+      setStatus('idle');
+    } catch (err) {
+      console.warn('Weihnachtsfeier withdraw failed:', err?.code || err);
+      setStatus('failed');
+    }
+  };
+
+  if (status !== 'done' && myRegistration) {
+    return (
+      <div className="xmas-form xmas-form--done" role="status" data-testid="xmas-registered">
+        <span className="xmas-form-done-icon" aria-hidden="true">
+          <Check size={28} />
+        </span>
+        <h3>Du bist angemeldet</h3>
+        <p className="xmas-text">
+          {myRegistration.persons} {myRegistration.persons === 1 ? 'Person' : 'Personen'}
+          {myRegistration.bring?.length > 0 && ` · bringt mit: ${myRegistration.bring.join(', ')}`}
+        </p>
+        <p className="xmas-text">{content.thanksText}</p>
+        <button
+          type="button"
+          className="xmas-btn xmas-btn--ghost xmas-btn--small"
+          onClick={withdraw}
+        >
+          Anmeldung zurückziehen
+        </button>
+      </div>
+    );
+  }
 
   if (status === 'done') {
     return (
@@ -75,147 +151,170 @@ export default function ChristmasRegistrationForm({ content, adminPreview, cover
   const customIdeas = bring.filter((x) => !content.bringIdeas.includes(x));
 
   return (
-    <form className="xmas-form" onSubmit={submit} noValidate data-testid="xmas-registration-form">
-      {adminPreview && (
-        <p className="xmas-form-hint">
-          Admin-Vorschau: Anmeldungen, die du hier abschickst, erscheinen in der Verwaltung unter
-          „Weihnachtsfeier“ und können dort gelöscht werden.
+    <>
+      {seatsFree <= 0 && (
+        <p className="xmas-full-note" data-testid="xmas-full-note">
+          Aktuell sind alle Plätze vergeben. Du kannst dich trotzdem eintragen, wir melden uns,
+          sobald etwas frei wird.
         </p>
       )}
-      <div className="xmas-field">
-        <label htmlFor="xmas-name">Name</label>
-        <input
-          id="xmas-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          autoComplete="name"
-          maxLength={100}
-          aria-invalid={Boolean(errors.name)}
-        />
-        {errors.name && <span className="xmas-error">{errors.name}</span>}
-      </div>
-      <div className="xmas-field">
-        <label htmlFor="xmas-contact">E-Mail oder Telefonnummer</label>
-        <input
-          id="xmas-contact"
-          value={contact}
-          onChange={(e) => setContact(e.target.value)}
-          autoComplete="email"
-          maxLength={200}
-          aria-invalid={Boolean(errors.contact)}
-        />
-        {errors.contact && <span className="xmas-error">{errors.contact}</span>}
-      </div>
-      <div className="xmas-field">
-        <span className="xmas-label" id="xmas-persons-label">
-          Wie viele Personen kommen?
-        </span>
-        <div className="xmas-stepper" role="group" aria-labelledby="xmas-persons-label">
+      {uid && (
+        <div className="xmas-quick" data-testid="xmas-quick">
+          <h3>Hallo {accountName || 'du'}!</h3>
+          <p>Mit deinem Konto anmelden: 1 Person, ohne Formular.</p>
           <button
             type="button"
-            onClick={() => setPersons((p) => Math.max(1, p - 1))}
-            aria-label="Eine Person weniger"
+            className="xmas-btn"
+            onClick={quickRegister}
+            disabled={status === 'sending'}
           >
-            −
+            Mit einem Klick anmelden
           </button>
-          <output aria-live="polite" data-testid="xmas-persons">
-            {persons}
-          </output>
-          <button
-            type="button"
-            onClick={() => setPersons((p) => Math.min(MAX_PERSONS, p + 1))}
-            aria-label="Eine Person mehr"
-          >
-            +
-          </button>
+          <p className="xmas-quick-or">Oder mit mehr Personen und Mitbringliste:</p>
         </div>
-        {errors.persons && <span className="xmas-error">{errors.persons}</span>}
-      </div>
-
-      <div className="xmas-field">
-        <span className="xmas-label">Was bringst du zum Potpourri mit?</span>
-        <div className="xmas-chips" role="group" aria-label="Vorschläge">
-          {content.bringIdeas.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={`xmas-chip${bring.includes(item) ? ' xmas-chip--on' : ''}`}
-              aria-pressed={bring.includes(item)}
-              onClick={() => toggle(item)}
-            >
-              {bring.includes(item) && <Check size={14} aria-hidden="true" />}
-              {item}
-              {coveredCount(item) > 0 && (
-                <span className="xmas-chip-count">schon {coveredCount(item)}×</span>
-              )}
-            </button>
-          ))}
-          {customIdeas.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="xmas-chip xmas-chip--on"
-              onClick={() => toggle(item)}
-              aria-label={`${item} entfernen`}
-            >
-              {item}
-              <X size={14} aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-        <div className="xmas-add-row">
+      )}
+      <form className="xmas-form" onSubmit={submit} noValidate data-testid="xmas-registration-form">
+        {adminPreview && (
+          <p className="xmas-form-hint">
+            Admin-Vorschau: Anmeldungen, die du hier abschickst, erscheinen in der Verwaltung unter
+            „Weihnachtsfeier“ und können dort gelöscht werden.
+          </p>
+        )}
+        <div className="xmas-field">
+          <label htmlFor="xmas-name">Name</label>
           <input
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addCustom();
-              }
-            }}
-            placeholder="Eigene Idee, z. B. Linsensuppe"
-            aria-label="Eigene Idee hinzufügen"
-            maxLength={80}
+            id="xmas-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
+            maxLength={100}
+            aria-invalid={Boolean(errors.name)}
           />
-          <button type="button" className="xmas-btn xmas-btn--ghost" onClick={addCustom}>
-            <Plus size={16} aria-hidden="true" /> Hinzufügen
-          </button>
+          {errors.name && <span className="xmas-error">{errors.name}</span>}
         </div>
-      </div>
+        <div className="xmas-field">
+          <label htmlFor="xmas-contact">E-Mail oder Telefonnummer</label>
+          <input
+            id="xmas-contact"
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            autoComplete="email"
+            maxLength={200}
+            aria-invalid={Boolean(errors.contact)}
+          />
+          {errors.contact && <span className="xmas-error">{errors.contact}</span>}
+        </div>
+        <div className="xmas-field">
+          <span className="xmas-label" id="xmas-persons-label">
+            Wie viele Personen kommen?
+          </span>
+          <div className="xmas-stepper" role="group" aria-labelledby="xmas-persons-label">
+            <button
+              type="button"
+              onClick={() => setPersons((p) => Math.max(1, p - 1))}
+              aria-label="Eine Person weniger"
+            >
+              −
+            </button>
+            <output aria-live="polite" data-testid="xmas-persons">
+              {persons}
+            </output>
+            <button
+              type="button"
+              onClick={() => setPersons((p) => Math.min(MAX_PERSONS, p + 1))}
+              aria-label="Eine Person mehr"
+            >
+              +
+            </button>
+          </div>
+          {errors.persons && <span className="xmas-error">{errors.persons}</span>}
+        </div>
 
-      <div className="xmas-field">
-        <label htmlFor="xmas-note">Anmerkung (optional)</label>
-        <textarea
-          id="xmas-note"
-          rows={3}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={500}
-          placeholder="z. B. Unverträglichkeiten, Fragen …"
+        <div className="xmas-field">
+          <span className="xmas-label">Was bringst du zum Potpourri mit?</span>
+          <div className="xmas-chips" role="group" aria-label="Vorschläge">
+            {content.bringIdeas.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={`xmas-chip${bring.includes(item) ? ' xmas-chip--on' : ''}`}
+                aria-pressed={bring.includes(item)}
+                onClick={() => toggle(item)}
+              >
+                {bring.includes(item) && <Check size={14} aria-hidden="true" />}
+                {item}
+                {coveredCount(item) > 0 && (
+                  <span className="xmas-chip-count">schon {coveredCount(item)}×</span>
+                )}
+              </button>
+            ))}
+            {customIdeas.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className="xmas-chip xmas-chip--on"
+                onClick={() => toggle(item)}
+                aria-label={`${item} entfernen`}
+              >
+                {item}
+                <X size={14} aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+          <div className="xmas-add-row">
+            <input
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCustom();
+                }
+              }}
+              placeholder="Eigene Idee, z. B. Linsensuppe"
+              aria-label="Eigene Idee hinzufügen"
+              maxLength={80}
+            />
+            <button type="button" className="xmas-btn xmas-btn--ghost" onClick={addCustom}>
+              <Plus size={16} aria-hidden="true" /> Hinzufügen
+            </button>
+          </div>
+        </div>
+
+        <div className="xmas-field">
+          <label htmlFor="xmas-note">Anmerkung (optional)</label>
+          <textarea
+            id="xmas-note"
+            rows={3}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={500}
+            placeholder="z. B. Unverträglichkeiten, Fragen …"
+          />
+        </div>
+
+        <input
+          className="xmas-honeypot"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          name="website"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
         />
-      </div>
 
-      <input
-        className="xmas-honeypot"
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        name="website"
-        value={website}
-        onChange={(e) => setWebsite(e.target.value)}
-      />
-
-      <p className="xmas-form-privacy">
-        Deine Angaben nutzen wir nur zur Organisation der Weihnachtsfeier.
-      </p>
-      {status === 'failed' && (
-        <p className="xmas-error" role="alert">
-          Die Anmeldung konnte nicht gespeichert werden. Bitte versuche es noch einmal.
+        <p className="xmas-form-privacy">
+          Deine Angaben nutzen wir nur zur Organisation der Weihnachtsfeier.
         </p>
-      )}
-      <button type="submit" className="xmas-btn" disabled={status === 'sending'}>
-        {status === 'sending' ? 'Wird gesendet …' : 'Verbindlich anmelden'}
-      </button>
-    </form>
+        {status === 'failed' && (
+          <p className="xmas-error" role="alert">
+            Die Anmeldung konnte nicht gespeichert werden. Bitte versuche es noch einmal.
+          </p>
+        )}
+        <button type="submit" className="xmas-btn" disabled={status === 'sending'}>
+          {status === 'sending' ? 'Wird gesendet …' : 'Verbindlich anmelden'}
+        </button>
+      </form>
+    </>
   );
 }

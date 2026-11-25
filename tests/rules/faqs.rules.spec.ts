@@ -280,4 +280,27 @@ describe('site_pages/weihnachtsfeier', () => {
     await assertSucceeds(getDoc(doc(guest, path)));
     await assertFails(setDoc(doc(guest, path), { items: [] }));
   });
+
+  it('lets a signed-in person register under their own uid, see and withdraw only that one', async () => {
+    await seed(true);
+    const me = env.authenticatedContext('member').firestore();
+    const other = env.authenticatedContext('other').firestore();
+    const own = 'site_pages/weihnachtsfeier/registrations/member';
+    await assertSucceeds(setDoc(doc(me, own), registration({ uid: 'member' })));
+    await assertFails(setDoc(doc(me, own), registration({ uid: 'member', persons: 3 }))); // no update
+    await assertSucceeds(getDoc(doc(me, own)));
+    await assertFails(getDoc(doc(other, own)));
+    await assertFails(getDocs(collection(me, 'site_pages/weihnachtsfeier/registrations')));
+    await assertFails(
+      setDoc(doc(me, 'site_pages/weihnachtsfeier/registrations/x'), registration({ uid: 'other' }))
+    );
+    await assertFails(
+      setDoc(
+        doc(env.unauthenticatedContext().firestore(), 'site_pages/weihnachtsfeier/registrations/y'),
+        registration({ uid: 'member' })
+      )
+    );
+    await assertFails(deleteDoc(doc(other, own)));
+    await assertSucceeds(deleteDoc(doc(me, own)));
+  });
 });

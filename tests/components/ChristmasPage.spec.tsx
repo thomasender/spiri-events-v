@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,15 +9,26 @@ const state = vi.hoisted(() => ({
   page: { loading: false, published: false, denied: false, exists: true, content: null as unknown },
 }));
 const submit = vi.hoisted(() => vi.fn());
+const seats = vi.hoisted(() => ({ persons: 0 }));
 const covered = vi.hoisted(() => ({ items: [] as Array<{ label: string; count: number }> }));
 
-vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
+const auth = vi.hoisted(() => ({
+  user: null as null | { uid: string; displayName?: string; email?: string },
+}));
+const mine = vi.hoisted(() => ({ registration: null as null | Record<string, unknown> }));
+vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ user: auth.user }) }));
 vi.mock('../../src/hooks/useStaffRole', () => ({
   useStaffRole: () => ({ isSuperAdmin: state.isSuperAdmin, loading: false }),
 }));
 vi.mock('../../src/hooks/useChristmasPage', () => ({
   useChristmasPage: () => state.page,
-  useChristmasBringSummary: () => covered.items,
+  useChristmasBringSummary: () => ({
+    items: covered.items,
+    persons: seats.persons,
+    registrations: 0,
+  }),
+  useMyChristmasRegistration: () => ({ loading: false, registration: mine.registration }),
+  withdrawChristmasRegistration: vi.fn(),
   saveChristmasContent: vi.fn(),
   submitChristmasRegistration: submit,
 }));
@@ -45,6 +56,9 @@ beforeEach(() => {
   };
   submit.mockReset();
   covered.items = [];
+  seats.persons = 0;
+  auth.user = null;
+  mine.registration = null;
 });
 
 describe('ChristmasPage', () => {
@@ -67,6 +81,7 @@ describe('ChristmasPage', () => {
 
   it('lets a Super-Admin open the unpublished page and switch to edit mode', () => {
     state.isSuperAdmin = true;
+    auth.user = { uid: 'u1' };
     renderPage();
     expect(screen.getByTestId('xmas-admin-bar')).toHaveTextContent('nur für Admins');
     fireEvent.click(screen.getByRole('button', { name: /seite bearbeiten/i }));
@@ -100,13 +115,16 @@ describe('ChristmasPage', () => {
     expect(await screen.findByTestId('xmas-registration-done')).toHaveTextContent(
       DEFAULT_CONTENT.thanksTitle
     );
-    expect(submit).toHaveBeenCalledWith({
-      name: 'Anna',
-      contact: 'anna@example.com',
-      persons: 2,
-      bring: ['Hummus', 'Linsensuppe'],
-      note: '',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      {
+        name: 'Anna',
+        contact: 'anna@example.com',
+        persons: 2,
+        bring: ['Hummus', 'Linsensuppe'],
+        note: '',
+      },
+      null
+    );
   });
 
   it('shows what others already bring, anonymously, and marks it on the suggestion chips', () => {
@@ -145,5 +163,50 @@ describe('ChristmasPage', () => {
     expect(screen.getByTestId('xmas-lightbox')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Schließen' }));
     expect(screen.queryByTestId('xmas-lightbox')).not.toBeInTheDocument();
+  });
+
+  it('shows the anonymous seat counter with the free places', () => {
+    state.page = { ...state.page, published: true };
+    seats.persons = 37;
+    renderPage();
+    const counters = screen.getAllByTestId('xmas-seats');
+    expect(counters[0]).toHaveTextContent('37 von 80 Plätzen belegt');
+    expect(counters[0]).toHaveTextContent('noch 43 Plätze frei');
+    expect(screen.queryByTestId('xmas-full-note')).not.toBeInTheDocument();
+  });
+
+  it('says so when all places are taken, but still lets people sign up', () => {
+    state.page = { ...state.page, published: true };
+    seats.persons = 80;
+    renderPage();
+    expect(screen.getAllByTestId('xmas-seats')[0]).toHaveTextContent('aktuell ausgebucht');
+    expect(screen.getByTestId('xmas-full-note')).toBeInTheDocument();
+    expect(screen.getByTestId('xmas-registration-form')).toBeInTheDocument();
+  });
+
+  it('offers signed-in people a one-click registration with their account data', async () => {
+    state.page = { ...state.page, published: true };
+    auth.user = { uid: 'u7', displayName: 'Anna', email: 'anna@example.com' };
+    submit.mockResolvedValue(undefined);
+    renderPage();
+    expect(screen.getByLabelText('Name')).toHaveValue('Anna');
+    fireEvent.click(screen.getByRole('button', { name: 'Mit einem Klick anmelden' }));
+    expect(await screen.findByTestId('xmas-registration-done')).toBeInTheDocument();
+    expect(submit).toHaveBeenCalledWith(
+      { name: 'Anna', contact: 'anna@example.com', persons: 1, bring: [], note: '' },
+      'u7'
+    );
+  });
+
+  it('shows no one-click offer to guests, and "Du bist angemeldet" to registered people', () => {
+    state.page = { ...state.page, published: true };
+    renderPage();
+    expect(screen.queryByTestId('xmas-quick')).not.toBeInTheDocument();
+    cleanup();
+    auth.user = { uid: 'u7', displayName: 'Anna', email: 'anna@example.com' };
+    mine.registration = { persons: 2, bring: ['Brot'] };
+    renderPage();
+    expect(screen.getByTestId('xmas-registered')).toHaveTextContent('2 Personen');
+    expect(screen.queryByTestId('xmas-registration-form')).not.toBeInTheDocument();
   });
 });

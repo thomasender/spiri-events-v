@@ -1152,7 +1152,8 @@ service cloud.firestore {
       match /registrations/{regId} {
         function isValidSiteRegistration(d) {
           return pageId == 'weihnachtsfeier'
-            && d.keys().hasOnly(['name', 'contact', 'persons', 'bring', 'note', 'createdAt'])
+            && d.keys().hasOnly(['name', 'contact', 'persons', 'bring', 'note', 'createdAt', 'uid'])
+            && (!('uid' in d) || (isAuthenticated() && d.uid == request.auth.uid))
             && d.name is string && d.name.size() > 0 && d.name.size() <= 100
             && d.contact is string && d.contact.size() >= 5 && d.contact.size() <= 200
             && d.persons is int && d.persons >= 1 && d.persons <= 10
@@ -1161,7 +1162,11 @@ service cloud.firestore {
             && d.createdAt == request.time;
         }
 
-        allow read, delete: if isAdminOrEmulatorAdmin();
+        // A signed-in person registers under their own uid as the doc id (one click, no
+        // duplicates), can see that one registration and withdraw it.
+        allow get, delete: if isAdminOrEmulatorAdmin()
+                           || (isAuthenticated() && request.auth.uid == regId);
+        allow list: if isAdminOrEmulatorAdmin();
         allow create: if isValidSiteRegistration(request.resource.data)
                       && (isAdminOrEmulatorAdmin()
                         || (exists(/databases/$(database)/documents/site_pages/$(pageId))

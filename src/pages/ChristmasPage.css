@@ -901,3 +901,73 @@
   max-width: 760px;
   margin: var(--space-8) auto 0;
 }
+
+/* ── Seat counter ── */
+.xmas-seats {
+  margin-top: var(--space-3);
+}
+.xmas-seats p {
+  margin: var(--space-1-5) 0 0;
+  font-size: var(--text-88);
+}
+.xmas-seats-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.xmas-seats-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-secondary);
+  transition: width 0.6s ease;
+}
+.xmas-seats--low .xmas-seats-bar span {
+  background: var(--accent-create-event);
+}
+.xmas-seats--full .xmas-seats-bar span {
+  background: var(--error);
+}
+@media (prefers-reduced-motion: reduce) {
+  .xmas-seats-bar span {
+    transition: none;
+  }
+}
+
+/* ── One-click registration for signed-in people ── */
+.xmas-quick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  background: var(--bg-calendar);
+  border: 1.5px solid var(--accent-secondary);
+  border-radius: var(--radius-md);
+}
+.xmas-quick h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-150);
+  color: var(--text-primary);
+}
+.xmas-quick p {
+  margin: 0;
+  font-size: var(--text-92);
+}
+.xmas-quick-or {
+  margin: var(--space-5) 0 0;
+  text-align: center;
+  font-size: var(--text-88);
+  color: var(--text-light);
+}
+.xmas-full-note {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--pending-bg);
+  color: var(--pending-text);
+  font-size: var(--text-92);
+}
