@@ -33,6 +33,12 @@ describe('adminPrefill', () => {
     expect(kept.time).toBe('09:00');
   });
 
+  it('the prefilled Bludenz carries its region, so the event is not saved in the current one', () => {
+    // An Admin in Bodensee kept the prefilled Ort: the event belongs to Vorarlberg.
+    const out = applyAdminPrefill({ bezirk: '', city: '', isOnline: false });
+    expect(out).toMatchObject({ city: 'Bludenz', placeRegionId: 'vorarlberg', cityPicked: true });
+  });
+
   it('keeps an already chosen city', () => {
     const out = applyAdminPrefill({ bezirk: 'Feldkirch', city: 'Altach' });
     expect(out).toMatchObject({ bezirk: 'Feldkirch', city: 'Altach' });
