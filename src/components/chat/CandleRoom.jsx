@@ -370,13 +370,14 @@ function openedByHash(hash) {
   return /^#(msg-|kerzenraum)/.test(hash);
 }
 
-export default function CandleRoom({ eventId }) {
+// `alwaysOpen`: no accordion, the room is shown right away (the Weihnachtsfeier page).
+export default function CandleRoom({ eventId, alwaysOpen = false }) {
   const { role, loading: authLoading } = useAuth();
   const { mode, loading } = useChatSettings();
   const { hash } = useLocation();
   const canRead = canReadCandleRoom({ mode, isAdmin: role === 'Admin' });
   const activity = useCandleRoomActivity(canRead && !authLoading && !loading && Boolean(eventId));
-  const [open, setOpen] = useState(() => openedByHash(hash));
+  const [open, setOpen] = useState(() => alwaysOpen || openedByHash(hash));
   const [mounted, setMounted] = useState(open);
   const [focusRequest, setFocusRequest] = useState(false);
   const panelRef = useRef(null);
@@ -413,29 +414,38 @@ export default function CandleRoom({ eventId }) {
 
   return (
     <section id="kerzenraum" className="candle-room" aria-label={CANDLE_ROOM_NAME}>
-      <button
-        type="button"
-        className="candle-room-toggle"
-        aria-expanded={open}
-        aria-controls="candle-room-panel"
-        data-testid="candle-room-toggle"
-        onClick={toggle}
-      >
-        <span className={`candle-flame${hasNews ? ' candle-flame--lit' : ''}`} aria-hidden="true">
-          🕯️
-        </span>
-        <span className="candle-room-toggle-label">{CANDLE_ROOM_NAME}</span>
-        {hasNews && (
-          <span className="candle-room-new-label" data-testid="candle-room-toggle-new">
-            Neue Nachrichten
+      {alwaysOpen ? (
+        <div className="candle-room-toggle candle-room-toggle--static">
+          <span className="candle-flame" aria-hidden="true">
+            🕯️
           </span>
-        )}
-        <ChevronDown
-          size={18}
-          aria-hidden="true"
-          className={`candle-room-chevron${open ? ' candle-room-chevron--open' : ''}`}
-        />
-      </button>
+          <h2 className="candle-room-toggle-label">{CANDLE_ROOM_NAME}</h2>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="candle-room-toggle"
+          aria-expanded={open}
+          aria-controls="candle-room-panel"
+          data-testid="candle-room-toggle"
+          onClick={toggle}
+        >
+          <span className={`candle-flame${hasNews ? ' candle-flame--lit' : ''}`} aria-hidden="true">
+            🕯️
+          </span>
+          <span className="candle-room-toggle-label">{CANDLE_ROOM_NAME}</span>
+          {hasNews && (
+            <span className="candle-room-new-label" data-testid="candle-room-toggle-new">
+              Neue Nachrichten
+            </span>
+          )}
+          <ChevronDown
+            size={18}
+            aria-hidden="true"
+            className={`candle-room-chevron${open ? ' candle-room-chevron--open' : ''}`}
+          />
+        </button>
+      )}
       <div ref={panelRef} hidden={!open}>
         {mounted && <CandleRoomInner eventId={eventId} mode={mode} />}
       </div>

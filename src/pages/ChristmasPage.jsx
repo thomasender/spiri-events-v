@@ -540,7 +540,7 @@ export default function ChristmasPage() {
       </section>
 
       <div className="xmas-chat">
-        <CandleRoom eventId={CHRISTMAS_PAGE_ID} />
+        <CandleRoom eventId={CHRISTMAS_PAGE_ID} alwaysOpen />
       </div>
 
       {lightbox && content.flyerUrl && (

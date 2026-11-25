@@ -119,3 +119,12 @@
 .candle-room-panel {
   margin-top: var(--space-3);
 }
+
+/* Always-open variant (Weihnachtsfeier page): a plain header, no button. */
+.candle-room-toggle--static {
+  cursor: default;
+}
+.candle-room-toggle--static .candle-room-toggle-label {
+  margin: 0;
+  font: inherit;
+}

@@ -139,6 +139,20 @@ describe('CandleRoom', () => {
     expect(screen.getByTestId('candle-room')).not.toBeVisible();
   });
 
+  it('alwaysOpen shows the room right away, without an accordion button or focus grab', () => {
+    state.user = { uid: 'me', emailVerified: true };
+    window.localStorage.setItem('candleRoomRulesAccepted', '1');
+    render(
+      <MemoryRouter initialEntries={['/weihnachtsfeier']}>
+        <CandleRoom eventId="weihnachtsfeier" alwaysOpen />
+      </MemoryRouter>
+    );
+    expect(screen.queryByTestId('candle-room-toggle')).toBeNull();
+    expect(screen.getByTestId('candle-room')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Event Chat' })).toBeInTheDocument();
+    expect(screen.getByTestId('candle-room-input')).not.toHaveFocus();
+  });
+
   it('flags unread messages on the closed bar', () => {
     state.activity = { ev1: 2000 };
     markCandleRoomSeen('ev1', 1000);

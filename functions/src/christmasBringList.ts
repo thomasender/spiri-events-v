@@ -5,7 +5,7 @@
  * admins only. This trigger rebuilds `site_pages/weihnachtsfeier/summary/bring`
  * = { items, persons, registrations, attendees } (attendees = opt-in only) after every registration change, so the public
  * page can show what is covered without ever exposing names or contacts. The
- * summary doc is written only here (Admin SDK); the rules forbid client writes.
+ * Opt-in people only: `attendees` lists registrations with showPublic === true. The summary doc is written only here (Admin SDK); the rules forbid client writes.
  */
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { getApps, initializeApp } from 'firebase-admin/app';

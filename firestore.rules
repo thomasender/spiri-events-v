@@ -1113,7 +1113,8 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
-    // Staff-edited pages (the Weihnachtsfeier page, /weihnachtsfeier). Super-Admins
+    // Staff-edited pages (the Weihnachtsfeier page, /weihnachtsfeier). Registrations carry the
+    // opt-in `showPublic` (+ `photoURL`); only opted-in people reach the public `summary`. Super-Admins
     // read and write; everybody else reads a page only once `published` is true,
     // so an unreleased page is invisible. `registrations` are filled by guests
     // (only while the page is published) and read / deleted by Super-Admins.
