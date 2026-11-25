@@ -32,12 +32,15 @@ export default function InstagramConsentCard({ checked, onSave }) {
 
   return (
     <div className="profile-card" data-testid="instagram-consent-card">
-      <h2 className="profile-card-title">Instagram</h2>
+      <h2 className="profile-card-title">Social Media</h2>
       <p className="profile-card-hint">
         Mit deiner Einwilligung dürfen wir deine Events auf{' '}
-        {channel ? `dem Instagram-Kanal ${channel}` : 'unserem Instagram-Kanal'} veröffentlichen.
-        Dein Instagram-Profil (siehe Feld „Instagram“ oben) dürfen wir dabei markieren und als
-        Co-Autor (Collab) zum Beitrag einladen. Änderungen werden sofort gespeichert.
+        {channel
+          ? `unseren Social-Media-Kanälen (derzeit Instagram: ${channel})`
+          : 'unseren Social-Media-Kanälen (derzeit Instagram)'}{' '}
+        veröffentlichen. Dein Instagram-Profil (siehe Feld „Instagram“ oben) dürfen wir dabei
+        markieren und als Co-Autor (Collab) zum Beitrag einladen. Änderungen werden sofort
+        gespeichert.
       </p>
       <label className="notification-preference-label">
         <input

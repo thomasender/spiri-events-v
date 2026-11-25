@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './InstagramConsentField.css';
 import {
   MAX_EXTRA_HANDLES,
@@ -117,8 +118,19 @@ export default function InstagramConsentField({
         />
         <span>
           Mein Event darf auf{' '}
-          {channel ? `dem Instagram-Kanal ${channel}` : 'unserem Instagram-Kanal'} veröffentlicht
-          werden. Mein Instagram-Profil darf dabei markiert und als Co-Autor (Collab) zum Beitrag
+          {channel
+            ? `unseren Social-Media-Kanälen (derzeit Instagram: ${channel})`
+            : 'unseren Social-Media-Kanälen (derzeit Instagram)'}{' '}
+          veröffentlicht werden (
+          <Link
+            to="/datenschutz#social-media"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="instagram-consent-details-link"
+          >
+            Details
+          </Link>
+          ). Mein Instagram-Profil darf dabei markiert und als Co-Autor (Collab) zum Beitrag
           eingeladen werden.
         </span>
       </label>

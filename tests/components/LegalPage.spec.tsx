@@ -136,6 +136,18 @@ describe('LegalPage Instagram channels (per region)', () => {
     expect(screen.queryByTestId('legal-instagram-channels')).toBeNull();
   });
 
+  it('section 12 is titled Social Media, has an anchor and promises renewed consent for new platforms', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const heading = container.querySelector('#social-media');
+    expect(heading).toHaveTextContent('12. Veröffentlichung auf Social Media (freiwillig)');
+    expect(container.textContent).toContain(
+      'Nehmen wir weitere Plattformen hinzu, informieren wir Sie vorher und veröffentlichen dort nur mit Ihrer erneuten Zustimmung.'
+    );
+    expect(container.textContent).toContain(
+      'Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.'
+    );
+  });
+
   it('one channel plus a region without a handle still shows no list', () => {
     renderWith('datenschutz', [vbg, wien]);
     expect(screen.queryByTestId('legal-instagram-channels')).toBeNull();

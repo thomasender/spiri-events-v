@@ -555,7 +555,7 @@ export default function EventForm({ event }) {
     }
     if (instagramConsent && !event?.instagramConsent && instagramImageCandidates.length === 0) {
       newErrors.instagramImage =
-        'Für das Teilen auf Instagram brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
+        'Für das Teilen auf Social Media brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
     }
     return newErrors;
   };
@@ -1997,7 +1997,7 @@ export default function EventForm({ event }) {
               open
               data-testid="instagram-image-accordion"
             >
-              <summary>Foto und Bildausschnitt für Instagram wählen</summary>
+              <summary>Foto und Bildausschnitt für Social Media wählen</summary>
               <InstagramImagePicker
                 candidates={instagramImageCandidates}
                 value={effectiveInstagramImageChoice}

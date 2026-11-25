@@ -333,16 +333,18 @@ describe('ProfileOnboarding Instagram step names the region channel', () => {
   };
 
   it('keeps the Vorarlberg handle', async () => {
-    expect(await textFor(regions[0])).toContain('auf dem Instagram-Kanal @tribevorarlberg');
+    expect(await textFor(regions[0])).toContain(
+      'auf unseren Social-Media-Kanälen (derzeit Instagram: @tribevorarlberg)'
+    );
   });
   it("shows another region's handle", async () => {
     const text = await textFor(regions[1]);
-    expect(text).toContain('auf dem Instagram-Kanal @tribetirol');
+    expect(text).toContain('auf unseren Social-Media-Kanälen (derzeit Instagram: @tribetirol)');
     expect(text).not.toContain('@tribevorarlberg');
   });
-  it('says "unserem Instagram-Kanal" without a handle', async () => {
+  it('names only Instagram as current channel without a handle', async () => {
     const text = await textFor(regions[2]);
-    expect(text).toContain('auf unserem Instagram-Kanal vorstellen');
+    expect(text).toContain('auf unseren Social-Media-Kanälen (derzeit Instagram) vorstellen');
     expect(text).not.toContain('@tribevorarlberg');
   });
 });

@@ -41,9 +41,9 @@ const STEP_COPY = [
     hint: 'So können Menschen dich entdecken, wenn sie nach dem suchen, was du anbietest.',
   },
   {
-    title: 'Bist du auf Instagram?',
+    title: 'Bist du auf Social Media?',
     text: (channel) =>
-      `Wenn wir deine Events auf ${channel ? `dem Instagram-Kanal ${channel}` : 'unserem Instagram-Kanal'} vorstellen, markieren wir dich gern mit deinem Instagram-Namen.`,
+      `Wenn wir deine Events auf ${channel ? `unseren Social-Media-Kanälen (derzeit Instagram: ${channel})` : 'unseren Social-Media-Kanälen (derzeit Instagram)'} vorstellen, markieren wir dich gern mit deinem Instagram-Namen.`,
     hint: 'Beides ist freiwillig und lässt sich jederzeit in deinem Profil ändern.',
   },
 ];
@@ -638,7 +638,8 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                   />
                   <span className="notification-preference-text">
                     <span className="notification-preference-name">
-                      Ihr dürft meine Events auf Instagram vorstellen
+                      Ihr dürft meine Events auf euren Social-Media-Kanälen (derzeit Instagram)
+                      vorstellen
                     </span>
                     <span className="notification-preference-description">
                       Wenn du das Häkchen setzt, ist es bei jedem neuen Event schon vorausgewählt.
