@@ -132,4 +132,18 @@ describe('ChristmasPage', () => {
     fireEvent.dragLeave(zone);
     expect(zone).not.toHaveClass('xmas-flyer--over');
   });
+
+  it('opens the flyer in a lightbox on click and closes it again', () => {
+    state.page = {
+      ...state.page,
+      published: true,
+      content: { ...DEFAULT_CONTENT, flyerUrl: 'https://example.com/flyer.jpg' },
+    };
+    renderPage();
+    expect(screen.queryByTestId('xmas-lightbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Flyer vergrößern' }));
+    expect(screen.getByTestId('xmas-lightbox')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    expect(screen.queryByTestId('xmas-lightbox')).not.toBeInTheDocument();
+  });
 });

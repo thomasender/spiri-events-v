@@ -1127,7 +1127,8 @@ service cloud.firestore {
             'eyebrow', 'title', 'intro', 'dateLabel', 'timeLabel', 'place', 'placeNote',
             'capacityLabel', 'capacityNote', 'flyerUrl', 'bringTitle', 'bringText',
             'bringIdeas', 'scheduleTitle', 'steps', 'formTitle', 'formIntro',
-            'thanksTitle', 'thanksText'
+            'thanksTitle', 'thanksText', 'travelTitle', 'addressText', 'trainTitle', 'trainText',
+            'carTitle', 'carText', 'travelNote'
           ])
           && d.content.bringIdeas is list && d.content.bringIdeas.size() <= 16
           && d.content.steps is list && d.content.steps.size() <= 12

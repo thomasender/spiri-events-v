@@ -3,7 +3,9 @@ import { Helmet } from 'react-helmet-async';
 import {
   ArrowDown,
   ArrowUp,
+  ExternalLink,
   CalendarDays,
+  Car,
   Clock,
   MapPin,
   Pencil,
@@ -11,6 +13,7 @@ import {
   Save,
   Sparkles,
   Trash2,
+  TrainFront,
   Users,
   X,
 } from 'lucide-react';
@@ -30,9 +33,13 @@ import {
   sanitizeContent,
 } from '../lib/christmasPage';
 import EditableText from '../components/christmas/EditableText';
+import FlyerLightbox from '../components/christmas/FlyerLightbox';
 import ChristmasRegistrationForm from '../components/christmas/ChristmasRegistrationForm';
 import ErrorPage from './ErrorPage';
 import './ChristmasPage.css';
+
+const MAPS_URL =
+  'https://www.google.com/maps/search/?api=1&query=Die+Gelbe+Fabrik+Widagasse+11+6850+Dornbirn';
 
 // Tribe-Weihnachtsfeier. Not linked anywhere. While the page is not published only
 // Super-Admins see it (everybody else gets the normal "not found" page); they edit
@@ -49,6 +56,7 @@ export default function ChristmasPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [dragging, setDragging] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
   const fileRef = useRef(null);
 
   const content = editing && draft ? draft : page.content;
@@ -191,7 +199,7 @@ export default function ChristmasPage() {
 
         <div className="xmas-flyer-wrap">
           <figure
-            className={`xmas-flyer${editing ? ' xmas-flyer--drop' : ''}${dragging ? ' xmas-flyer--over' : ''}`}
+            className={`xmas-flyer${editing ? ' xmas-flyer--drop' : content.flyerUrl ? ' xmas-flyer--zoom' : ''}${dragging ? ' xmas-flyer--over' : ''}`}
             data-testid="xmas-flyer-drop"
             {...dropProps}
             {...(editing
@@ -207,7 +215,20 @@ export default function ChristmasPage() {
                     }
                   },
                 }
-              : {})}
+              : content.flyerUrl
+                ? {
+                    role: 'button',
+                    tabIndex: 0,
+                    'aria-label': 'Flyer vergrößern',
+                    onClick: () => setLightbox(true),
+                    onKeyDown: (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setLightbox(true);
+                      }
+                    },
+                  }
+                : {})}
           >
             {content.flyerUrl ? (
               <img src={content.flyerUrl} alt={`Flyer: ${content.title}`} />
@@ -425,6 +446,50 @@ export default function ChristmasPage() {
         )}
       </section>
 
+      <section className="xmas-travel" aria-labelledby="xmas-travel-title">
+        <div className="xmas-travel-address">
+          <span className="xmas-travel-pin" aria-hidden="true">
+            <MapPin size={26} />
+          </span>
+          {T('travelTitle', {
+            as: 'h2',
+            className: 'xmas-travel-heading',
+            placeholder: 'Überschrift',
+          })}
+          {T('addressText', {
+            as: 'p',
+            className: 'xmas-travel-lines',
+            multiline: true,
+            placeholder: 'Adresse',
+          })}
+          <a
+            className="xmas-btn xmas-btn--light xmas-btn--small"
+            href={MAPS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Route planen <ExternalLink size={14} aria-hidden="true" />
+          </a>
+        </div>
+        <div className="xmas-travel-ways">
+          <div className="xmas-travel-way">
+            <TrainFront aria-hidden="true" />
+            {T('trainTitle', { as: 'h3', placeholder: 'Titel' })}
+            {T('trainText', { as: 'p', multiline: true, placeholder: 'Text' })}
+          </div>
+          <div className="xmas-travel-way">
+            <Car aria-hidden="true" />
+            {T('carTitle', { as: 'h3', placeholder: 'Titel' })}
+            {T('carText', { as: 'p', multiline: true, placeholder: 'Text' })}
+          </div>
+          {(content.travelNote || editing) && (
+            <div className="xmas-travel-note">
+              {T('travelNote', { as: 'p', multiline: true, placeholder: 'Zusätzlicher Hinweis' })}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="xmas-section xmas-register" id="anmeldung">
         {T('formTitle', { as: 'h2', placeholder: 'Überschrift' })}
         {T('formIntro', {
@@ -453,6 +518,14 @@ export default function ChristmasPage() {
           adminPreview={isSuperAdmin}
         />
       </section>
+
+      {lightbox && content.flyerUrl && (
+        <FlyerLightbox
+          src={content.flyerUrl}
+          alt={`Flyer: ${content.title}`}
+          onClose={() => setLightbox(false)}
+        />
+      )}
 
       {editing && (
         <div className="xmas-savebar" role="region" aria-label="Bearbeiten">

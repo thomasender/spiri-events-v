@@ -538,7 +538,7 @@
   left: 50%;
   bottom: var(--space-5);
   transform: translateX(-50%);
-  z-index: 60;
+  z-index: 950;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -649,4 +649,229 @@
 }
 .xmas-flyer--drop:focus-visible {
   outline: 3px solid var(--accent-create-event);
+}
+
+/* ── Anreise ── */
+.xmas-travel {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: var(--space-4);
+  max-width: 960px;
+  margin: var(--space-16) auto 0;
+}
+.xmas-travel-address {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  color: #f4efe6;
+  background:
+    radial-gradient(circle at 90% 8%, rgba(229, 167, 46, 0.22) 0 70px, transparent 71px),
+    linear-gradient(145deg, var(--xmas-green) 0%, var(--xmas-green-deep) 100%);
+  box-shadow: var(--shadow-md);
+}
+.xmas-travel-pin {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #e8c98a;
+}
+.xmas-travel-heading {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--fs-section);
+  line-height: 1.05;
+  color: #fff;
+}
+.xmas-travel-lines {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-115);
+  line-height: 1.6;
+  color: #e6e0d4;
+}
+.xmas-travel-lines::first-line {
+  font-family: var(--font-heading);
+  font-size: var(--text-150);
+  font-weight: 700;
+  color: #fff;
+}
+.xmas-travel-ways {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.xmas-travel-way {
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.xmas-travel-way > svg {
+  color: var(--accent-primary);
+  margin-bottom: var(--space-2);
+}
+.xmas-travel-way h3 {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--text-135);
+  color: var(--text-primary);
+}
+.xmas-travel-way p,
+.xmas-travel-note p {
+  margin: 0;
+  line-height: 1.6;
+}
+.xmas-travel-note {
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-primary-strong);
+  font-size: var(--text-95);
+}
+@media (max-width: 900px) {
+  .xmas-travel {
+    grid-template-columns: 1fr;
+  }
+  .xmas-travel-address {
+    padding: var(--space-6);
+  }
+}
+
+/* ── A little polish (kept subtle) ── */
+.xmas-section h2::after,
+.xmas-travel-heading::after {
+  content: '';
+  display: block;
+  width: 44px;
+  height: 3px;
+  margin-top: var(--space-3);
+  border-radius: 2px;
+  background: var(--accent-create-event);
+}
+.xmas-fact,
+.xmas-travel-way {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.xmas-fact:hover,
+.xmas-travel-way:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+@keyframes xmas-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.xmas-hero-copy,
+.xmas-flyer-wrap {
+  animation: xmas-rise 0.7s ease both;
+}
+.xmas-flyer-wrap {
+  animation-delay: 0.12s;
+}
+@supports (animation-timeline: view()) {
+  .xmas-fact,
+  .xmas-section,
+  .xmas-travel {
+    animation: xmas-rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xmas-hero-copy,
+  .xmas-flyer-wrap,
+  .xmas-fact,
+  .xmas-section,
+  .xmas-travel {
+    animation: none;
+  }
+  .xmas-fact:hover,
+  .xmas-travel-way:hover {
+    transform: none;
+  }
+}
+
+/* ── Flyer lightbox ── */
+.xmas-flyer--zoom {
+  cursor: zoom-in;
+}
+.xmas-flyer--zoom:focus-visible {
+  outline: 3px solid var(--accent-create-event);
+  outline-offset: 4px;
+}
+.xmas-lightbox {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: var(--space-4);
+  border: 0;
+  background: rgba(22, 24, 25, 0.92);
+  overflow: auto;
+}
+.xmas-lightbox[open] {
+  display: grid;
+  place-items: center;
+}
+.xmas-lightbox::backdrop {
+  background: transparent;
+}
+.xmas-lightbox img {
+  max-width: 100%;
+  max-height: calc(100dvh - var(--space-8));
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  cursor: zoom-out;
+  touch-action: pinch-zoom;
+}
+.xmas-lightbox-close {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  cursor: pointer;
+  z-index: 1;
+}
+.xmas-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+.xmas-no-scroll {
+  overflow: hidden;
+}
+
+/* ── Touch targets (mobile first: most visitors are on a phone) ── */
+.xmas-step-tools button {
+  width: 40px;
+  height: 40px;
+}
+.xmas-chip--static button {
+  padding: var(--space-2);
+  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0;
+}
+.xmas-stepper button {
+  width: 48px;
+  height: 48px;
 }

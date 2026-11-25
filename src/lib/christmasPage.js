@@ -25,7 +25,7 @@ export const DEFAULT_CONTENT = {
   dateLabel: 'Sonntag, 13. Dezember 2026',
   timeLabel: '14:00–18:00 Uhr',
   place: 'Gelbe Fabrik',
-  placeNote: 'Genaue Details erhältst du nach der Anmeldung.',
+  placeNote: 'Widagasse 11, 6850 Dornbirn',
   capacityLabel: 'Maximal 80 Personen',
   capacityNote:
     'Das ist eine vorläufige Grenze. Anmeldung erforderlich. Je nach Anmeldezahlen und bestätigter Ausstattung kann die Grenze überprüft werden.',
@@ -57,6 +57,14 @@ export const DEFAULT_CONTENT = {
       text: 'Offenes Potpourri, Musik im Hintergrund, freier Austausch und entspanntes Zusammensein.',
     },
   ],
+  travelTitle: 'Anreise',
+  addressText: 'Die Gelbe Fabrik\nWidagasse 11\n6850 Dornbirn',
+  trainTitle: 'Mit dem Zug',
+  trainText: 'Vom Bahnhof Dornbirn sind es zu Fuß etwa 10 Minuten.',
+  carTitle: 'Mit dem Auto',
+  carText: 'Kostenlose Parkplätze gibt es direkt am Haus. Bildet gern Fahrgemeinschaften.',
+  travelNote:
+    'Du suchst eine Mitfahrgelegenheit oder hast noch Platz im Auto? Schreib es bei der Anmeldung in die Anmerkung.',
   formTitle: 'Anmeldung',
   formIntro: 'Sag uns kurz, wer kommt und was du zum Potpourri mitbringst.',
   thanksTitle: 'Danke für deine Anmeldung!',
@@ -75,10 +83,23 @@ const STRING_KEYS = [
   'capacityLabel',
   'bringTitle',
   'scheduleTitle',
+  'travelTitle',
+  'trainTitle',
+  'carTitle',
   'formTitle',
   'thanksTitle',
 ];
-const TEXT_KEYS = ['intro', 'capacityNote', 'bringText', 'formIntro', 'thanksText'];
+const TEXT_KEYS = [
+  'intro',
+  'capacityNote',
+  'bringText',
+  'addressText',
+  'trainText',
+  'carText',
+  'travelNote',
+  'formIntro',
+  'thanksText',
+];
 
 export const CONTENT_KEYS = [...STRING_KEYS, ...TEXT_KEYS, 'flyerUrl', 'bringIdeas', 'steps'];
 
