@@ -994,6 +994,7 @@ export async function sendOutreachMailHandler(
   );
   const outreach = await deps.getOutreach(organizerId);
   const events = previewableEvents(await deps.listCuratedEvents(organizerId));
+  const candidates = await deps.listCandidates(organizerId);
   const refusal = outreachRefusal(organizer, {
     blocked,
     outreachExists: !!outreach && outreach.status !== 'failed',
@@ -1057,6 +1058,7 @@ export async function sendOutreachMailHandler(
       title: s(e.data.title, 200),
       date: s(e.data.date, 10),
       link: s(e.data.link, 2000) || s(((e.data.curation ?? {}) as Doc).sourceUrl, 2000),
+      imageUrl: previewImageUrl(e, candidates),
     })),
     previewUrl: previewUrlFor(deps.siteOrigin, token),
     declineUrl: declineUrlFor(deps.siteOrigin, token),

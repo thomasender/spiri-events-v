@@ -674,7 +674,7 @@ describe('outreach mail', () => {
       status: 'sent',
       messageId: '<msg-1@mg.thetribe.at>',
       test: true,
-      templateVersion: '2026-11-v2',
+      templateVersion: '2026-11-v3',
     });
     const org = w.organizers.get('org1')!;
     expect(org.consent).toBe('asked');

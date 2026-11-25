@@ -296,6 +296,13 @@ in the generic read rule). **A missing doc means off** and a limit of 10
   events, the button "Mail an Veranstalter senden" with a confirm dialog. Staging has no such button.
 - Refusals are shown in German (`src/utils/outreachErrors.js`), never as "Outreach refused: ... [400]".
 
+Mail text (template `2026-11-v3`, Peter's Trello 814): short, singular title for one event, no
+association line, no region sentence, no cost promise, deletion line "löschen wir dein Event automatisch
+am <Datum>". The preview card shows the event's **real picture** (`previewImageUrl`, https only): the
+reader's mail client loads it straight from the organizer's site, we keep no copy. The preview page
+`/vorschau/**` has its own CSP in `firebase.json` with `img-src https:` (the default CSP blocks foreign
+images, which silently showed the category fallback instead; `tests/lib/hostingCsp.spec.ts`).
+
 Flow: claim `outreach/mail` (`queued`, transaction) -> new preview token (replaces an older link) ->
 render -> Mailgun (From `MAILGUN_FROM`, Reply-To admin@thetribe.at, open/click tracking off so the
 token is not routed through Mailgun redirects) -> `outreach/mail` `sent` + `messageId`, organizer

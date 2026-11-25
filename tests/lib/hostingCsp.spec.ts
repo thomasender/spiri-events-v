@@ -110,3 +110,24 @@ describe('/admin: pictures of imported events', () => {
     expect(without(adminCsp)).toBe(without(csp));
   });
 });
+
+describe('import preview page CSP', () => {
+  const headerFor = (source: string) =>
+    config.hosting.headers
+      .find((h: { source: string }) => h.source === source)
+      ?.headers.find((h: { key: string }) => h.key === 'Content-Security-Policy')?.value as
+      string | undefined;
+
+  it("lets /vorschau/** load the organizer's own picture (img-src https:), otherwise as strict as the default", () => {
+    const preview = headerFor('/vorschau/**');
+    expect(preview).toBeDefined();
+    const img = preview!
+      .split(';')
+      .map((d) => d.trim())
+      .find((d) => d.startsWith('img-src '))!
+      .split(/\s+/);
+    expect(img).toContain('https:');
+    expect(preview!.replace(' https:;', ';')).toBe(csp);
+    expect(csp).not.toMatch(/img-src[^;]* https:(;| )/);
+  });
+});
