@@ -1637,6 +1637,23 @@ service cloud.firestore {
       return chatMode() == 'all' || (chatMode() == 'admins' && isChatStaff());
     }
 
+    // The Weihnachtsfeier page (site_pages/weihnachtsfeier) has a room of its own,
+    // `event_chats/weihnachtsfeier`, without an event doc: open for Super-Admins
+    // always and for everybody else only once the page is published.
+    function isXmasRoomOpen() {
+      return isAdminOrEmulatorAdmin()
+        || (exists(/databases/$(database)/documents/site_pages/weihnachtsfeier)
+            && get(/databases/$(database)/documents/site_pages/weihnachtsfeier).data.get('published', false) == true);
+    }
+
+    // A room may be written to for an approved event, or for the Weihnachtsfeier room.
+    function isCandleRoomTarget(eventId) {
+      return eventId == 'weihnachtsfeier'
+        ? isXmasRoomOpen()
+        : (exists(/databases/$(database)/documents/events/$(eventId))
+           && get(/databases/$(database)/documents/events/$(eventId)).data.get('status', '') == 'approved');
+    }
+
     // event_chats/{eventId} is the room summary the calendar listens to:
     // { lastMessageAt, lastMessageId }. It is only written together with a new
     // message (same batch, same server time), so nobody can light the candle
@@ -1660,13 +1677,12 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         // Own messages stay findable for account deletion even when the room is closed.
-        allow read: if candleRoomReadable()
+        allow read: if (candleRoomReadable() && (eventId != 'weihnachtsfeier' || isXmasRoomOpen()))
                     || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
 
         allow create: if chatAccessible()
                       && !isChatBanned(request.auth.uid)
-                      && exists(/databases/$(database)/documents/events/$(eventId))
-                      && get(/databases/$(database)/documents/events/$(eventId)).data.get('status', '') == 'approved'
+                      && isCandleRoomTarget(eventId)
                       && request.resource.data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
                       && request.resource.data.keys().hasOnly(
                         ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'mentions', 'createdAt']

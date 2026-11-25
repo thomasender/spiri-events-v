@@ -33,6 +33,7 @@ import {
   sanitizeContent,
 } from '../lib/christmasPage';
 import EditableText from '../components/christmas/EditableText';
+import CandleRoom from '../components/chat/CandleRoom';
 import RouteSketch from '../components/christmas/RouteSketch';
 import FlyerLightbox from '../components/christmas/FlyerLightbox';
 import ChristmasRegistrationForm from '../components/christmas/ChristmasRegistrationForm';
@@ -520,6 +521,10 @@ export default function ChristmasPage() {
           adminPreview={isSuperAdmin}
         />
       </section>
+
+      <div className="xmas-chat">
+        <CandleRoom eventId={CHRISTMAS_PAGE_ID} />
+      </div>
 
       {lightbox && content.flyerUrl && (
         <FlyerLightbox

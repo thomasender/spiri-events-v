@@ -1132,3 +1132,80 @@ describe('@mentions', () => {
     });
   });
 });
+
+// The Weihnachtsfeier page has a room without an event doc (`event_chats/weihnachtsfeier`).
+describe('Kerzenraum of the Weihnachtsfeier page', () => {
+  const room = 'weihnachtsfeier';
+  const msgs = `event_chats/${room}/messages`;
+
+  async function setPublished(published: boolean | null) {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const ref = doc(ctx.firestore(), 'site_pages/weihnachtsfeier');
+      if (published === null) await deleteDoc(ref);
+      else await setDoc(ref, { published, content: {} });
+      await setDoc(doc(ctx.firestore(), `${msgs}/m1`), {
+        text: 'Wer fährt mit?',
+        authorUid: 'alice',
+        authorName: 'Alice',
+        createdAt: Timestamp.now(),
+      });
+    });
+  }
+
+  async function send(db: Firestore, uid: string) {
+    const batch = writeBatch(db);
+    const ref = doc(collection(db, msgs));
+    batch.set(ref, messageData(uid));
+    batch.set(doc(db, `event_chats/${room}/members/${uid}`), { lastMessageAt: serverTimestamp() });
+    batch.set(doc(db, `event_chats/${room}`), {
+      lastMessageAt: serverTimestamp(),
+      lastMessageId: ref.id,
+    });
+    return batch.commit();
+  }
+
+  it('is closed for guests and members while the page is not published, open for admins', async () => {
+    await setPublished(false);
+    await assertFails(getDocs(collection(anon().firestore(), msgs)));
+    await assertFails(getDocs(collection(verified().firestore(), msgs)));
+    await assertFails(send(verified('bob').firestore(), 'bob'));
+    await assertSucceeds(
+      getDocs(collection(adminVariants['admin (admin_users doc)']().firestore(), msgs))
+    );
+    await assertSucceeds(send(adminVariants['admin (admin_users doc)']().firestore(), 'adminDoc'));
+  });
+
+  it('is closed while no page doc exists at all', async () => {
+    await setPublished(null);
+    await assertFails(send(verified('bob').firestore(), 'bob'));
+  });
+
+  it('opens for reading and writing once the page is published (verified e-mail to write)', async () => {
+    await setPublished(true);
+    await assertSucceeds(getDocs(collection(anon().firestore(), msgs)));
+    await assertSucceeds(send(verified('bob').firestore(), 'bob'));
+    await assertFails(send(unverified('carl').firestore(), 'carl'));
+    await assertFails(send(anon().firestore(), 'nobody'));
+  });
+
+  it('still honours the chat flag when published', async () => {
+    await setPublished(true);
+    await setMode('off');
+    await assertFails(getDocs(collection(anon().firestore(), msgs)));
+    await assertFails(send(verified('bob').firestore(), 'bob'));
+  });
+
+  it('does not open other rooms without an event', async () => {
+    await setPublished(true);
+    const db = verified('dora').firestore();
+    const batch = writeBatch(db);
+    const ref = doc(collection(db, 'event_chats/ghost/messages'));
+    batch.set(ref, messageData('dora'));
+    batch.set(doc(db, 'event_chats/ghost/members/dora'), { lastMessageAt: serverTimestamp() });
+    batch.set(doc(db, 'event_chats/ghost'), {
+      lastMessageAt: serverTimestamp(),
+      lastMessageId: ref.id,
+    });
+    await assertFails(batch.commit());
+  });
+});

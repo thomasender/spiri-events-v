@@ -4,6 +4,7 @@ import {
   findMentionToken,
   foldName,
   foldQuery,
+  mentionLink,
   mentionsInText,
   replaceMentionToken,
   sanitizeMentions,
@@ -124,5 +125,11 @@ describe('splitMentions', () => {
   it('is safe with regex characters in names', () => {
     const parts = splitMentions('Hi @A.(b)+', { u1: 'A.(b)+' });
     expect(parts[1]).toEqual({ type: 'mention', value: '@A.(b)+', uid: 'u1' });
+  });
+
+  it('leads a mention in the Weihnachtsfeier room to that page, not to an event', () => {
+    expect(mentionLink({ kind: 'event', eventId: 'weihnachtsfeier', messageId: 'm9' })).toBe(
+      '/weihnachtsfeier#msg-m9'
+    );
   });
 });

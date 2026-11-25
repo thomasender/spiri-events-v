@@ -895,3 +895,9 @@
   box-shadow: none;
   padding: var(--space-2) var(--space-2) 0;
 }
+
+/* ── Chat (the Kerzenraum component brings its own look) ── */
+.xmas-chat {
+  max-width: 760px;
+  margin: var(--space-8) auto 0;
+}

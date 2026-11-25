@@ -14,6 +14,7 @@ import {
   formatChatTime,
 } from '../utils/chat';
 import { DM_RETENTION_DAYS } from '../utils/messenger';
+import { CHRISTMAS_PAGE_ID, CHRISTMAS_PATH } from '../lib/christmasPage';
 import './ChatTab.css';
 
 const MODES = [
@@ -69,7 +70,12 @@ function ReportRoom({ eventId, messageId, roomId }) {
   }
   return (
     <span className="chat-tab-room" data-testid="chat-report-room">
-      Event Chat: <Link to={`/event/${eventId}#msg-${messageId}`}>{title || 'Zum Event'}</Link>
+      Event Chat:{' '}
+      <Link
+        to={`${eventId === CHRISTMAS_PAGE_ID ? CHRISTMAS_PATH : `/event/${eventId}`}#msg-${messageId}`}
+      >
+        {title || 'Zum Event'}
+      </Link>
     </span>
   );
 }

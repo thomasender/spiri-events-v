@@ -1,3 +1,4 @@
+import { CHRISTMAS_PAGE_ID, CHRISTMAS_PATH } from '../lib/christmasPage';
 // Pure helpers for @mentions in the Lagerfeuer and the Kerzenräume (docs/chat.md).
 // No Firebase here.
 //
@@ -118,6 +119,10 @@ export function splitMentions(text, mentions) {
 export function mentionLink(mention) {
   if (mention?.kind === 'donation') return '/admin';
   if (mention?.kind === 'event') {
+    // The Weihnachtsfeier page has a room without an event doc.
+    if (mention.eventId === CHRISTMAS_PAGE_ID) {
+      return `${CHRISTMAS_PATH}#msg-${mention.messageId}`;
+    }
     const slug = mention.eventSlug || mention.eventId;
     return slug ? `/event/${slug}#msg-${mention.messageId}` : '/';
   }
