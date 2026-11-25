@@ -396,7 +396,7 @@ export default function EventMessages({
                 data-testid="event-message-template-instagram"
               >
                 <ImageOff size={16} aria-hidden="true" />
-                <span>Vorlage: Instagram-Bild ohne Text</span>
+                <span>Vorlage: Social-Media-Bild ohne Text</span>
               </button>
               <button
                 type="button"

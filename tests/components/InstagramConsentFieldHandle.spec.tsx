@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { useState } from 'react';
 import InstagramConsentField from '../../src/components/InstagramConsentField';
 import InstagramConsentCard from '../../src/components/InstagramConsentCard';
@@ -12,6 +14,9 @@ import {
   resolveInstagramHandleOverride,
   resolveOrganizerProfileHandle,
 } from '../../src/utils/instagramHandle';
+
+// The consent field links to the privacy policy, so it needs a router.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: MemoryRouter });
 
 describe('normalizeInstagramHandle', () => {
   it.each([
@@ -250,18 +255,30 @@ describe('Instagram channel named after the event region', () => {
   it("defaults to the Vorarlberg channel (today's wording)", () => {
     renderField();
     expect(label()).toContain(
-      'Mein Event darf auf dem Instagram-Kanal @tribevorarlberg veröffentlicht werden.'
+      'Mein Event darf auf unseren Social-Media-Kanälen (derzeit Instagram: @tribevorarlberg) veröffentlicht werden'
+    );
+  });
+
+  it('links to section 12 of the privacy policy', () => {
+    renderField();
+    expect(screen.getByTestId('instagram-consent-details-link')).toHaveAttribute(
+      'href',
+      '/datenschutz#social-media'
     );
   });
 
   it('names the handle of the event region', () => {
     renderField('tirol');
-    expect(label()).toContain('auf dem Instagram-Kanal @tribetirol veröffentlicht werden');
+    expect(label()).toContain(
+      'auf unseren Social-Media-Kanälen (derzeit Instagram: @tribetirol) veröffentlicht werden'
+    );
   });
 
   it('names no account for a region without a handle; the box stays usable', () => {
     renderField('wien');
-    expect(label()).toContain('auf unserem Instagram-Kanal veröffentlicht werden');
+    expect(label()).toContain(
+      'auf unseren Social-Media-Kanälen (derzeit Instagram) veröffentlicht werden'
+    );
     expect(label()).not.toContain('@tribevorarlberg');
     expect(screen.getByTestId('instagram-consent-checkbox')).not.toBeDisabled();
   });
@@ -275,7 +292,7 @@ describe('Instagram channel named after the event region', () => {
       </RegionContext.Provider>
     );
     const hint = screen.getByTestId('instagram-consent-card').textContent;
-    expect(hint).toContain('auf unserem Instagram-Kanal veröffentlichen');
+    expect(hint).toContain('auf unseren Social-Media-Kanälen (derzeit Instagram) veröffentlichen');
   });
 
   it('the profile card names no account when the page names no region', () => {
@@ -287,7 +304,7 @@ describe('Instagram channel named after the event region', () => {
       </RegionContext.Provider>
     );
     const hint = screen.getByTestId('instagram-consent-card').textContent;
-    expect(hint).toContain('auf unserem Instagram-Kanal veröffentlichen');
+    expect(hint).toContain('auf unseren Social-Media-Kanälen (derzeit Instagram) veröffentlichen');
     expect(hint).not.toContain('@tribevorarlberg');
   });
 });
