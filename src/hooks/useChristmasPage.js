@@ -96,3 +96,27 @@ export function useChristmasRegistrations(enabled) {
   const remove = useCallback((id) => deleteDoc(doc(registrationsRef(), id)), []);
   return { ...state, remove };
 }
+
+/**
+ * Anonymous "already brought" counts ([{ label, count }]), kept up to date by a Cloud
+ * Function; readable once the page is published (and by admins). Empty on any error.
+ */
+export function useChristmasBringSummary() {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, 'site_pages', CHRISTMAS_PAGE_ID, 'summary', 'bring'),
+      (snap) => {
+        const list = snap.data()?.items;
+        setItems(
+          Array.isArray(list)
+            ? list.filter((x) => x && typeof x.label === 'string' && Number(x.count) > 0)
+            : []
+        );
+      },
+      () => setItems([])
+    );
+    return unsubscribe;
+  }, []);
+  return items;
+}

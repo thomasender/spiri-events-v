@@ -1139,6 +1139,15 @@ service cloud.firestore {
       allow create, update: if isAdminOrEmulatorAdmin() && isValidSitePage(request.resource.data);
       allow delete: if false;
 
+      // Anonymous "already brought" counts, written by a Cloud Function only
+      // (functions/src/christmasBringList.ts); public once the page is published.
+      match /summary/{docId} {
+        allow read: if isAdminOrEmulatorAdmin()
+                    || (exists(/databases/$(database)/documents/site_pages/$(pageId))
+                      && get(/databases/$(database)/documents/site_pages/$(pageId)).data.published == true);
+        allow write: if false;
+      }
+
       match /registrations/{regId} {
         function isValidSiteRegistration(d) {
           return pageId == 'weihnachtsfeier'

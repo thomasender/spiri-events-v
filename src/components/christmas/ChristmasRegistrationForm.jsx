@@ -5,7 +5,9 @@ import { MAX_BRING_ITEMS, MAX_PERSONS, validateRegistration } from '../../lib/ch
 
 // Registration form of the Weihnachtsfeier: name, one contact, head count and the
 // Mitbringliste (suggestions as chips plus free entries). `website` is a honeypot.
-export default function ChristmasRegistrationForm({ content, adminPreview }) {
+export default function ChristmasRegistrationForm({ content, adminPreview, covered = [] }) {
+  const coveredCount = (item) =>
+    covered.find((c) => c.label.toLowerCase() === item.toLowerCase())?.count || 0;
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [persons, setPersons] = useState(1);
@@ -143,6 +145,9 @@ export default function ChristmasRegistrationForm({ content, adminPreview }) {
             >
               {bring.includes(item) && <Check size={14} aria-hidden="true" />}
               {item}
+              {coveredCount(item) > 0 && (
+                <span className="xmas-chip-count">schon {coveredCount(item)}×</span>
+              )}
             </button>
           ))}
           {customIdeas.map((item) => (

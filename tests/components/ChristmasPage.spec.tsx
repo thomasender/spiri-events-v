@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   page: { loading: false, published: false, denied: false, exists: true, content: null as unknown },
 }));
 const submit = vi.hoisted(() => vi.fn());
+const covered = vi.hoisted(() => ({ items: [] as Array<{ label: string; count: number }> }));
 
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
 vi.mock('../../src/hooks/useStaffRole', () => ({
@@ -16,6 +17,7 @@ vi.mock('../../src/hooks/useStaffRole', () => ({
 }));
 vi.mock('../../src/hooks/useChristmasPage', () => ({
   useChristmasPage: () => state.page,
+  useChristmasBringSummary: () => covered.items,
   saveChristmasContent: vi.fn(),
   submitChristmasRegistration: submit,
 }));
@@ -42,6 +44,7 @@ beforeEach(() => {
     content: DEFAULT_CONTENT,
   };
   submit.mockReset();
+  covered.items = [];
 });
 
 describe('ChristmasPage', () => {
@@ -104,5 +107,27 @@ describe('ChristmasPage', () => {
       bring: ['Hummus', 'Linsensuppe'],
       note: '',
     });
+  });
+
+  it('shows what others already bring, anonymously, and marks it on the suggestion chips', () => {
+    state.page = { ...state.page, published: true };
+    covered.items = [{ label: 'Brot', count: 3 }];
+    renderPage();
+    expect(screen.getByTestId('xmas-covered')).toHaveTextContent('Brot');
+    expect(screen.getByTestId('xmas-covered')).toHaveTextContent('× 3');
+    expect(screen.getByRole('button', { name: /^Brot/ })).toHaveTextContent('schon 3×');
+  });
+
+  it('offers a drag & drop area for the flyer in edit mode only', () => {
+    state.isSuperAdmin = true;
+    renderPage();
+    expect(screen.getByTestId('xmas-flyer-drop')).not.toHaveClass('xmas-flyer--drop');
+    fireEvent.click(screen.getByRole('button', { name: /seite bearbeiten/i }));
+    const zone = screen.getByTestId('xmas-flyer-drop');
+    expect(zone).toHaveClass('xmas-flyer--drop');
+    fireEvent.dragOver(zone);
+    expect(zone).toHaveClass('xmas-flyer--over');
+    fireEvent.dragLeave(zone);
+    expect(zone).not.toHaveClass('xmas-flyer--over');
   });
 });

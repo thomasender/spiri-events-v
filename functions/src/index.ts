@@ -201,6 +201,7 @@ export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { onEventUpdatedInstagramPostUpdate } from './instagramPostUpdate';
 export { onEventApprovedCount } from './approvedEventsCounter';
+export { onChristmasRegistrationWritten } from './christmasBringList';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { instagramEventStories, instagramMorningStories } from './instagramStories';
 export { calendarFeed } from './calendarFeed';

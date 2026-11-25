@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useStaffRole } from '../hooks/useStaffRole';
-import { saveChristmasContent, useChristmasPage } from '../hooks/useChristmasPage';
+import {
+  saveChristmasContent,
+  useChristmasBringSummary,
+  useChristmasPage,
+} from '../hooks/useChristmasPage';
 import { uploadPageImage } from '../lib/imageUpload';
 import {
   CHRISTMAS_PAGE_ID,
@@ -39,11 +43,13 @@ export default function ChristmasPage() {
   const { user } = useAuth();
   const { isSuperAdmin, loading: roleLoading } = useStaffRole();
   const page = useChristmasPage();
+  const bringSummary = useChristmasBringSummary();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | failed
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [dragging, setDragging] = useState(false);
   const fileRef = useRef(null);
 
   const content = editing && draft ? draft : page.content;
@@ -100,10 +106,12 @@ export default function ChristmasPage() {
       return { ...d, steps };
     });
 
-  const onFlyer = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
+  const uploadFlyer = async (file) => {
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Bitte ziehe ein Bild hinein (JPG oder PNG).');
+      return;
+    }
     setUploading(true);
     setUploadError(null);
     try {
@@ -116,6 +124,25 @@ export default function ChristmasPage() {
       setUploading(false);
     }
   };
+  const onFlyer = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    uploadFlyer(file);
+  };
+  const dropProps = editing
+    ? {
+        onDragOver: (e) => {
+          e.preventDefault();
+          setDragging(true);
+        },
+        onDragLeave: () => setDragging(false),
+        onDrop: (e) => {
+          e.preventDefault();
+          setDragging(false);
+          uploadFlyer(e.dataTransfer.files?.[0]);
+        },
+      }
+    : {};
 
   const T = (key, props = {}) => (
     <EditableText value={content[key]} onChange={set(key)} editing={editing} {...props} />
@@ -164,7 +191,11 @@ export default function ChristmasPage() {
         </div>
 
         <div className="xmas-flyer-wrap">
-          <figure className="xmas-flyer">
+          <figure
+            className={`xmas-flyer${editing ? ' xmas-flyer--drop' : ''}${dragging ? ' xmas-flyer--over' : ''}`}
+            data-testid="xmas-flyer-drop"
+            {...dropProps}
+          >
             {content.flyerUrl ? (
               <img src={content.flyerUrl} alt={`Flyer: ${content.title}`} />
             ) : (
@@ -173,6 +204,11 @@ export default function ChristmasPage() {
                 <strong>Flyer folgt</strong>
                 <span>Hier erscheint bald unser Flyer.</span>
               </div>
+            )}
+            {editing && (
+              <figcaption className="xmas-flyer-hint">
+                {uploading ? 'Lädt hoch …' : 'Bild hierher ziehen oder unten auswählen'}
+              </figcaption>
             )}
           </figure>
           {editing && (
@@ -299,6 +335,24 @@ export default function ChristmasPage() {
         </div>
       </section>
 
+      {bringSummary.length > 0 && (
+        <section className="xmas-section xmas-covered" data-testid="xmas-covered">
+          <h3>Das bringen andere schon mit</h3>
+          <p className="xmas-body">
+            Anonym, damit du siehst, was schon da ist. Magst du etwas Anderes oder Eigenes
+            mitbringen?
+          </p>
+          <ul className="xmas-chips">
+            {bringSummary.map((item) => (
+              <li className="xmas-chip xmas-chip--static" key={item.label}>
+                {item.label}
+                <span className="xmas-chip-count">× {item.count}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="xmas-section xmas-schedule">
         {T('scheduleTitle', { as: 'h2', placeholder: 'Überschrift' })}
         <ol className="xmas-steps">
@@ -393,7 +447,11 @@ export default function ChristmasPage() {
             })}
           </div>
         )}
-        <ChristmasRegistrationForm content={content} adminPreview={isSuperAdmin} />
+        <ChristmasRegistrationForm
+          content={content}
+          covered={bringSummary}
+          adminPreview={isSuperAdmin}
+        />
       </section>
 
       {editing && (

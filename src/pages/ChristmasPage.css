@@ -595,3 +595,51 @@
     transition: none;
   }
 }
+
+/* ── "Already brought" overview ── */
+.xmas-covered {
+  margin-top: var(--space-8);
+}
+.xmas-covered h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-130);
+  color: var(--text-primary);
+}
+.xmas-covered .xmas-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.xmas-chip-count {
+  font-size: var(--text-80);
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+/* ── Flyer drag & drop (edit mode) ── */
+.xmas-flyer {
+  position: relative;
+}
+.xmas-flyer--drop {
+  outline: 2px dashed rgba(255, 255, 255, 0.7);
+  outline-offset: 6px;
+}
+.xmas-flyer--over {
+  outline-color: var(--accent-create-event);
+  outline-width: 3px;
+  box-shadow:
+    0 0 0 8px rgba(229, 167, 46, 0.25),
+    0 18px 48px rgba(0, 0, 0, 0.4);
+}
+.xmas-flyer-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(22, 24, 25, 0.72);
+  color: #fff;
+  font-size: var(--text-85);
+  text-align: center;
+  pointer-events: none;
+}

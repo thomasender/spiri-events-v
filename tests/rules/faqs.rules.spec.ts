@@ -259,4 +259,25 @@ describe('site_pages/weihnachtsfeier', () => {
     await assertSucceeds(getDocs(collection(admin, 'site_pages/weihnachtsfeier/registrations')));
     await assertSucceeds(deleteDoc(doc(admin, guestPath)));
   });
+
+  it('shows the anonymous bring summary only once published, and never lets clients write it', async () => {
+    const path = 'site_pages/weihnachtsfeier/summary/bring';
+    await seed(false);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), path), { items: [{ label: 'Brot', count: 1 }] });
+    });
+    const guest = env.unauthenticatedContext().firestore();
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(getDoc(doc(guest, path)));
+    await assertSucceeds(getDoc(doc(admin, path)));
+    await assertFails(setDoc(doc(admin, path), { items: [] }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'site_pages/weihnachtsfeier'), {
+        published: true,
+        content,
+      });
+    });
+    await assertSucceeds(getDoc(doc(guest, path)));
+    await assertFails(setDoc(doc(guest, path), { items: [] }));
+  });
 });
