@@ -754,17 +754,6 @@
   border-radius: 2px;
   background: var(--accent-create-event);
 }
-.xmas-fact,
-.xmas-travel-way {
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-}
-.xmas-fact:hover,
-.xmas-travel-way:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-}
 @keyframes xmas-rise {
   from {
     opacity: 0;
@@ -798,10 +787,6 @@
   .xmas-section,
   .xmas-travel {
     animation: none;
-  }
-  .xmas-fact:hover,
-  .xmas-travel-way:hover {
-    transform: none;
   }
 }
 
@@ -874,4 +859,39 @@
 .xmas-stepper button {
   width: 48px;
   height: 48px;
+}
+
+/* ── Route sketch ── */
+.xmas-sketch {
+  margin: 0;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  background: #f7f0e2;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.xmas-sketch svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.xmas-sketch-text {
+  font-family: var(--font-heading);
+  fill: var(--text-primary);
+}
+.xmas-sketch-street {
+  font-style: italic;
+  fill: var(--text-secondary);
+}
+.xmas-sketch figcaption {
+  text-align: center;
+  font-size: var(--text-80);
+  color: var(--text-light);
+}
+/* Info blocks, not buttons: flat, no card chrome */
+.xmas-travel-way {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: var(--space-2) var(--space-2) 0;
 }

@@ -33,6 +33,7 @@ import {
   sanitizeContent,
 } from '../lib/christmasPage';
 import EditableText from '../components/christmas/EditableText';
+import RouteSketch from '../components/christmas/RouteSketch';
 import FlyerLightbox from '../components/christmas/FlyerLightbox';
 import ChristmasRegistrationForm from '../components/christmas/ChristmasRegistrationForm';
 import ErrorPage from './ErrorPage';
@@ -472,6 +473,7 @@ export default function ChristmasPage() {
           </a>
         </div>
         <div className="xmas-travel-ways">
+          <RouteSketch />
           <div className="xmas-travel-way">
             <TrainFront aria-hidden="true" />
             {T('trainTitle', { as: 'h3', placeholder: 'Titel' })}

@@ -60,7 +60,8 @@ export const DEFAULT_CONTENT = {
   travelTitle: 'Anreise',
   addressText: 'Die Gelbe Fabrik\nWidagasse 11\n6850 Dornbirn',
   trainTitle: 'Mit dem Zug',
-  trainText: 'Vom Bahnhof Dornbirn sind es zu Fuß etwa 10 Minuten.',
+  trainText:
+    'Vom Bahnhof Dornbirn zu Fuß etwa 10 Minuten: der Franz-Michael-Felder-Straße und der Kreuzgasse folgen, dann links in die Widagasse. Die Gelbe Fabrik ist die Nr. 11.',
   carTitle: 'Mit dem Auto',
   carText: 'Kostenlose Parkplätze gibt es direkt am Haus. Bildet gern Fahrgemeinschaften.',
   travelNote:
