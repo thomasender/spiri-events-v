@@ -669,6 +669,15 @@ export default function InstagramTab() {
                         >
                           {STATUS_LABELS[post.status] || post.status}
                         </span>
+                        {post.outdated && (
+                          <span
+                            className="instagram-badge instagram-badge--outdated"
+                            data-testid="instagram-post-outdated"
+                            title="Das Event wurde nach dem Posten geändert. Neuer Text: Review-Tab."
+                          >
+                            veraltet
+                          </span>
+                        )}
                         <span className="instagram-muted">Versuche: {post.attempts}</span>
                         {post.permalink && (
                           <a href={post.permalink} target="_blank" rel="noopener noreferrer">

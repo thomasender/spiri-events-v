@@ -35,6 +35,8 @@ import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
 import ModerationGuidanceNotice from './ModerationGuidanceNotice';
 import ReviewImportAwaiting from './ReviewImportAwaiting';
+import ReviewInstagramOutdated from './ReviewInstagramOutdated';
+import { useOutdatedInstagramPosts } from '../hooks/useInstagramAdmin';
 import { useAllImportOrganizers } from '../hooks/useImportData';
 import './ReviewTab.css';
 
@@ -223,6 +225,9 @@ export default function ReviewTab() {
   };
   const inFilter = (event) => regionFilter === 'all' || resolveRegionId(event) === regionFilter;
   const { unreadByEvent: editAlerts, markRead: markAlertRead } = useAdminAlerts(user?.uid, true);
+  // Published Instagram posts of edited events (Trello 6af4ca87): a Super-Admin reads all,
+  // a moderator those of her regions.
+  const outdatedPosts = useOutdatedInstagramPosts(access.isStaff, moderatorRegionKey || null);
 
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
@@ -237,6 +242,7 @@ export default function ReviewTab() {
     klaerung: true,
     approved: false,
     importAwaiting: false,
+    instagram: true,
   });
   const toggleSection = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -392,8 +398,14 @@ export default function ReviewTab() {
 
   const pendingShown = pendingInKlaerung.length + pendingNeu.length;
   const awaitingShown = awaitingOrganizer.filter(inFilter);
+  const outdatedShown = outdatedPosts.filter(
+    (post) => regionFilter === 'all' || post.regionId === regionFilter
+  );
   const hasAnyContent =
-    allPendingEvents.length > 0 || recentlyApproved.length > 0 || regionFilter !== 'all';
+    allPendingEvents.length > 0 ||
+    recentlyApproved.length > 0 ||
+    outdatedPosts.length > 0 ||
+    regionFilter !== 'all';
 
   if (!hasAnyContent) {
     return (
@@ -455,11 +467,14 @@ export default function ReviewTab() {
         </div>
       )}
 
-      {pendingShown === 0 && awaitingShown.length === 0 && recentlyApproved.length === 0 && (
-        <p className="review-subsection-empty" data-testid="review-region-empty">
-          Für diese Region gibt es aktuell nichts zu prüfen.
-        </p>
-      )}
+      {pendingShown === 0 &&
+        awaitingShown.length === 0 &&
+        recentlyApproved.length === 0 &&
+        outdatedShown.length === 0 && (
+          <p className="review-subsection-empty" data-testid="review-region-empty">
+            Für diese Region gibt es aktuell nichts zu prüfen.
+          </p>
+        )}
 
       {pendingShown > 0 && (
         <section
@@ -623,6 +638,16 @@ export default function ReviewTab() {
               />
             </div>
           )}
+        />
+      )}
+
+      {outdatedShown.length > 0 && (
+        <ReviewInstagramOutdated
+          posts={outdatedShown}
+          open={openSections.instagram}
+          onToggle={() => toggleSection('instagram')}
+          nameOf={nameOf}
+          showRegion={showRegionFilter}
         />
       )}
 
