@@ -207,6 +207,22 @@ describe('ChristmasPage', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('Anna Maria');
   });
 
+  it('hides the "others may see that I am coming" option from anonymous registrations', async () => {
+    state.page = { ...state.page, published: true };
+    submit.mockResolvedValue(undefined);
+    renderPage();
+    expect(
+      screen.queryByRole('checkbox', { name: /andere dürfen sehen/i })
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Gast' } });
+    fireEvent.change(screen.getByLabelText('E-Mail oder Telefonnummer'), {
+      target: { value: 'gast@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /verbindlich anmelden/i }));
+    await screen.findByTestId('xmas-registration-done');
+    expect(submit.mock.calls[0][0]).toMatchObject({ showPublic: false });
+  });
+
   it('sends the opt-in "others may see that I am coming" only when ticked', async () => {
     state.page = { ...state.page, published: true };
     auth.user = { uid: 'u7', displayName: 'Anna', email: 'anna@example.com' };

@@ -41,8 +41,35 @@ describe('buildAttendees', () => {
       { showPublic: true, name: ' ' },
     ]);
     expect(out).toEqual([
-      { name: 'Anna', photoURL: 'https://x/a.jpg' },
-      { name: 'Ben', photoURL: null },
+      { name: 'Anna', photoURL: null, photoFocalPoint: null, photoZoom: null },
+      { name: 'Ben', photoURL: null, photoFocalPoint: null, photoZoom: null },
     ]);
+  });
+
+  it('takes photo, focal point and zoom from the profile of signed-in people', () => {
+    const profiles = new Map([
+      [
+        'u1',
+        {
+          photoURL: 'https://firebasestorage.googleapis.com/v0/b/x/o/p.jpg',
+          photoFocalPoint: { x: 0.3, y: 0.2 },
+          photoZoom: 9,
+        },
+      ],
+    ]);
+    const out = buildAttendees(
+      [
+        { showPublic: true, name: 'Anna', uid: 'u1', photoURL: 'https://old.example/a.jpg' },
+        { showPublic: true, name: 'Ben', uid: 'u2' },
+      ],
+      profiles
+    );
+    expect(out[0]).toEqual({
+      name: 'Anna',
+      photoURL: 'https://firebasestorage.googleapis.com/v0/b/x/o/p.jpg',
+      photoFocalPoint: { x: 0.3, y: 0.2 },
+      photoZoom: 3,
+    });
+    expect(out[1]).toEqual({ name: 'Ben', photoURL: null, photoFocalPoint: null, photoZoom: null });
   });
 });

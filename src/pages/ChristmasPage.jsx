@@ -14,7 +14,6 @@ import {
   Sparkles,
   Trash2,
   TrainFront,
-  Users,
   X,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -204,6 +203,7 @@ export default function ChristmasPage() {
           <a className="xmas-btn xmas-btn--light" href="#anmeldung">
             Jetzt anmelden
           </a>
+          <SeatsHint persons={seats.persons} />
         </div>
 
         <div className="xmas-flyer-wrap">
@@ -300,22 +300,6 @@ export default function ChristmasPage() {
             multiline: true,
             placeholder: 'Hinweis zum Ort',
           })}
-        </div>
-        <div className="xmas-fact">
-          <Users aria-hidden="true" />
-          <h2>Teilnahme</h2>
-          {T('capacityLabel', {
-            as: 'p',
-            className: 'xmas-fact-main',
-            placeholder: 'Teilnehmerzahl',
-          })}
-          {T('capacityNote', {
-            as: 'p',
-            className: 'xmas-fact-note',
-            multiline: true,
-            placeholder: 'Hinweis',
-          })}
-          <SeatsHint persons={seats.persons} />
         </div>
       </section>
 

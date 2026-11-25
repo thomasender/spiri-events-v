@@ -15,7 +15,13 @@ export default function Attendees({ attendees, hasMore }) {
           <li key={`${i}-${a.name}`}>
             <button type="button" className="xmas-face" data-name={a.name} aria-label={a.name}>
               {a.photoURL ? (
-                <AvatarImage src={a.photoURL} alt="" className="xmas-face-img" />
+                <AvatarImage
+                  src={a.photoURL}
+                  alt=""
+                  className="xmas-face-img"
+                  focalPoint={a.photoFocalPoint}
+                  zoom={a.photoZoom}
+                />
               ) : (
                 <span className="xmas-face-initial" aria-hidden="true">
                   {a.name.charAt(0).toUpperCase()}

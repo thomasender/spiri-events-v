@@ -79,7 +79,7 @@ export default function ChristmasRegistrationForm({
       persons,
       bring: items,
       note,
-      showPublic,
+      showPublic: Boolean(uid) && showPublic,
       photoURL,
     });
     setErrors(result.errors);
@@ -290,20 +290,22 @@ export default function ChristmasRegistrationForm({
           onChange={(e) => setWebsite(e.target.value)}
         />
 
-        <label className="xmas-check">
-          <input
-            type="checkbox"
-            checked={showPublic}
-            onChange={(e) => setShowPublic(e.target.checked)}
-          />
-          <span>
-            Andere dürfen sehen, dass ich komme
-            <small>
-              Dein Profilbild (falls vorhanden) erscheint in „Wer kommt“, dein Name beim
-              Drüberfahren.
-            </small>
-          </span>
-        </label>
+        {uid && (
+          <label className="xmas-check">
+            <input
+              type="checkbox"
+              checked={showPublic}
+              onChange={(e) => setShowPublic(e.target.checked)}
+            />
+            <span>
+              Andere dürfen sehen, dass ich komme
+              <small>
+                Dein Profilbild (falls vorhanden) erscheint in „Wer kommt“, dein Name beim
+                Drüberfahren.
+              </small>
+            </span>
+          </label>
+        )}
 
         <p className="xmas-form-privacy">
           Deine Angaben nutzen wir nur zur Organisation der Weihnachtsfeier.
