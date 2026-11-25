@@ -83,7 +83,28 @@ vi.mock('../../src/hooks/useAuth', () => ({
 vi.mock('../../src/components/ModerationGuidanceNotice', () => ({ default: () => null }));
 vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
 
-vi.mock('../../src/lib/firebase', () => ({ db: {} }));
+const mockCallable = vi.hoisted(() => ({ fn: vi.fn(async () => ({ data: {} })), name: '' }));
+vi.mock('../../src/lib/firebase', () => ({
+  db: {},
+  callable: (name: string) => {
+    mockCallable.name = name;
+    return mockCallable.fn;
+  },
+}));
+
+const mockOutdated = vi.hoisted(() => ({
+  posts: [] as Array<Record<string, unknown>>,
+  args: [] as unknown[],
+}));
+vi.mock('../../src/hooks/useInstagramAdmin', () => ({
+  useOutdatedInstagramPosts: (...args: unknown[]) => {
+    mockOutdated.args = args;
+    return mockOutdated.posts;
+  },
+}));
+
+const mockCopy = vi.hoisted(() => vi.fn(async () => true));
+vi.mock('../../src/utils/copyToClipboard', () => ({ copyToClipboard: mockCopy }));
 
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
@@ -121,6 +142,11 @@ beforeEach(() => {
   mockUserDisplayNames.loading = false;
   mockImport.organizers = [];
   mockImport.outreach = null;
+  mockOutdated.posts = [];
+  mockOutdated.args = [];
+  mockCallable.fn.mockClear();
+  mockCallable.name = '';
+  mockCopy.mockClear();
 });
 
 describe('ReviewTab — three sections (j67qz6b2)', () => {
@@ -776,5 +802,84 @@ describe('ReviewTab — imported events without consent', () => {
       trashKind: 'rejected',
       trashReason: null,
     });
+  });
+});
+
+describe('ReviewTab — Instagram-Post anpassen', () => {
+  const outdatedPost = {
+    id: 'feed_e1',
+    eventId: 'e1',
+    eventTitle: 'Kakao Zeremonie',
+    regionId: 'vorarlberg',
+    permalink: 'https://www.instagram.com/p/abc/',
+    outdatedFields: ['date', 'place'],
+    suggestedCaption: '📅 So, 13. Dez · 18:00 Uhr\n\nKakao Zeremonie',
+    outdatedAt: new Date('2026-11-25T10:00:00Z'),
+  };
+
+  it('is hidden without outdated posts', () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Neu', status: 'pending' }];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-section-instagram-outdated')).not.toBeInTheDocument();
+  });
+
+  it('lists the post with changed fields, new caption, link and how-to, even with nothing else to review', () => {
+    mockOutdated.posts = [outdatedPost];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-empty-state')).not.toBeInTheDocument();
+    const item = screen.getByTestId('review-instagram-post-e1');
+    expect(item).toHaveTextContent('Kakao Zeremonie');
+    expect(screen.getByTestId('review-instagram-fields')).toHaveTextContent(
+      'Geändert: Datum, Adresse'
+    );
+    expect(screen.getByTestId('review-instagram-caption')).toHaveValue(
+      outdatedPost.suggestedCaption
+    );
+    expect(screen.getByTestId('review-instagram-open')).toHaveAttribute(
+      'href',
+      'https://www.instagram.com/p/abc/'
+    );
+    expect(item).toHaveTextContent('„Bearbeiten“');
+    // A Super-Admin reads all regions.
+    expect(mockOutdated.args).toEqual([true, null]);
+  });
+
+  it('a moderator only subscribes to her regions', () => {
+    mockAuth.current = {
+      user: { uid: 'mod-uid' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol'],
+    };
+    renderReviewTab();
+    expect(mockOutdated.args).toEqual([true, 'tirol']);
+  });
+
+  it('copies the new caption', async () => {
+    mockOutdated.posts = [outdatedPost];
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-instagram-copy'));
+    await waitFor(() =>
+      expect(screen.getByTestId('review-instagram-copy')).toHaveTextContent('Kopiert')
+    );
+    expect(mockCopy).toHaveBeenCalledWith(outdatedPost.suggestedCaption);
+  });
+
+  it('"Erledigt" calls markInstagramPostUpdated for the event', async () => {
+    mockOutdated.posts = [outdatedPost];
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-instagram-done'));
+    await waitFor(() => expect(mockCallable.fn).toHaveBeenCalledWith({ eventId: 'e1' }));
+    expect(mockCallable.name).toBe('markInstagramPostUpdated');
+  });
+
+  it('shows an error when "Erledigt" fails', async () => {
+    mockOutdated.posts = [outdatedPost];
+    mockCallable.fn.mockRejectedValueOnce(new Error('permission-denied'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-instagram-done'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('nicht geklappt');
+    expect(screen.getByTestId('review-instagram-done')).not.toBeDisabled();
+    consoleError.mockRestore();
   });
 });

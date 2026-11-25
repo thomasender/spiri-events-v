@@ -38,4 +38,5 @@ export const FIELD_LABELS = {
   instagramExtraHandles: 'Weitere Instagram-Namen',
   cancelled: 'Abgesagt',
   cancelledDates: 'Abgesagte Termine',
+  regionId: 'Region',
 };

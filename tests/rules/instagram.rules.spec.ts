@@ -88,6 +88,29 @@ describe('instagram_posts', () => {
     }
   });
 
+  it('a moderator reads (and lists) only the outdated posts of her regions, never writes', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'admin_users/modTirol'), {
+        role: 'RegionModerator',
+        regionIds: ['tirol'],
+      });
+      await setDoc(doc(db, 'instagram_posts/feed_t'), { outdated: true, regionId: 'tirol' });
+      await setDoc(doc(db, 'instagram_posts/feed_w'), { outdated: true, regionId: 'wien' });
+    });
+    const db = env.authenticatedContext('modTirol').firestore();
+    await assertSucceeds(getDoc(doc(db, 'instagram_posts/feed_t')));
+    await assertFails(getDoc(doc(db, 'instagram_posts/feed_w')));
+    // Posts without regionId (Vorarlberg legacy records) stay admin-only.
+    await assertFails(getDoc(doc(db, 'instagram_posts/p1')));
+    const posts = collection(db, 'instagram_posts');
+    await assertSucceeds(
+      getDocs(query(posts, where('outdated', '==', true), where('regionId', '==', 'tirol')))
+    );
+    await assertFails(getDocs(query(posts, where('outdated', '==', true))));
+    await assertFails(updateDoc(doc(db, 'instagram_posts/feed_t'), { outdated: false }));
+  });
+
   describe.each(Object.entries(adminVariants))('%s', (_n, make) => {
     it('can read', async () => {
       await assertSucceeds(getDoc(doc(make().firestore(), 'instagram_posts/p1')));

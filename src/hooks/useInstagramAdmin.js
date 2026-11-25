@@ -68,6 +68,7 @@ export function useInstagramPosts(enabled) {
               permalink: data.permalink || null,
               error: data.error || null,
               skipReason: data.skipReason || null,
+              outdated: data.outdated === true,
               createdAt: toDate(data.createdAt),
             };
           })
@@ -184,4 +185,54 @@ export function useUnpostedConsentEvents(enabled, posts, now = new Date()) {
     loading,
     error,
   };
+}
+
+function toOutdatedPost(d) {
+  const data = d.data();
+  return {
+    id: d.id,
+    eventId: data.eventId || d.id.replace(/^feed_/, ''),
+    eventTitle: data.eventTitle || '',
+    regionId: data.regionId || null,
+    permalink: data.permalink || null,
+    outdatedFields: Array.isArray(data.outdatedFields) ? data.outdatedFields : [],
+    suggestedCaption: data.suggestedCaption || '',
+    outdatedAt: toDate(data.outdatedAt),
+  };
+}
+
+// Published feed posts whose event was edited afterwards (Trello 6af4ca87),
+// oldest change first. A Super-Admin reads all; a moderator one query per
+// region of hers (firestore.rules only lets her read her regions' posts).
+// `regionKey` is null for a Super-Admin, else the comma-joined region ids.
+export function useOutdatedInstagramPosts(enabled, regionKey) {
+  const [byQuery, setByQuery] = useState({});
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const regionIds = regionKey ? regionKey.split(',') : [null];
+    const unsubscribes = regionIds.map((regionId) => {
+      const filters = [where('outdated', '==', true)];
+      if (regionId) filters.push(where('regionId', '==', regionId));
+      const key = regionId || 'all';
+      return onSnapshot(
+        query(collection(db, 'instagram_posts'), ...filters),
+        (snap) => setByQuery((prev) => ({ ...prev, [key]: snap.docs.map(toOutdatedPost) })),
+        (err) => {
+          console.error('useOutdatedInstagramPosts error:', err);
+          setByQuery((prev) => ({ ...prev, [key]: [] }));
+        }
+      );
+    });
+    return () => {
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
+      setByQuery({});
+    };
+  }, [enabled, regionKey]);
+
+  const seen = new Set();
+  return Object.values(byQuery)
+    .flat()
+    .filter((post) => !seen.has(post.id) && seen.add(post.id))
+    .sort((a, b) => (a.outdatedAt?.getTime() ?? 0) - (b.outdatedAt?.getTime() ?? 0));
 }

@@ -82,6 +82,19 @@ The display-only part (`regions/{id}.instagramHandle`) is in [regions.md](./regi
   - Another region: add its id to `INSTAGRAM_SCHEDULED_REGION_IDS` and check its Bezirk
     wording in the config (tests in `tests/lib/instagramCarousel.spec.ts`).
 
+## Outdated feed posts (event edited after posting)
+
+Instagram's API cannot edit a published caption, so `onEventUpdatedInstagramPostUpdate`
+(`instagramPostUpdate.ts`, logic in `instagram/instagramPostUpdate.ts`) only marks
+`instagram_posts/feed_{id}` (status `published`) when caption fields change: `outdated`,
+`outdatedAt`, `outdatedFields`, `regionId`, `eventTitle`, `suggestedCaption`,
+`captionBaseline` (fields before the first unhandled change; edits made while the event is
+not approved are compared on re-approval). Date, time, place or a cancellation also get a
+best-effort comment under the post from the region's account (kill switch respected, one
+per state via `lastUpdateCommentKey`). The review tab lists them ("Instagram-Post anpassen",
+moderators: their regions, `firestore.rules`); "Erledigt" = callable
+`markInstagramPostUpdated`. Weekly carousels and stories are not covered.
+
 ## Launch drip (backlog over several days)
 
 Instead of the one-batch backfill on switching a region on, a region can get a **launch

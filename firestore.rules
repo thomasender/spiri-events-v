@@ -2198,9 +2198,13 @@ service cloud.firestore {
     }
 
     // Idempotency/audit records of Instagram posts. Written only by the
-    // Cloud Function (Admin SDK bypasses rules); admins may read them.
+    // Cloud Function (Admin SDK bypasses rules); admins may read them. A
+    // moderator reads the posts of her regions (`regionId` is set when a post
+    // becomes outdated, for the "Instagram-Post anpassen" list in Review).
     match /instagram_posts/{postId} {
-      allow read: if isAdminOrEmulatorAdmin();
+      allow read: if isAdminOrEmulatorAdmin()
+                  || (resource.data.get('regionId', null) is string
+                      && isRegionModeratorFor(resource.data.regionId));
       allow write: if false;
     }
 
