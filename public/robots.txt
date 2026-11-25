@@ -6,7 +6,7 @@ Sitemap: https://www.thetribe.at/sitemap.xml
 # Block admin pages from indexing
 Disallow: /admin/
 Disallow: /login/
-# Secret preview links of pre-entered events (docs/pre-entries.md)
+# Secret preview links of pre-entered events (docs/pre-entries.md) and of the event import (docs/event-import.md)
 Disallow: /vorschau/
 
 # AI crawlers: the same rules, named explicitly (a named group replaces the * group

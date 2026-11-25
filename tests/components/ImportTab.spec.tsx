@@ -120,8 +120,8 @@ describe('ImportTab access', () => {
 });
 
 describe('Kandidaten', () => {
-  it('shows the facts and links without loading an image', () => {
-    const { container } = render(<ImportTab />);
+  it("shows the facts, the links and the organizer's picture (no referrer)", () => {
+    render(<ImportTab />);
     const card = screen.getByTestId('import-candidate-c1');
     expect(card).toHaveTextContent('Yoga Abend');
     expect(card).toHaveTextContent('2026-12-02 18:00');
@@ -135,45 +135,60 @@ describe('Kandidaten', () => {
       'href',
       'https://yoga.test/img.jpg'
     );
-    expect(container.querySelector('img')).toBeNull();
+    const img = within(card).getByTestId('candidate-image');
+    expect(img).toHaveAttribute('src', 'https://yoga.test/img.jpg');
+    expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
     expect(screen.getByTestId('import-count-found')).toHaveTextContent('2');
   });
 
-  it('accepts after a confirm dialog, without force', async () => {
+  it('accepts after a confirm dialog', async () => {
     render(<ImportTab />);
     fireEvent.click(screen.getByText('Annehmen'));
     expect(api.importAcceptCandidate).not.toHaveBeenCalled();
     fireEvent.click(confirmButton('Annehmen'));
     await waitFor(() =>
-      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1', force: false })
+      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1' })
     );
   });
 
-  it('asks a second time and sends force for pilotExcluded candidates', async () => {
-    state.candidates = [candidate({ pilotExcluded: true })];
+  it('accepts every candidate the same way: no pilot badge, no second question, no force', async () => {
+    state.candidates = [candidate({ pilotExcluded: true })]; // old data may still carry the flag
     render(<ImportTab />);
-    expect(screen.getByTestId('badge-pilot')).toBeInTheDocument();
+    expect(screen.queryByTestId('badge-pilot')).toBeNull();
     fireEvent.click(screen.getByText('Annehmen'));
     fireEvent.click(confirmButton('Annehmen'));
-    expect(api.importAcceptCandidate).not.toHaveBeenCalled();
-    fireEvent.click(await screen.findByRole('button', { name: 'Trotzdem annehmen' }));
     await waitFor(() =>
-      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1', force: true })
+      expect(api.importAcceptCandidate).toHaveBeenCalledWith({ candidateId: 'c1' })
     );
+    expect(screen.queryByRole('button', { name: 'Trotzdem annehmen' })).toBeNull();
   });
 
-  it('explains the pilot badge in a tooltip and in the confirm dialog', () => {
-    state.candidates = [candidate({ pilotExcluded: true })];
+  it('accepts a selection in one go and reports failures', async () => {
+    state.candidates = [
+      candidate({ id: 'c1' }),
+      candidate({ id: 'c2', rawExtract: { title: 'Zweites' } }),
+      candidate({ id: 'c3', rawExtract: { title: 'Drittes' } }),
+    ];
+    api.importAcceptCandidate.mockImplementation(async (arg: unknown) => {
+      if ((arg as { candidateId: string }).candidateId === 'c2') throw new Error('blocked');
+      return { eventId: 'e' };
+    });
     render(<ImportTab />);
-    expect(screen.getByTestId('badge-pilot')).toHaveAttribute(
-      'title',
-      expect.stringContaining('strengere Datenschutz- und Werberegeln')
-    );
-    fireEvent.click(screen.getByText('Annehmen'));
-    fireEvent.click(confirmButton('Annehmen'));
-    expect(screen.getByTestId('pilot-help')).toHaveTextContent(
-      'Einzelperson oder Einzelunternehmen'
-    );
+    expect(screen.getByTestId('import-bulk-accept')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('import-select-all'));
+    expect(screen.getByTestId('import-bulk-accept')).toHaveTextContent('(3)');
+    fireEvent.click(screen.getByTestId('import-select-c3'));
+    fireEvent.click(screen.getByTestId('import-bulk-accept'));
+    expect(api.importAcceptCandidate).not.toHaveBeenCalled();
+    fireEvent.click(confirmButton('2 annehmen'));
+    const failures = await screen.findByTestId('import-bulk-failures');
+    expect(failures).toHaveTextContent('Zweites: blocked');
+    expect(api.importAcceptCandidate).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('alert')).toHaveTextContent('1 von 2');
+    // the failed one stays selected for a retry
+    expect(screen.getByTestId('import-select-c2')).toBeChecked();
+    api.importAcceptCandidate.mockReset();
+    api.importAcceptCandidate.mockResolvedValue({ eventId: 'e1' });
   });
 
   it('defers a found candidate and reopens a deferred one', async () => {
@@ -438,5 +453,39 @@ describe('blocklist hashing', () => {
     }
     expect(await blocklistIdAsync('Info@Yoga.test')).toMatch(/^[0-9a-f]{64}$/);
     await expect(blocklistIdAsync('  ')).rejects.toThrow();
+  });
+});
+
+describe('declined organizers (Möglichkeit C: only a note is left)', () => {
+  const declinedOrg = (over: Record<string, unknown> = {}) =>
+    organizer({
+      consent: 'declined',
+      contactEmail: null,
+      declinedEventCount: 1,
+      consentRecord: { at: new Date(2026, 10, 24, 15, 27), action: 'decline' },
+      ...over,
+    });
+
+  it('shows one note per organizer instead of empty cards without a title', () => {
+    state.organizers = [declinedOrg()];
+    state.candidates = [
+      candidate({ id: 'c1', status: 'rejected', rawExtract: undefined, dateQuote: undefined }),
+      candidate({ id: 'c2', status: 'rejected', rawExtract: undefined, dateQuote: undefined }),
+    ];
+    render(<ImportTab />);
+    expect(screen.queryByText('(ohne Titel)')).toBeNull();
+    expect(screen.getAllByTestId('decline-note')).toHaveLength(1);
+    expect(screen.getByTestId('decline-note')).toHaveTextContent(
+      'Yoga Haus: Abgelehnt am 24.11.2026, 1 Event gelöscht'
+    );
+  });
+
+  it('shows the decline in the organizer list too', () => {
+    state.organizers = [declinedOrg({ declinedEventCount: 3 })];
+    render(<ImportTab />);
+    fireEvent.click(screen.getByTestId('import-view-organizers'));
+    expect(screen.getByTestId('organizer-declined')).toHaveTextContent(
+      'Abgelehnt am 24.11.2026, 3 Events gelöscht'
+    );
   });
 });

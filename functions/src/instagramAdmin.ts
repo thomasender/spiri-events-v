@@ -40,6 +40,8 @@ import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { DEFAULT_REGION_ID, resolveRegionId } from './regions';
 import { isValidRegionId, type BackfillResult } from './instagram/instagramRegionAccounts';
 import { resolveCredentialsForRegion, runRegionBackfill } from './instagramRegionStore';
+import { canResolveOutdatedPost } from './instagram/instagramPostUpdate';
+import { parseStaffRole, readRoleDoc } from './staffRoles';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -363,5 +365,40 @@ export const adminPostDailyStory = onCall(
     const outcome = await runDailyStory(buildStoryDeps(db, accessToken, userId), bezirk, regionId);
     logger.info('Instagram daily story posted by admin', { regionId, bezirk, outcome });
     return outcome;
+  }
+);
+
+// "Erledigt" in the review tab: the team pasted the new caption on Instagram,
+// so the feed post is no longer outdated. Super-Admins, and moderators of the
+// post's region (Trello 6af4ca87).
+export const markInstagramPostUpdated = onCall(
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
+  async (request): Promise<{ outcome: 'updated' | 'unchanged' }> => {
+    logMissingAppCheck('markInstagramPostUpdated', request);
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', 'Must be signed in.');
+    try {
+      const eventId = assertEventId((request.data as { eventId?: unknown } | null)?.eventId);
+      const ref = getFirestore().collection('instagram_posts').doc(`feed_${eventId}`);
+      const snap = await ref.get();
+      if (!snap.exists) throw new HttpsError('not-found', 'Post not found.');
+      const role = parseStaffRole(await readRoleDoc(uid));
+      if (!canResolveOutdatedPost(role, snap.get('regionId'))) {
+        throw new HttpsError('permission-denied', 'Not allowed for this region.');
+      }
+      if (snap.get('outdated') !== true) return { outcome: 'unchanged' };
+      await ref.update({
+        outdated: false,
+        outdatedFields: null,
+        captionBaseline: null,
+        captionUpdatedBy: uid,
+        captionUpdatedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      logger.info('Instagram post marked as updated', { eventId, uid });
+      return { outcome: 'updated' };
+    } catch (err) {
+      return toHttpsError(err);
+    }
   }
 );

@@ -82,8 +82,19 @@ export function filterCuratedForReview(events, { isSuperAdmin, moderatorsSeeInRe
   return events.filter((e) => !isUnclaimedCuratedEvent(e));
 }
 
-export const PILOT_EXCLUDED_HELP =
-  'Einzelperson oder Einzelunternehmen. Wir fragen solche Veranstalter:innen im Pilot nicht an, weil für sie strengere Datenschutz- und Werberegeln gelten. Annehmen nur, wenn du sie bewusst trotzdem aufnehmen willst.';
+/**
+ * "Abgelehnt am 24.11.2026, 1 Event gelöscht": what is left to say about a declined organizer. After
+ * the decline nothing else is kept (the candidate cards have no title any more), so this note stands
+ * instead. `at` is a Date, a Firestore timestamp or null.
+ */
+export function declineNote(organizer) {
+  const raw = organizer?.consentRecord?.at;
+  const at = raw?.toDate ? raw.toDate() : raw ? new Date(raw) : null;
+  const when = at && !Number.isNaN(at.getTime()) ? ` am ${at.toLocaleDateString('de-AT')}` : '';
+  const n = organizer?.declinedEventCount;
+  const count = Number.isInteger(n) ? `, ${n} ${n === 1 ? 'Event' : 'Events'} gelöscht` : '';
+  return `Abgelehnt${when}${count}`;
+}
 
 export const NO_CONSENT_APPROVE_MESSAGE =
   'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.';

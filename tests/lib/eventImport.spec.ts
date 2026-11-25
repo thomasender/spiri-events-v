@@ -294,10 +294,11 @@ describe('candidateToEventData', () => {
     );
   });
 
-  it('carries no image fields, no consent and no e-mail', () => {
+  it('carries no image fields (only the staff preview link), no consent and no e-mail', () => {
     const data = candidateToEventData(candidate, organizer, 'curatorUid', { now });
     for (const key of Object.keys(data)) expect(key.toLowerCase()).not.toContain('image');
-    expect(JSON.stringify(data)).not.toContain('kakao.jpg');
+    // The picture exists only as a link in curation.sourceImageUrl (staff preview), nowhere else.
+    expect(JSON.stringify({ ...data, curation: undefined })).not.toContain('kakao.jpg');
     expect(JSON.stringify(data)).not.toContain('info@yoga-zuerich.ch');
     expect((data.curation as Record<string, unknown>).consentAt).toBeUndefined();
     expect(isCuratedWithoutConsent(data)).toBe(true);
@@ -314,6 +315,53 @@ describe('candidateToEventData', () => {
       expect(data.organizer).toEqual({ name: '', email: '' });
       expect(JSON.stringify(data)).not.toContain('Anna');
     }
+  });
+
+  it('an extract without a stated price becomes unspecified with the review flag, never free', () => {
+    const data = candidateToEventData(
+      {
+        ...candidate,
+        rawExtract: { title: 'Abend', date: '2026-12-01', contribution: 'unknown' },
+      },
+      organizer,
+      'curatorUid',
+      { now }
+    );
+    expect(data).toMatchObject({ contribution: 'unspecified', fee: null, priceCurrency: null });
+    expect((data.curation as Record<string, unknown>).priceUnknown).toBe(true);
+  });
+
+  it('keeps a price that is stated, also "unspecified" set by hand', () => {
+    const make = (contribution: string) =>
+      candidateToEventData(
+        { ...candidate, rawExtract: { title: 'A', date: '2026-12-01', contribution, fee: 5 } },
+        organizer,
+        'curatorUid',
+        { now }
+      );
+    expect(make('free').contribution).toBe('free');
+    expect(make('donation').contribution).toBe('donation');
+    expect(make('unspecified').contribution).toBe('unspecified');
+    expect(make('fee')).toMatchObject({ contribution: 'fee', fee: 5 });
+  });
+
+  it('keeps the picture link of the candidate as curation.sourceImageUrl (https only)', () => {
+    const make = (imageUrl: string | null) =>
+      candidateToEventData(
+        { ...candidate, imageUrl, rawExtract: { title: 'A', date: '2026-12-01' } },
+        organizer,
+        'curatorUid',
+        { now }
+      );
+    expect(
+      (make('https://org.example/a.jpg').curation as Record<string, unknown>).sourceImageUrl
+    ).toBe('https://org.example/a.jpg');
+    expect(
+      (make('javascript:alert(1)').curation as Record<string, unknown>).sourceImageUrl
+    ).toBeUndefined();
+    expect((make(null).curation as Record<string, unknown>).sourceImageUrl).toBeUndefined();
+    // never an image field on the event itself before consent
+    expect(make('https://org.example/a.jpg')).not.toHaveProperty('imageUrl');
   });
 
   it('falls back to safe defaults for odd extracts', () => {
@@ -338,7 +386,7 @@ describe('candidateToEventData', () => {
     );
     expect(data).toMatchObject({
       time: '',
-      contribution: 'free',
+      contribution: 'unspecified',
       fee: null,
       priceCurrency: null,
       category: 'Sonstiges',

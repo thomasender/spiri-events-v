@@ -170,6 +170,11 @@
   color: var(--error-hover);
 }
 
+.instagram-badge--outdated {
+  background: var(--pending-bg);
+  color: var(--pending-text);
+}
+
 .instagram-badge--skipped {
   background: var(--border);
   color: var(--text-secondary);

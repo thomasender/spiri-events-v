@@ -156,6 +156,30 @@ curation: {
   changes requested, ...) reaches the organizer before consent. `slug` and server timestamps
   are left to the caller (the slug trigger makes it unique).
 
+## Pictures of imported events
+
+A candidate may carry `imageUrl`, a link to the picture on the organizer's page (`scripts/import-scrape/find-images.mjs`
+fills it; `isImageUrlAllowed` rules out social CDNs and the like). The link is only a link, taken over as found:
+nothing is downloaded or stored before the organizer consents (then `copyConsentedImages`, only with the image
+checkbox on the preview page, where the organizer states the picture rights).
+
+- Import tab: the candidate card shows the picture (`referrerPolicy="no-referrer"`, loaded in the admin's browser).
+- The event keeps the link as `curation.sourceImageUrl` (Admin SDK only). `EventCoverImage` uses it **only while
+  `curation.consentAt` is missing and the event has no picture of its own**, i.e. for staff looking at a pending
+  imported event (such an event is never public); it falls back to the category picture if the link does not load.
+  After consent the event shows its own copied picture or the category picture, never the foreign link.
+
+## Price "Keine Angabe"
+
+`events.contribution` is `free` | `donation` | `fee` | `unspecified`. `unspecified` ("Keine Angabe") exists
+**only for imported events**: the organizer's page names no price, so the event must neither say "Kostenlos"
+nor "Kostenpflichtig" (decision Thomas, 2026-11-24). `candidateToEventData` maps a candidate with
+`contribution: 'unknown'` (or any other value) to `unspecified` and sets `curation.priceUnknown` for the review.
+Shown as the neutral badge "Keine Angabe" (event page, modal, chip, import preview), no offer in the JSON-LD,
+no price line in the Instagram text. The event wizard never offers it; the edit form only shows it for an event
+that already has it. Never guess a price: a donation is entered only when the page says so ("Spende",
+"Dana", "auf Spendenbasis").
+
 ## Consent states
 
 | `consent`   | Meaning                                                | Event public?                     |
@@ -245,10 +269,11 @@ removes the files with the event.
 
 ### Outreach mail (`sendOutreachMail`)
 
-`{ organizerId, testRecipient?, force? }`, Super-Admin. Refused (`failed-precondition`, `reason`):
+`{ organizerId, testRecipient? }`, Super-Admin. Refused (`failed-precondition`, `reason`):
 `blocklisted` (address, its domain or the website domain incl. parents), `already-sent` (an
-`outreach/mail` doc that is not `failed`), `consent-not-none`, `individual` (unless `force: true`),
-`no-contact`, `no-events`.
+`outreach/mail` doc that is not `failed`), `consent-not-none`,
+`no-contact`, `no-events`. **No distinction by legal form** (Thomas, 2026-11-24): companies, associations and
+individuals get the mail alike (a former `individual` refusal and the pilot exclusion are gone).
 
 **Recipient guard** (`resolveOutreachRecipient`): outside production (staging, emulator, any other
 project id) a real organizer address is **never** used: `testRecipient` is required and the subject
@@ -271,6 +296,13 @@ in the generic read rule). **A missing doc means off** and a limit of 10
   events, the button "Mail an Veranstalter senden" with a confirm dialog. Staging has no such button.
 - Refusals are shown in German (`src/utils/outreachErrors.js`), never as "Outreach refused: ... [400]".
 
+Mail text (template `2026-11-v3`, Peter's Trello 814): short, singular title for one event, no
+association line, no region sentence, no cost promise, deletion line "löschen wir dein Event automatisch
+am <Datum>". The preview card shows the event's **real picture** (`previewImageUrl`, https only): the
+reader's mail client loads it straight from the organizer's site, we keep no copy. The preview page
+`/vorschau/**` has its own CSP in `firebase.json` with `img-src https:` (the default CSP blocks foreign
+images, which silently showed the category fallback instead; `tests/lib/hostingCsp.spec.ts`).
+
 Flow: claim `outreach/mail` (`queued`, transaction) -> new preview token (replaces an older link) ->
 render -> Mailgun (From `MAILGUN_FROM`, Reply-To admin@thetribe.at, open/click tracking off so the
 token is not routed through Mailgun redirects) -> `outreach/mail` `sent` + `messageId`, organizer
@@ -286,7 +318,7 @@ Text and legal parts are identical in both (`tests/lib/importOutreachMail.spec.t
 (Trello 809): the vision sentence names the region (`regionIn`, e.g. "in Tirol") and the footer link
 follows the country (`deintribe.at/.de/.ch`).
 
-Content (`renderOutreachMail`, `OUTREACH_TEMPLATE_VERSION`): who we are, the found events with
+Content (`renderOutreachMail`, `OUTREACH_TEMPLATE_VERSION`): who we are ("gemeinnützigen Vereins Tribe", the body text never names Vorarlberg, whatever the region; only the legal imprint carries the registered name), the found events with
 links to the organizer's own pages, where the address came from (Impressum / contact page),
 "Ohne deine Zustimmung veröffentlichen wir nichts", the preview link with its expiry, a one-click
 decline link (`/vorschau/import/<token>?aktion=ablehnen`, opens the page with "Ja, ablehnen" on top) or a
@@ -374,6 +406,24 @@ node scripts/ensure-curator-account.mjs --project spirieventsvbg --allow-prod --
   in the sign-up shape (`buildUserProfileDocs`, slug `tribe-redaktion`) and
   `app_settings/import.curatorUid`. Prints the UID. Idempotent.
 
+## Manual scraping (skill `scrape-import-events`)
+
+There is no crawler in the product yet (Trello ticket 12). Candidates are collected by hand together with a
+Super-Admin every few days, with the skill `.claude/skills/scrape-import-events/SKILL.md`: find organizers by
+niche and city, read their own pages through the polite fetch tool, write a discovery file, check every
+verbatim date quote against the live page, dry-run, import.
+
+- `scripts/import-scrape/fetch.mjs <url> [--structured|--full|--raw]` reads one page: robots.txt first, 6 s per
+  host (also across runs), generic User-Agent `TribeEventBot/1.0` (a contact address is sent **only** when the
+  person running it sets `SCRAPE_CONTACT`), stop at 403 / 429. `--structured` lists schema.org events (JSON-LD)
+  and iCal VEVENTs.
+- `scripts/import-scrape/verify.mjs <discovery.json> --out <file> [--keep-unreachable]` fetches each source page
+  once and keeps only the candidates whose `dateQuote` stands on it (iCal feeds: same date + similar title).
+- Pure logic (robots rules, HTML to text, JSON-LD / iCal parsing, quote check) is `src/utils/importScrape.js`,
+  tested in `tests/lib/importScrape.spec.ts`.
+- Discovery files hold organizers' contact addresses: keep them out of the repo.
+- Never: Eversports, Facebook, Instagram, anything behind a login, anything robots.txt forbids.
+
 ## Admin tab
 
 Verwaltung -> Regionen -> **Import** (`?tab=import`, Super-Admin only; everyone else gets
@@ -382,9 +432,9 @@ Verwaltung -> Regionen -> **Import** (`?tab=import`, Super-Admin only; everyone 
 
 - **Kandidaten**: `import_candidates` of the region by status (default `found`), live, max 100,
   newest first (index `regionId + status + fetchedAt`); counts per status via `getCountFromServer`.
-  Shows facts, `confidence`, `pilotExcluded`, the verbatim `dateQuote`, source link and the image
+  Shows facts, `confidence`, the verbatim `dateQuote`, source link and the image
   URL as a **text link** (no third-party `<img>`). "Annehmen" confirms, then calls
-  `importAcceptCandidate`; for `pilotExcluded` a second confirm follows and `force: true` is sent.
+  `importAcceptCandidate` (every candidate alike, no second question).
   "Ablehnen" asks for a reason (kein Fit, Duplikat, falsches Datum, Sonstiges).
 - **Veranstalter**: `import_organizers` (index `regionId + name`, max 200) with consent badge,
   candidate / event counts (from the region's candidates, max 500), last `outreach` entry, preview
@@ -404,9 +454,7 @@ Follow-ups on this tab:
 - **Layout**: the intro paragraph is a flex item of a column here; its `flex: 1 1 320px` from
   `ModerationTab.css` (meant for a header row) turned into a 320px height, the gap above the
   region select. `ImportTab.css` sets `flex: 0 0 auto` and a `--space-3` gap for all three views.
-- **"Pilot ausgeschlossen"** (`pilotExcluded`: individuals / sole proprietors, higher legal
-  risk) has a tooltip and the same plain-German explanation in the confirm dialog
-  (`PILOT_EXCLUDED_HELP`).
+- (Removed: the badge "Pilot ausgeschlossen" and its second confirm; individuals are accepted like everyone else.)
 - **"Zurückgestellt"** (stored value stays `reviewed`, label was "Geprüft"): "Zurückstellen" on a
   `found` candidate and "Wieder öffnen" on a deferred one write `status` directly
   (`setCandidateStatus`; the `import_candidates` rules already allow any valid status for
@@ -484,13 +532,13 @@ node scripts/import-curated-events.mjs --file $D/tirol.json --apply             
 - Writes only `import_organizers`, `import_candidates` (status `found`, or `duplicate`) and one
   `import_runs` doc per file (counts, skip reasons, errors, source `file:<name>`). **No events.**
 - Organizer: id = website host (`www.` stripped, non-alphanumerics -> `-`), `consent: none`,
-  `syncMode: curated_once`, `legalForm` from the file. **`contactEmail` is never set for
-  `legalForm: individual`.** Existing organizers only get new `sourceUrls` (and a missing mail);
+  `syncMode: curated_once`, `legalForm` from the file; the functional `contactEmail` is kept for every legal form. Existing organizers only get
+  new `sourceUrls` (and a missing mail);
   consent / syncMode / legalForm are never touched.
 - Candidate id = first 40 hex chars of `fingerprint(sourceUrl, date, title)`, created with
   "must not exist": a second run on the same file writes nothing new (and leaves no run doc).
-  Individuals' candidates are `found` but carry `pilotExcluded: true`.
-- Candidate fields beyond the table above: `pilotExcluded`, `duplicateOf: { kind: 'event' |
+  Old candidates of individuals may still carry `pilotExcluded: true`; nothing reads it any more.
+- Candidate fields beyond the table above: `duplicateOf: { kind: 'event' |
 'candidate', id }`; `rawExtract` additionally holds `bezirk` and `contribution: 'unknown'`
   where the page named no price. The rules do not restrict extra candidate keys.
 
@@ -527,12 +575,11 @@ the file's region. `lat`/`lng` are not set (no geocoding).
 
 | Callable                                         | Effect                                                                                                                                                                                                                                                                                                                                    |
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `importAcceptCandidate({ candidateId, force? })` | Writes the `pending` event (`candidateToEventData`, slug from `generateEventSlug` + `findFreeSlug`, `createdBy` = curator, `curation` without `consentAt`, no image, empty organizer mail), sets the candidate to `published` + `eventId`, adds an `admin_audit_log` entry (one transaction). Accepting twice returns the existing event. |
+| `importAcceptCandidate({ candidateId })`         | Writes the `pending` event (`candidateToEventData`, slug from `generateEventSlug` + `findFreeSlug`, `createdBy` = curator, `curation` without `consentAt`, no image, empty organizer mail), sets the candidate to `published` + `eventId`, adds an `admin_audit_log` entry (one transaction). Accepting twice returns the existing event. |
 | `importRejectCandidate({ candidateId, reason })` | Candidate -> `rejected` (+ `rejectReason`), audit entry.                                                                                                                                                                                                                                                                                  |
 
-Refusals (`failed-precondition`, `details.reason`): `blocked` (also with `force`), `organizer-declined`,
-`organizer-missing`, `pilot-excluded` (candidate flagged or organizer `individual`, unless
-`force: true`), `no-curator`, `status` (candidate not `found` / `reviewed` / `duplicate`).
+Refusals (`failed-precondition`, `details.reason`): `blocked`, `organizer-declined`,
+`organizer-missing`, `no-curator`, `status` (candidate not `found` / `reviewed` / `duplicate`).
 The candidate is `published` only together with the event (same transaction).
 
 **No submission mails for curated events:** `onEventCreated` / `onEventStatusChanged` would send

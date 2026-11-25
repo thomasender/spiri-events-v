@@ -521,6 +521,8 @@ export function planConsent({
       contactEmail: null,
       sourceUrls: [],
       deleteAfter: null,
+      // Only a number, so the Import tab can say "Abgelehnt am ..., n Events gelöscht" (nothing else is kept).
+      declinedEventCount: events.length,
     });
     plan.blocklist = blocklistEntriesFor(organizer);
     plan.eventDeletes = events.map((e) => e.id);
@@ -588,7 +590,7 @@ export function planConsent({
 // ── Outreach ─────────────────────────────────────────────────────────────
 
 export type OutreachRefusal =
-  'blocklisted' | 'consent-not-none' | 'individual' | 'no-contact' | 'already-sent' | 'no-events';
+  'blocklisted' | 'consent-not-none' | 'no-contact' | 'already-sent' | 'no-events';
 
 /** Why the one mail must not go out, or null. Order = most important first. */
 export function outreachRefusal(
@@ -603,7 +605,7 @@ export function outreachRefusal(
   if (blocked) return 'blocklisted';
   if (outreachExists) return 'already-sent';
   if (organizer.consent !== 'none') return 'consent-not-none';
-  if (organizer.legalForm === 'individual' && !force) return 'individual';
+  // No distinction by legal form any more (Thomas, 2026-11-24): everyone with a functional address gets the mail.
   if (!organizer.contactEmail) return 'no-contact';
   if (eventCount === 0) return 'no-events';
   return null;
@@ -992,6 +994,7 @@ export async function sendOutreachMailHandler(
   );
   const outreach = await deps.getOutreach(organizerId);
   const events = previewableEvents(await deps.listCuratedEvents(organizerId));
+  const candidates = await deps.listCandidates(organizerId);
   const refusal = outreachRefusal(organizer, {
     blocked,
     outreachExists: !!outreach && outreach.status !== 'failed',
@@ -1055,6 +1058,7 @@ export async function sendOutreachMailHandler(
       title: s(e.data.title, 200),
       date: s(e.data.date, 10),
       link: s(e.data.link, 2000) || s(((e.data.curation ?? {}) as Doc).sourceUrl, 2000),
+      imageUrl: previewImageUrl(e, candidates),
     })),
     previewUrl: previewUrlFor(deps.siteOrigin, token),
     declineUrl: declineUrlFor(deps.siteOrigin, token),

@@ -13,7 +13,12 @@ import {
 } from '../utils/importAdminApi';
 import { outreachErrorText } from '../utils/outreachErrors';
 import ConfirmDialog from './ConfirmDialog';
-import { CONSENT_LABELS, LEGAL_FORM_LABELS, normalizeBlocklistValue } from '../utils/eventImport';
+import {
+  CONSENT_LABELS,
+  LEGAL_FORM_LABELS,
+  declineNote,
+  normalizeBlocklistValue,
+} from '../utils/eventImport';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -218,6 +223,12 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
               {candidateCount} / {eventCount}
             </dd>
           </div>
+          {organizer.consent === 'declined' && (
+            <div>
+              <dt>Ablehnung</dt>
+              <dd data-testid="organizer-declined">{declineNote(organizer)}</dd>
+            </div>
+          )}
           <div>
             <dt>Letzte Mail</dt>
             <dd data-testid="organizer-outreach">

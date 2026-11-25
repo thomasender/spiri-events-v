@@ -193,21 +193,28 @@ describe('getEventOccurrences (list mode)', () => {
   });
 
   it('defaults end date for recurring events without recurrenceEndDate', () => {
-    const event = {
-      id: '1',
-      date: dateStr(5),
-      recurrence: 'weekly',
-    };
-    const result = getEventOccurrences(event);
-    expect(result.length).toBeGreaterThan(0);
-    const lastOccurrence = result[result.length - 1];
-    const lastDate = new Date(lastOccurrence.date + 'T12:00:00');
-    const startDate = new Date(dateStr(5) + 'T12:00:00');
-    const monthsDiff =
-      (lastDate.getFullYear() - startDate.getFullYear()) * 12 +
-      (lastDate.getMonth() - startDate.getMonth());
-    expect(monthsDiff).toBeGreaterThanOrEqual(1);
-    expect(monthsDiff).toBeLessThanOrEqual(3);
+    // Pin the clock: month/year-end arithmetic made this date-dependent.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0)); // 2026-10-15, local noon
+    try {
+      const event = {
+        id: '1',
+        date: dateStr(5),
+        recurrence: 'weekly',
+      };
+      const result = getEventOccurrences(event);
+      expect(result.length).toBeGreaterThan(0);
+      const lastOccurrence = result[result.length - 1];
+      const lastDate = new Date(lastOccurrence.date + 'T12:00:00');
+      const startDate = new Date(dateStr(5) + 'T12:00:00');
+      const monthsDiff =
+        (lastDate.getFullYear() - startDate.getFullYear()) * 12 +
+        (lastDate.getMonth() - startDate.getMonth());
+      expect(monthsDiff).toBeGreaterThanOrEqual(1);
+      expect(monthsDiff).toBeLessThanOrEqual(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns empty array for null events', () => {

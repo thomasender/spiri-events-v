@@ -123,7 +123,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 
 *Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):*
 - Statistik mit Google Analytics (siehe Abschnitt 7)
-- Veröffentlichung im Verzeichnis und auf Instagram (siehe Abschnitte 11 und 12)
+- Veröffentlichung im Verzeichnis und auf Social Media (siehe Abschnitte 11 und 12)
 
 *Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):*
 - Bereitstellung der App-Funktionalität
@@ -133,7 +133,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
-        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12, die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7, sowie die Zahlungsabwicklung über Mollie bei Mitgliedsbeiträgen und Spenden, siehe unten und Abschnitt 19). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
+        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf unseren Social-Media-Kanälen, derzeit Instagram, mit Ihrer Einwilligung, siehe Abschnitt 12, die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7, sowie die Zahlungsabwicklung über Mollie bei Mitgliedsbeiträgen und Spenden, siehe unten und Abschnitt 19). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
 Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs-, Datenbank- und Hosting-Dienste erforderlich ist.
 
@@ -260,7 +260,8 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Moderation:* Das Tribe-Team kann einzelne Einträge aus dem Verzeichnis ausblenden, etwa bei unpassenden oder rechtswidrigen Inhalten. Ihr Profil bleibt davon unberührt.`,
       },
       {
-        heading: '12. Veröffentlichung auf Instagram (freiwillig)',
+        heading: '12. Veröffentlichung auf Social Media (freiwillig)',
+        anchor: 'social-media',
         channelList: true,
         text: (ctx) => {
           const multi = ctx.channels.length >= MIN_CHANNELS_FOR_LIST;
@@ -270,19 +271,17 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
               : `Wir betreiben den Instagram-Kanal ${singleChannel(ctx.channels)}, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.`
           }
 
+Derzeit nutzen wir für die Veröffentlichung ausschließlich Instagram (Meta Platforms Ireland Limited, die für ihren Dienst eigene Verantwortliche ist). Nehmen wir weitere Plattformen hinzu, informieren wir Sie vorher und veröffentlichen dort nur mit Ihrer erneuten Zustimmung.
+
 *Was wird veröffentlicht?*
 - Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf ${multi ? 'dem Instagram-Kanal der Region Ihres Events' : 'unserem Instagram-Kanal'} veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
 - Veröffentlicht werden die Angaben zum Event (Titel, Datum, Uhrzeit, Ort, Beschreibung, Bild und ein Link zur Event-Seite)
 - Wenn Sie in Ihrem Profil einen Instagram-Namen angegeben haben, markieren wir Ihr Instagram-Profil im Bild des Beitrags, laden es als Co-Autor (Collab) zum Beitrag ein und erwähnen es in der Beschreibung („@name“). Die Einladung müssen Sie in Instagram selbst annehmen; kann sie nicht gesendet werden, wird der Beitrag ohne Einladung veröffentlicht
 - Sie können in Ihrem Profil festlegen, ob die Zustimmung für neue Events standardmäßig gesetzt sein soll; sie ist standardmäßig ausgeschaltet. Pro Event können Sie diese Einstellung ändern
 
-*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Instagram veröffentlicht und Ihr Profil weder markiert noch eingeladen noch erwähnt.
+*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Social Media (derzeit Instagram) veröffentlicht und Ihr Profil weder markiert noch eingeladen noch erwähnt.
 
-*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.${
-            multi
-              ? ' Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.'
-              : ''
-          }
+*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta. Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.
 
 *Widerruf und Löschung:*
 - Sie können Ihre Zustimmung jederzeit für künftige Events ausschalten
@@ -567,7 +566,7 @@ Wenn dir ein rechtswidriger oder problematischer Inhalt auffällt, schreib uns b
 - Deine Inhalte dürfen nicht gegen Gesetze oder Rechte anderer verstoßen
 - Wenn andere wegen deiner Inhalte Ansprüche gegen uns erheben, weil du gegen diese Bedingungen oder gegen Gesetze verstoßen hast, unterstützt du uns bei der Klärung und hältst uns, soweit gesetzlich zulässig, schad- und klaglos
 
-*Rechte an deinen Inhalten:* Die Rechte an deinen Inhalten bleiben bei dir. Du erlaubst uns, sie unentgeltlich und nicht ausschließlich zu speichern, auf dieser Website, in Kalenderdateien und im Kalender-Abo zu zeigen und technisch anzupassen (zum Beispiel Bildgröße, Zuschnitt, Kürzung für Vorschauen), soweit das für den Betrieb und die Bewerbung der Plattform nötig ist. Auf Instagram veröffentlichen wir deine Events nur, wenn du dem beim jeweiligen Event zustimmst. Die Erlaubnis endet, wenn du einen Inhalt oder dein Konto löschst; bereits verschickte E-Mails, heruntergeladene Kalenderdateien und veröffentlichte Beiträge in unseren Kanälen können wir nicht in jedem Fall zurückholen.
+*Rechte an deinen Inhalten:* Die Rechte an deinen Inhalten bleiben bei dir. Du erlaubst uns, sie unentgeltlich und nicht ausschließlich zu speichern, auf dieser Website, in Kalenderdateien und im Kalender-Abo zu zeigen und technisch anzupassen (zum Beispiel Bildgröße, Zuschnitt, Kürzung für Vorschauen), soweit das für den Betrieb und die Bewerbung der Plattform nötig ist. Auf Social Media (derzeit Instagram) veröffentlichen wir deine Events nur, wenn du dem beim jeweiligen Event zustimmst. Die Erlaubnis endet, wenn du einen Inhalt oder dein Konto löschst; bereits verschickte E-Mails, heruntergeladene Kalenderdateien und veröffentlichte Beiträge in unseren Kanälen können wir nicht in jedem Fall zurückholen.
 
 Die Nutzung von Inhalten dieser Website durch andere (zum Beispiel Kopieren für kommerzielle Zwecke oder automatisiertes Auslesen) ist im [Impressum](/impressum) unter „Nutzung der Inhalte und Datenbank“ geregelt.`,
       },
@@ -1035,12 +1034,13 @@ export default function LegalPage({ page }) {
   const homePath = homePathFor({ pageSlug, regions: allRegions });
   const channels = instagramChannels(regions);
 
-  // Deep links like /datenschutz#vereinsmitglieder: scroll once the sections
-  // exist in the DOM, and again whenever the hash changes.
+  // Deep links such as /datenschutz#social-media or #vereinsmitglieder: the router does not
+  // scroll to the anchor by itself once the content is rendered from data; scroll when the
+  // sections exist in the DOM and again whenever the hash or the page changes.
   useEffect(() => {
     if (!data || !hash) return;
     document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView?.();
-  }, [data, hash]);
+  }, [data, hash, page]);
 
   if (!data) {
     return (
@@ -1064,7 +1064,7 @@ export default function LegalPage({ page }) {
         <div className="legal-content">
           {data.sections.map((section, index) => (
             <section key={index} id={section.id}>
-              <h2>{section.heading}</h2>
+              <h2 id={section.anchor}>{section.heading}</h2>
               <LegalText
                 text={
                   typeof section.text === 'function' ? section.text({ channels }) : section.text

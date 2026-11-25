@@ -206,6 +206,7 @@ export { adminAnalyticsReport } from './adminAnalytics';
 export { adminFunFacts } from './adminFunFacts';
 export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
+export { onEventUpdatedInstagramPostUpdate } from './instagramPostUpdate';
 export { onEventApprovedCount } from './approvedEventsCounter';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { instagramEventStories, instagramMorningStories } from './instagramStories';
@@ -228,6 +229,7 @@ export {
   adminPreviewWeeklyCarousels,
   adminPostWeeklyCarousels,
   adminPostDailyStory,
+  markInstagramPostUpdated,
 } from './instagramAdmin';
 export { purgeExpiredEvents } from './purgeExpiredEvents';
 export { preEntryAdmin, preEntryOrganizer, preEntriesDaily } from './preEntries';

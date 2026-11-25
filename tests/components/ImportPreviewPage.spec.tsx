@@ -106,11 +106,20 @@ describe('ImportPreviewPage', () => {
     );
   });
 
-  it('shows a placeholder when the organizer’s image fails to load', async () => {
+  it('shows the category picture (never an empty box) when the organizer’s image fails to load', async () => {
     await renderAt(`/vorschau/import/${TOKEN}`);
     fireEvent.error(screen.getByRole('img', { name: 'Kakaozeremonie' }));
-    expect(screen.queryByRole('img', { name: 'Kakaozeremonie' })).toBeNull();
-    expect(screen.getByTestId('preview-image-placeholder')).toBeInTheDocument();
+    const fallback = screen.getByTestId('preview-image-fallback');
+    expect(fallback.getAttribute('src')).toMatch(/^\/(event-fallbacks\/|hero\.jpeg)/);
+    expect(screen.queryByText('Kein Bild')).toBeNull();
+  });
+
+  it('shows the category picture when there is no organizer picture at all', async () => {
+    calls.handlers.getImportPreview = () =>
+      preview({ events: [{ ...preview().events[0], imageUrl: null }] });
+    await renderAt(`/vorschau/import/${TOKEN}`);
+    expect(screen.getByTestId('preview-image-fallback')).toBeInTheDocument();
+    expect(screen.queryByText('Kein Bild')).toBeNull();
   });
 
   it('sets noindex and no-referrer and removes the social image while open', async () => {

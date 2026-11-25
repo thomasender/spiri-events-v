@@ -843,7 +843,7 @@ export default function EventFormWizard() {
       }
       if (instagramConsent && instagramImageCandidates.length === 0) {
         newErrors.instagramImage =
-          'Für das Teilen auf Instagram brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
+          'Für das Teilen auf Social Media brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
       }
       if (instagramConsent && instagramImageCandidates.length > 0 && !instagramNoTextConfirmed) {
         newErrors.instagramNoText = 'Bitte bestätige, dass dein Foto keinen Text enthält';
@@ -2611,7 +2611,7 @@ export default function EventFormWizard() {
 
       {instagramConsent && !preEntryMode && (
         <details className="instagram-image-accordion" open data-testid="instagram-image-accordion">
-          <summary>Foto und Bildausschnitt für Instagram wählen</summary>
+          <summary>Foto und Bildausschnitt für Social Media wählen</summary>
           {errors.instagramImage && (
             <span className="error-text" data-testid="instagram-image-error">
               {errors.instagramImage}

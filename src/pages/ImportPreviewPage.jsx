@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ImageOff } from 'lucide-react';
 import { callable } from '../lib/firebase';
 import {
   CONSENT_TEXTS,
@@ -17,23 +16,25 @@ import {
   formatPreviewWhen,
   previewErrorMessage,
 } from '../utils/importConsent';
+import { getCategoryFallbackImage } from '../utils/eventFallbacks';
 import './ImportPreviewPage.css';
 
 const DESCRIPTION_PREVIEW_CHARS = 320;
 
 // The organizer's own picture, loaded by their browser straight from their
-// site (no copy, no proxy), without a referrer; a placeholder if it fails.
-function PreviewImage({ src, alt }) {
+// site (no copy, no proxy), without a referrer. Without a picture (or if it does not
+// load) the category picture is shown, as in the calendar: never an empty box.
+function PreviewImage({ src, alt, category }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <div
-        className="import-preview-image import-preview-image--placeholder"
-        data-testid="preview-image-placeholder"
-      >
-        <ImageOff size={28} aria-hidden="true" />
-        <span>Kein Bild</span>
-      </div>
+      <img
+        className="import-preview-image"
+        src={getCategoryFallbackImage(category)}
+        alt={alt}
+        loading="lazy"
+        data-testid="preview-image-fallback"
+      />
     );
   }
   return (
@@ -56,7 +57,7 @@ function PreviewEventCard({ event }) {
   const place = formatPreviewPlace(event);
   return (
     <article className="import-preview-event" data-testid="preview-event">
-      <PreviewImage src={event.imageUrl} alt={event.title} />
+      <PreviewImage src={event.imageUrl} alt={event.title} category={event.category} />
       <div className="import-preview-event-body">
         {event.category && <p className="import-preview-category">{event.category}</p>}
         <h3 className="import-preview-event-title">{event.title}</h3>

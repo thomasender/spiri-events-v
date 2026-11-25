@@ -129,6 +129,17 @@ describe('validateCandidate', () => {
     expect(ok.imageDropped).toBe(false);
   });
 
+  it('keeps a donation and the end time (Spendenbasis, 10:00 to 17:30)', () => {
+    const r = v({ contribution: 'donation', fee: 5, time: '10:00', endTime: '17:30' });
+    expect(r.candidate).toMatchObject({
+      contribution: 'donation',
+      fee: null,
+      time: '10:00',
+      endTime: '17:30',
+    });
+    expect(v({ endTime: '5pm' }).candidate.endTime).toBe('');
+  });
+
   it('keeps unknown contribution, replaces a social link by the source page', () => {
     const r = v({ contribution: 'unknown', fee: 5, link: 'https://instagram.com/x' });
     expect(r.candidate.contribution).toBe('unknown');
@@ -151,7 +162,7 @@ describe('validateOrganizer / planOrganizer', () => {
     });
   });
 
-  it('creates with consent none / curated_once and never stores a mail for individuals', () => {
+  it('creates with consent none / curated_once and keeps the contact address for every legal form', () => {
     const company = (validateOrganizer(organizer()) as any).organizer;
     expect(planOrganizer(company, 'zuerich', undefined, NOW)).toMatchObject({
       action: 'create',
@@ -163,18 +174,18 @@ describe('validateOrganizer / planOrganizer', () => {
         regionId: 'zuerich',
       },
     });
+    // No distinction by legal form any more: an individual keeps the functional address as well.
     const person = (validateOrganizer(organizer({ legalForm: 'individual' })) as any).organizer;
-    const created = planOrganizer(person, 'zuerich', undefined, NOW);
-    expect(created.data).not.toHaveProperty('contactEmail');
-    // ... not even later, when an existing individual lacks one.
+    expect(planOrganizer(person, 'zuerich', undefined, NOW).data).toMatchObject({
+      contactEmail: 'info@soulcity.ch',
+    });
     const updated = planOrganizer(
       person,
       'zuerich',
       { legalForm: 'individual', sourceUrls: [] },
       NOW
     );
-    expect(JSON.stringify(updated)).not.toContain('soulcity.ch/info');
-    expect((updated.data as any).contactEmail).toBeUndefined();
+    expect(updated.data).toMatchObject({ contactEmail: 'info@soulcity.ch' });
   });
 
   it('updates only new source URLs / a missing mail and keeps consent', () => {
@@ -271,11 +282,11 @@ describe('planIngest', () => {
     expect(r.candidates[0].data.rawExtract.bezirk).toBe('Stadt Zürich');
   });
 
-  it('flags individuals as pilotExcluded but still imports them', () => {
+  it('imports individuals like everyone else: no pilot flag, contact address kept', () => {
     const r = plan(file([candidate()], [organizer({ legalForm: 'individual' })]));
-    expect(r.candidates[0].data).toMatchObject({ status: 'found', pilotExcluded: true });
-    expect(r.organizers[0].data).not.toHaveProperty('contactEmail');
-    expect(r.counts.pilotExcluded).toBe(1);
+    expect(r.candidates[0].data).toMatchObject({ status: 'found' });
+    expect(r.candidates[0].data).not.toHaveProperty('pilotExcluded');
+    expect(r.organizers[0].data).toMatchObject({ contactEmail: 'info@soulcity.ch' });
   });
 
   it('skips invalid candidates with a reason and unknown organizers', () => {

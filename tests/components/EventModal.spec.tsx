@@ -112,6 +112,19 @@ describe('EventModal', () => {
       expect(screen.getByText('Freie Spende')).toBeInTheDocument();
     });
 
+    it('shows "Keine Angabe" (never "Kostenpflichtig" or "Kostenlos") for an unspecified price', () => {
+      render(
+        <EventModal
+          event={{ ...mockEvent, contribution: 'unspecified', fee: null, firstSessionFree: true }}
+          onClose={() => {}}
+        />
+      );
+      expect(screen.getByText('Keine Angabe')).toBeInTheDocument();
+      expect(screen.queryByText('Kostenpflichtig')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kostenlos')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('first-session-free-badge')).not.toBeInTheDocument();
+    });
+
     it('shows formatted price for paid events without a note', () => {
       render(
         <EventModal

@@ -193,7 +193,6 @@ console.log(
     pad('Kandidaten', 11),
     pad('übernommen', 11),
     pad('Duplikat', 9),
-    pad('Einzelperson', 13),
     pad('Bild verworfen', 15),
   ].join('')
 );
@@ -210,7 +209,6 @@ for (const s of summary) {
       pad(s.candidatesFile, 11),
       pad(s.accepted, 11),
       pad(s.duplicates, 9),
-      pad(s.pilotExcluded, 13),
       pad(s.imageDropped, 15),
     ].join('')
   );

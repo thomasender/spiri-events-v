@@ -31,21 +31,66 @@ describe('outreach mail', () => {
 
   it('contains who we are, the events with links, the source of the address and both links', () => {
     for (const part of [
-      'gemeinnützigen Vereins Tribe Vorarlberg',
+      'ehrenamtlich betriebener Veranstaltungskalender für bewusste Veranstaltungen',
       '05.12.2026: Kakaozeremonie (https://www.yoga-tirol.at/kakao)',
       'aus dem Impressum bzw. den Kontaktangaben dieser Website',
       'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN',
       'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen',
-      'Ohne deine Zustimmung veröffentlichen wir nichts.',
-      `nach ${IMPORT_RETENTION_DAYS} Tagen (am 16.02.2027)`,
+      'löschen wir dein Event automatisch am 16.02.2027',
       'gültig bis 25.11.2026',
-      'Dies ist unsere einzige E-Mail an dich.',
     ]) {
       expect(mail.text).toContain(part);
     }
     expect(mail.html).toContain(
       'href="https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen"'
     );
+  });
+
+  it('is short: no association line, no region sentence, no cost promise, no "nuclear" promise', () => {
+    for (const gone of [
+      'gemeinnützigen Vereins',
+      'Derzeit bauen wir',
+      'Ohne deine Zustimmung veröffentlichen wir nichts',
+      'Mehrwert',
+      'Dies ist unsere einzige E-Mail',
+    ]) {
+      expect(mail.text).not.toContain(gone);
+      expect(mail.html).not.toContain(gone);
+    }
+    expect(mail.html).toContain('Dein Event verdient es, entdeckt zu werden.');
+    expect(mail.html).toContain('Du behältst die Kontrolle');
+    const two = renderOutreachMail(
+      input({
+        events: [
+          { title: 'A', date: '2026-12-05', link: 'https://www.yoga-tirol.at/a' },
+          { title: 'B', date: '2026-12-06', link: 'https://www.yoga-tirol.at/b' },
+        ],
+      })
+    );
+    expect(two.html).toContain('Deine Events verdienen es, entdeckt zu werden.');
+    expect(two.text).toContain('löschen wir deine Events automatisch am 16.02.2027');
+  });
+
+  it("shows the event's real picture from the organizer's site in the preview card, https only", () => {
+    const withImage = (imageUrl: string | null) =>
+      renderOutreachMail(
+        input({
+          events: [
+            {
+              title: 'Kakaozeremonie',
+              date: '2026-12-05',
+              link: 'https://www.yoga-tirol.at/kakao',
+              imageUrl,
+            },
+          ],
+        })
+      ).html;
+    const html = withImage('https://www.yoga-tirol.at/img/kakao.jpg?a=1&b=2');
+    expect(html).toContain('<img src="https://www.yoga-tirol.at/img/kakao.jpg?a=1&amp;b=2"');
+    expect(html).toContain('alt="Kakaozeremonie"');
+    expect(withImage(null)).not.toContain('kakao.jpg');
+    expect(withImage('http://www.yoga-tirol.at/kakao.jpg')).not.toContain('kakao.jpg');
+    expect(withImage('javascript:alert(1)')).not.toContain('javascript:');
   });
 
   it('carries the Art. 14 GDPR block and the full imprint', () => {

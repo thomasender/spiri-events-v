@@ -543,6 +543,8 @@ describe('submitImportConsent', () => {
     const org = w.organizers.get('org1')!;
     expect(org.contactEmail).toBeNull();
     expect(JSON.stringify(org)).not.toContain('info@yoga-tirol.at');
+    // all that is left to say about it: how many events were deleted
+    expect(org.declinedEventCount).toBe(2); // the two events of the test organizer
     expect((org.consentRecord as Doc).action).toBe('decline');
 
     const again = await submitImportConsentHandler(
@@ -672,7 +674,7 @@ describe('outreach mail', () => {
       status: 'sent',
       messageId: '<msg-1@mg.thetribe.at>',
       test: true,
-      templateVersion: '2026-11-v2',
+      templateVersion: '2026-11-v3',
     });
     const org = w.organizers.get('org1')!;
     expect(org.consent).toBe('asked');
@@ -763,17 +765,14 @@ describe('outreach mail', () => {
     expect(outreachDayKey(Date.UTC(2026, 10, 24, 23, 30))).toBe('2026-11-25');
   });
 
-  it('refuses blocklisted, contacted, individual (unless force), address-less organizers', async () => {
+  it('refuses blocklisted, contacted and address-less organizers; individuals are mailed like everyone else', async () => {
     const blocked = makeWorld({
       organizer: baseOrganizer({ consent: 'none' }),
       blocklist: [blocklistId('yoga-tirol.at')],
     });
     await expectCode(send(blocked), 'failed-precondition', 'blocklisted');
     await expectCode(send(fresh({ consent: 'asked' })), 'failed-precondition', 'consent-not-none');
-    await expectCode(send(fresh({ legalForm: 'individual' })), 'failed-precondition', 'individual');
-    await expect(send(fresh({ legalForm: 'individual' }), { force: true })).resolves.toMatchObject({
-      sent: true,
-    });
+    await expect(send(fresh({ legalForm: 'individual' }))).resolves.toMatchObject({ sent: true });
     await expectCode(send(fresh({ contactEmail: null })), 'failed-precondition', 'no-contact');
     const sent = makeWorld({
       organizer: baseOrganizer({ consent: 'none' }),
