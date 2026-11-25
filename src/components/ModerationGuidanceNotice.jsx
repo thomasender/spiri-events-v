@@ -8,6 +8,10 @@ import { useFaqs } from '../hooks/useFaqs';
 import { useMessengerAccess } from '../hooks/useChatSettings';
 import { callable } from '../lib/firebase';
 import { FAQ_EVENT_GUIDE_QUESTION } from '../utils/faqs';
+import {
+  MODERATOR_GUIDELINES,
+  MODERATOR_GUIDELINES_HEADING,
+} from '../utils/moderatorGuidelinesText';
 import './ConfirmDialog.css';
 import './ModerationGuidanceNotice.css';
 
@@ -121,6 +125,19 @@ export default function ModerationGuidanceNotice() {
               ) : (
                 <p>Die Leitlinien konnten gerade nicht geladen werden.</p>
               )}
+              <section
+                className="moderation-guidance-internal"
+                data-testid="moderation-guidance-internal"
+              >
+                <h3>{MODERATOR_GUIDELINES_HEADING}</h3>
+                <ul>
+                  {MODERATOR_GUIDELINES.map(({ title, text }) => (
+                    <li key={title}>
+                      <strong>{title}:</strong> {text}
+                    </li>
+                  ))}
+                </ul>
+              </section>
             </div>
           </div>,
           document.body
