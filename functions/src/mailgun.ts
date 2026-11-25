@@ -4,6 +4,8 @@ export const MAILGUN_API_KEY = defineSecret('MAILGUN_API_KEY');
 export const MAILGUN_DOMAIN = defineSecret('MAILGUN_DOMAIN');
 export const MAILGUN_FROM = defineSecret('MAILGUN_FROM');
 export const MAILGUN_REPLY_TO = defineSecret('MAILGUN_REPLY_TO');
+/** Signing key of the Mailgun webhooks (Mailgun > Sending > Webhooks); verifies delivery events. */
+export const MAILGUN_WEBHOOK_SIGNING_KEY = defineSecret('MAILGUN_WEBHOOK_SIGNING_KEY');
 export const SUBMITTED_NOTIFICATION_INBOX = defineSecret('SUBMITTED_NOTIFICATION_INBOX');
 
 export const MAILGUN_EU_BASE = 'https://api.eu.mailgun.net/v3';
@@ -29,6 +31,10 @@ export interface MailgunSendInput {
   replyTo?: string;
   /** Inline images, referenced in the HTML as `cid:<filename>` (sent as multipart). */
   inlineImages?: MailgunInlineImage[];
+  /** false: no open/click tracking (links stay as they are, e.g. private tokens). */
+  tracking?: boolean;
+  /** Custom variables (`v:<name>`): Mailgun returns them in every webhook event of the message. */
+  variables?: Record<string, string>;
 }
 
 export interface MailgunInlineImage {
@@ -64,6 +70,14 @@ function formBody(input: MailgunSendInput): URLSearchParams {
   const replyTo = input.replyTo?.trim();
   if (replyTo) {
     body.set('h:Reply-To', replyTo);
+  }
+  for (const [name, value] of Object.entries(input.variables ?? {})) {
+    body.set(`v:${name}`, value);
+  }
+  if (input.tracking === false) {
+    body.set('o:tracking', 'no');
+    body.set('o:tracking-clicks', 'no');
+    body.set('o:tracking-opens', 'no');
   }
   return body;
 }

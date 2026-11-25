@@ -168,6 +168,11 @@
   color: var(--donation-text);
 }
 
+.badge--unspecified {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
 .event-details {
   background: var(--bg-calendar);
   border-radius: var(--radius-md);
@@ -254,6 +259,11 @@
   font-size: var(--text-85);
 }
 
+.event-detail-date-time {
+  color: var(--text-secondary);
+  font-size: var(--text-85);
+}
+
 .event-cancelled-banner {
   display: flex;
   align-items: center;
@@ -332,6 +342,10 @@
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-6);
+}
+
+.event-registration-button.event-link {
+  margin-right: var(--space-3);
 }
 
 .event-not-found {

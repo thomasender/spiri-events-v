@@ -18,6 +18,7 @@ import '../components/PasswordInput.css';
 import '../components/RecurringDeleteDialog.css';
 import '../components/OccurrencePickerDialog.css';
 import '../components/SuccessDialog.css';
+import '../components/DuplicateEventDialog.css';
 import '../components/StatusBadge.css';
 import '../components/EventAdminListRow.css';
 import '../components/EventList.css';
@@ -38,6 +39,7 @@ import '../components/DonorsTab.css';
 import '../components/MembersTab.css';
 import '../components/InstagramTab.css';
 import '../components/AnalyticsTab.css';
+import '../components/FunFactsTab.css';
 import '../components/MailgunTab.css';
 import '../components/LedgerTab.css';
 import '../components/FaqTab.css';
@@ -46,7 +48,9 @@ import '../components/EventStatusMismatchBanner.css';
 import '../components/ModerationTab.css';
 import '../components/ModerationLogTab.css';
 import '../components/RegionsTab.css';
+import '../components/ImportTab.css';
 import '../components/RegionAboutTab.css';
+import '../components/StaffNotificationsTab.css';
 import '../pages/AdminPage.css';
 
 // EventFormPage
@@ -57,6 +61,7 @@ import '../components/AdminCoverPreview.css';
 import '../components/EventForm.css';
 import '../components/RichTextView.css';
 import '../components/EventFormWizard.css';
+import '../components/SeriesDatesOverview.css';
 
 // LegalPage
 import '../pages/LegalPage.css';

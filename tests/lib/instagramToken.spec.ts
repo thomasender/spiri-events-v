@@ -88,6 +88,15 @@ describe('getInstagramAccessToken', () => {
     );
   });
 
+  it('trims whitespace/newlines from the secret', async () => {
+    expect(
+      await getInstagramAccessToken({
+        secretToken: `  ${SECRET}\n`,
+        readStoredToken: async () => null,
+      })
+    ).toBe(SECRET);
+  });
+
   it('falls back to the secret when the stored token is expired', async () => {
     const token = await getInstagramAccessToken({
       ...base,
@@ -132,6 +141,12 @@ describe('refreshInstagramToken timing', () => {
     expect(url).toContain('https://graph.instagram.com/refresh_access_token');
     expect(url).toContain('grant_type=ig_refresh_token');
     expect(url).toContain(`access_token=${SECRET}`);
+  });
+
+  it('sends a trimmed secret to the refresh endpoint', async () => {
+    const h = makeHarness({ secret: `${SECRET}\n` });
+    expect(await refreshInstagramToken(h.deps)).toBe('refreshed');
+    expect(h.fetchMock.mock.calls[0][0]).toMatch(new RegExp(`access_token=${SECRET}$`));
   });
 
   it('uses the stored token and its expiry once present', async () => {

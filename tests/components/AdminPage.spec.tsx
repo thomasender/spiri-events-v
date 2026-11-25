@@ -147,8 +147,23 @@ vi.mock('../../src/components/ModerationTab', () => ({
 vi.mock('../../src/components/ModerationLogTab', () => ({
   default: () => <div data-testid="moderation-log-tab-stub">Protokoll</div>,
 }));
+vi.mock('../../src/components/FunFactsTab', () => ({
+  default: () => <div data-testid="funfacts-tab-stub">Fun Facts</div>,
+}));
 vi.mock('../../src/components/RegionsTab', () => ({
   default: () => <div data-testid="regions-tab-stub">Regionen</div>,
+}));
+vi.mock('../../src/components/ImportTab', () => ({
+  default: () => <div data-testid="import-tab-stub">Import</div>,
+}));
+const mockTeamNotes = vi.hoisted(() => ({ unread: 0 }));
+vi.mock('../../src/hooks/useStaffNotifications', () => ({
+  useStaffNotifications: (_uid: string, enabled: boolean) => ({
+    unreadCount: enabled ? mockTeamNotes.unread : 0,
+  }),
+}));
+vi.mock('../../src/components/StaffNotificationsTab', () => ({
+  default: () => <div data-testid="team-tab-stub">Team-Hinweise</div>,
 }));
 vi.mock('../../src/components/MembersTab', () => ({
   default: () => <div data-testid="members-tab-stub">Mitglieder</div>,
@@ -206,6 +221,7 @@ beforeEach(() => {
   mockUseDonors.donors = [];
   mockUseDonors.loading = false;
   mockUseDonors.error = null;
+  mockTeamNotes.unread = 0;
 });
 
 describe('AdminPage tabs (zejdjTnm)', () => {
@@ -641,6 +657,7 @@ describe('AdminPage access per role', () => {
     'admin-tab-moderation',
     'admin-tab-protokoll',
     'admin-tab-regions',
+    'admin-tab-funfacts',
   ];
 
   function asModerator(regionIds = ['tirol']) {
@@ -709,6 +726,8 @@ describe('AdminPage access per role', () => {
     'moderation',
     'protokoll',
     'regions',
+    'import',
+    'funfacts',
   ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {
     asModerator();
     mockUseHasFeedback.hasFeedback = true;
@@ -718,6 +737,24 @@ describe('AdminPage access per role', () => {
     expect(screen.queryByTestId('moderation-tab-stub')).not.toBeInTheDocument();
     expect(screen.queryByTestId('moderation-log-tab-stub')).not.toBeInTheDocument();
     expect(screen.queryByTestId('regions-tab-stub')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('funfacts-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('Super-Admin opens Fun Facts under Dashboard & Einstellungen', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=funfacts']);
+    expect(screen.getByTestId('admin-group-menu-settings')).toContainElement(
+      screen.getByTestId('admin-tab-funfacts')
+    );
+    expect(screen.getByTestId('admin-tab-funfacts')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('funfacts-tab-stub')).toBeInTheDocument();
+  });
+
+  it('organizers get "Kein Zugriff" for Fun Facts', () => {
+    mockAuth.role = 'User';
+    renderAdmin(['/admin?tab=funfacts']);
+    expect(screen.getByTestId('no-access')).toBeInTheDocument();
+    expect(screen.queryByTestId('funfacts-tab-stub')).not.toBeInTheDocument();
   });
 
   it('Super-Admin opens the Protokoll tab by URL', () => {
@@ -725,6 +762,27 @@ describe('AdminPage access per role', () => {
     renderAdmin(['/admin?tab=protokoll']);
     expect(screen.getByTestId('admin-tab-protokoll')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('moderation-log-tab-stub')).toBeInTheDocument();
+  });
+
+  it('team notes: moderators and Super-Admins get the tab with its badge, organizers do not', () => {
+    asModerator();
+    mockTeamNotes.unread = 2;
+    const { unmount } = renderAdmin(['/admin?tab=team']);
+    expect(screen.getByTestId('admin-tab-team')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('admin-tab-team-badge')).toHaveTextContent('2');
+    expect(screen.getByTestId('team-tab-stub')).toBeInTheDocument();
+    unmount();
+
+    mockAuth.role = 'Admin';
+    mockAuth.staffRegionIds = [];
+    const admin = renderAdmin(['/admin?tab=team']);
+    expect(screen.getByTestId('team-tab-stub')).toBeInTheDocument();
+    admin.unmount();
+
+    mockAuth.role = 'User';
+    renderAdmin(['/admin?tab=team']);
+    expect(screen.getByTestId('no-access')).toBeInTheDocument();
+    expect(screen.queryByTestId('team-tab-stub')).not.toBeInTheDocument();
   });
 
   it('Super-Admin opens the Regionen tab by URL', () => {

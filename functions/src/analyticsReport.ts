@@ -503,8 +503,12 @@ const OTHER_INTERNAL = new Set([
   'login',
   'auth-action',
   'einladung',
+  'uebernehmen',
+  'vorschau',
+  'datenschutz-import',
   'datenschutz',
   'impressum',
+  'nutzungsbedingungen',
 ]);
 
 /** Readable name for the page a visitor came from (GA `pageReferrer`). */

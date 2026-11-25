@@ -332,6 +332,14 @@ describe('selectSingleEvent', () => {
     expect(selectSingleEvent(ev({ date: '2026-09-01' }), TODAY)).toEqual([]);
   });
 
+  it('returns nothing for a curated event before the organizer consented', () => {
+    const curation = { organizerRef: 'o1', claimable: true };
+    expect(selectSingleEvent(ev({ curation } as never), TODAY)).toEqual([]);
+    expect(
+      selectSingleEvent(ev({ curation: { ...curation, consentAt: '2026-10-01' } } as never), TODAY)
+    ).toHaveLength(1);
+  });
+
   it('returns all upcoming occurrences of a series', () => {
     const out = selectSingleEvent(
       ev({ date: '2026-10-14', recurrence: 'weekly', recurrenceEndDate: '2027-01-01' }),
@@ -339,6 +347,21 @@ describe('selectSingleEvent', () => {
     );
     expect(out[0].date).toBe('2026-10-14');
     expect(out).toHaveLength(12);
+  });
+
+  it('a custom date with its own time keeps it in the calendar', () => {
+    const out = selectSingleEvent(
+      ev({
+        recurrence: 'custom',
+        customDates: ['2026-10-21'],
+        customTimes: { '2026-10-21': { time: '09:00', endTime: '10:30' } },
+      }),
+      TODAY
+    );
+    expect(out.map((o) => [o.date, o.time, (o as { endTime?: unknown }).endTime])).toEqual([
+      ['2026-10-14', '18:00', undefined],
+      ['2026-10-21', '09:00', '10:30'],
+    ]);
   });
 
   it('caps the occurrences of one event', () => {

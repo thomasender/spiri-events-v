@@ -21,7 +21,9 @@ export type ModerationAction =
   | 'edited'
   | 'cancelled'
   | 'deleted'
-  | 'status';
+  | 'status'
+  /** The team wrote to the organizer of a pending event ("Rückfrage gestellt"). */
+  | 'clarification';
 
 export const MODERATION_ACTIONS: readonly ModerationAction[] = [
   'submitted',
@@ -35,6 +37,7 @@ export const MODERATION_ACTIONS: readonly ModerationAction[] = [
   'cancelled',
   'deleted',
   'status',
+  'clarification',
 ];
 
 export type ActorRole = 'Admin' | 'RegionModerator' | 'User' | 'System';
@@ -52,6 +55,9 @@ export interface ModerationLogEntry {
   eventSlug: string | null;
   eventDate: string | null;
   regionId: string;
+  /** Category and city of the event (entries since the Fun Facts release). */
+  category: string | null;
+  city: string | null;
   ownerUid: string | null;
   statusFrom: string | null;
   statusTo: string | null;
@@ -156,6 +162,8 @@ export function buildModerationLogEntry(input: {
     eventSlug: str(doc.slug),
     eventDate: eventDateOf(doc),
     regionId: resolveRegionId(doc),
+    category: str(doc.category),
+    city: str(doc.city),
     ownerUid: str(doc.createdBy),
     statusFrom: kind === 'create' ? null : statusOf(before),
     statusTo: kind === 'delete' ? null : statusOf(after),
@@ -166,6 +174,62 @@ export function buildModerationLogEntry(input: {
     actorRole: actor.role,
     byStaff: actor.role === 'Admin' || actor.role === 'RegionModerator',
     source: input.source ?? 'trigger',
+  };
+}
+
+/** 'YYYY-MM-DD' of a moment in Vienna. */
+export function viennaDay(ms: number): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Vienna',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(ms));
+}
+
+/**
+ * Entry "Rückfrage gestellt": the team wrote to the organizer while the event
+ * waits for review (onAdminMessageCreated in notifications.ts). Only for
+ * pending events and messages of staff (by admin_users) that are not a
+ * rejection reason. The doc
+ * id holds event and Vienna day, so there is at most one entry per event and
+ * day (the trigger uses create(), a second message the same day is skipped).
+ */
+export function buildClarificationLogEntry(input: {
+  eventId: string;
+  event: EventData;
+  message: { authorRole?: unknown; kind?: unknown; text?: unknown };
+  actor: LogActor;
+  atMs: number;
+}): { id: string; entry: ModerationLogEntry } | null {
+  const { eventId, event, message, actor, atMs } = input;
+  if (!event || statusOf(event) !== 'pending') return null;
+  if (message.authorRole !== 'Admin' || message.kind === 'rejection') return null;
+  if (typeof message.text !== 'string' || !message.text.trim()) return null;
+  // Only real staff: the role comes from admin_users, not from the message.
+  if (actor.role !== 'Admin' && actor.role !== 'RegionModerator') return null;
+  return {
+    id: `clarification-${eventId}-${viennaDay(atMs)}`,
+    entry: {
+      action: 'clarification',
+      eventId,
+      eventTitle: (str(event.title) ?? '').slice(0, MAX_TITLE),
+      eventSlug: str(event.slug),
+      eventDate: eventDateOf(event),
+      regionId: resolveRegionId(event),
+      category: str(event.category),
+      city: str(event.city),
+      ownerUid: str(event.createdBy),
+      statusFrom: 'pending',
+      statusTo: 'pending',
+      changedFields: [],
+      reason: null,
+      actorUid: actor.uid,
+      actorName: actor.name,
+      actorRole: actor.role,
+      byStaff: true,
+      source: 'trigger',
+    },
   };
 }
 

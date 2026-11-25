@@ -50,6 +50,12 @@ export function isRegionId(value: unknown): value is string {
   return typeof value === 'string' && REGION_IDS.includes(value);
 }
 
+/** In-phrase ("in Zürich") and country of a region, else null. */
+export function regionMetaOf(id: string): { inPhrase: string; country: string } | null {
+  const r = REGION_DATA.find((x) => x.slug === id);
+  return r ? { inPhrase: r.inPhrase, country: r.country } : null;
+}
+
 /** Display name of a region, else null. */
 export function regionNameOf(id: string): string | null {
   return REGION_DATA.find((r) => r.slug === id)?.name ?? null;
@@ -94,9 +100,8 @@ export function countryOfRegion(id: string): string {
  * global secrets IG_ACCESS_TOKEN / IG_USER_ID. Other regions get an account by
  * Thomas storing credentials in instagram_private/region_{id}
  * (scripts/instagram-set-region-account.mjs, docs/instagram-regions.md); the
- * feed trigger and the backfill then pass that region id as `regionIds` below.
- * The weekly carousel and the stories are still Vorarlberg-only and call
- * isInstagramRegion without `regionIds`, so they keep this list.
+ * feed trigger, the backfill, the weekly carousel and the stories then pass
+ * that region id as `regionIds` below.
  */
 export const INSTAGRAM_REGION_IDS: readonly string[] = ['vorarlberg'];
 

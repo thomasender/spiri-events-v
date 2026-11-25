@@ -6,7 +6,16 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -34,6 +43,12 @@ beforeEach(async () => {
     await setDoc(doc(db, 'admin_users/adminDoc'), { role: 'Admin' });
     await setDoc(doc(db, 'events/e1'), { status: 'pending', createdBy: 'owner' });
     await setDoc(doc(db, 'events/e1/revisions/r1'), { byRole: 'User', changes: {} });
+    await setDoc(doc(db, 'events/e1/registrations/g1'), {
+      name: 'Gast',
+      contact: 'gast@example.com',
+      contactType: 'email',
+    });
+    await setDoc(doc(db, 'events/e1/registration_mails/m1'), { createdAt: 1 });
     await setDoc(doc(db, 'admin_users/tirolMod'), {
       role: 'RegionModerator',
       regionIds: ['tirol'],
@@ -46,6 +61,7 @@ beforeEach(async () => {
       actorRole: 'RegionModerator',
       byStaff: true,
     });
+    await setDoc(doc(db, 'app_stats/fun_facts'), { events: { published: 3 } });
   });
 });
 
@@ -68,6 +84,45 @@ describe('events/{id}/revisions', () => {
   it('blocks client writes, even for admins', async () => {
     const db = env.authenticatedContext('adminDoc').firestore();
     await assertFails(setDoc(doc(db, 'events/e1/revisions/r2'), { byRole: 'Admin' }));
+  });
+});
+
+describe('events/{id}/registrations', () => {
+  it('lets the organizer and admins read', async () => {
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('owner').firestore(), 'events/e1/registrations/g1'))
+    );
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('adminDoc').firestore(), 'events/e1/registrations/g1'))
+    );
+  });
+
+  it('hides registrations from other members and visitors', async () => {
+    await assertFails(
+      getDoc(doc(env.authenticatedContext('someone').firestore(), 'events/e1/registrations/g1'))
+    );
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'events/e1/registrations/g1'))
+    );
+  });
+
+  it('blocks every client write, even for the organizer and admins', async () => {
+    const guest = env.unauthenticatedContext().firestore();
+    await assertFails(setDoc(doc(guest, 'events/e1/registrations/g2'), { name: 'X' }));
+    const member = env.authenticatedContext('someone').firestore();
+    await assertFails(setDoc(doc(member, 'events/e1/registrations/g2'), { name: 'X' }));
+    const owner = env.authenticatedContext('owner').firestore();
+    await assertFails(updateDoc(doc(owner, 'events/e1/registrations/g1'), { name: 'Y' }));
+    await assertFails(deleteDoc(doc(owner, 'events/e1/registrations/g1')));
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(setDoc(doc(admin, 'events/e1/registrations/g3'), { name: 'X' }));
+  });
+
+  it('keeps the confirmation markers server-only', async () => {
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(getDoc(doc(admin, 'events/e1/registration_mails/m1')));
+    const member = env.authenticatedContext('someone').firestore();
+    await assertFails(setDoc(doc(member, 'events/e1/registration_mails/m2'), { createdAt: 1 }));
   });
 });
 
@@ -96,5 +151,63 @@ describe('moderation_log', () => {
     await assertFails(setDoc(doc(db, 'moderation_log/m2'), { action: 'approved' }));
     await assertFails(updateDoc(doc(db, 'moderation_log/m1'), { action: 'rejected' }));
     await assertFails(deleteDoc(doc(db, 'moderation_log/m1')));
+  });
+});
+
+describe('app_stats (Fun Facts)', () => {
+  it('lets Super-Admins read it', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertSucceeds(getDoc(doc(db, 'app_stats/fun_facts')));
+  });
+
+  it('hides it from region moderators, organizers and anonymous visitors', async () => {
+    for (const db of [
+      env.authenticatedContext('tirolMod').firestore(),
+      env.authenticatedContext('owner').firestore(),
+      env.unauthenticatedContext().firestore(),
+    ]) {
+      await assertFails(getDoc(doc(db, 'app_stats/fun_facts')));
+    }
+  });
+
+  it('blocks client writes, even for Super-Admins', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(setDoc(doc(db, 'app_stats/fun_facts'), { events: { published: 99 } }));
+    await assertFails(updateDoc(doc(db, 'app_stats/fun_facts'), { events: {} }));
+    await assertFails(deleteDoc(doc(db, 'app_stats/fun_facts')));
+  });
+});
+
+describe('app_settings/eventRegistration (admin switch for "Zum Event anmelden")', () => {
+  const adminDb = () => env.authenticatedContext('adminDoc').firestore();
+
+  it('lets anybody read the switch (the button needs it)', async () => {
+    await assertSucceeds(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'app_settings/eventRegistration'))
+    );
+  });
+
+  it('lets an admin turn it on and off', async () => {
+    const ref = doc(adminDb(), 'app_settings/eventRegistration');
+    await assertSucceeds(
+      setDoc(ref, { enabled: true, updatedAt: serverTimestamp(), updatedBy: 'adminDoc' })
+    );
+    await assertSucceeds(updateDoc(ref, { enabled: false, updatedAt: serverTimestamp() }));
+  });
+
+  it('rejects non-boolean values and extra fields', async () => {
+    const ref = doc(adminDb(), 'app_settings/eventRegistration');
+    await assertFails(setDoc(ref, { enabled: 'yes' }));
+    await assertFails(setDoc(ref, { enabled: true, other: 1 }));
+  });
+
+  it('blocks members, organizers and visitors from writing it', async () => {
+    for (const db of [
+      env.authenticatedContext('owner').firestore(),
+      env.authenticatedContext('tirolMod').firestore(),
+      env.unauthenticatedContext().firestore(),
+    ]) {
+      await assertFails(setDoc(doc(db, 'app_settings/eventRegistration'), { enabled: true }));
+    }
   });
 });

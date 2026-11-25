@@ -3,12 +3,15 @@ import './EventChip.css';
 export default function EventChip({ event, onClick }) {
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
+  const isUnspecified = event.contribution === 'unspecified';
 
   const variant = isFree
     ? 'event-chip--free'
     : isDonation
       ? 'event-chip--donation'
-      : 'event-chip--fee';
+      : isUnspecified
+        ? 'event-chip--unspecified'
+        : 'event-chip--fee';
 
   return (
     <button

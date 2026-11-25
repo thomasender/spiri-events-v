@@ -19,10 +19,17 @@ export default function EventCoverImage({
   const focal = normalizeFocalPoint(event?.imageFocalPoint);
   const style = coverImageStyle(focal, event?.imageZoom);
   const resolvedAlt = alt ?? event?.title ?? '';
-  const sources = [thumbnail && event?.imageThumbUrl, event?.imageUrl].filter(Boolean);
+  // An imported event nobody consented to yet has no picture of ours: staff sees the picture on the
+  // organizer's own page (a link only, `referrerPolicy` below). Such an event is never public.
+  const sourceImage =
+    !event?.imageUrl && event?.curation && event.curation.consentAt == null
+      ? event.curation.sourceImageUrl
+      : null;
+  const sources = [thumbnail && event?.imageThumbUrl, event?.imageUrl, sourceImage].filter(Boolean);
   const [failedCount, setFailedCount] = useState(0);
   const src = sources[failedCount] ?? fallbackSrc;
   if (!src) return null;
+  const isSourceImage = Boolean(sourceImage) && src === sourceImage;
   return (
     <img
       src={src}
@@ -32,6 +39,7 @@ export default function EventCoverImage({
       draggable={draggable}
       loading="lazy"
       decoding="async"
+      {...(isSourceImage ? { referrerPolicy: 'no-referrer' } : {})}
       onError={() => {
         setFailedCount((n) => n + 1);
         rest.onError?.();

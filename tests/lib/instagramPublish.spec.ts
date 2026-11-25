@@ -280,7 +280,9 @@ describe('publishApprovedEvent', () => {
     const call = h.fetchMock.mock.calls.find(([u]) => String(u).endsWith('/media1/comments'));
     expect(call).toBeDefined();
     const params = new URLSearchParams(String((call![1] as RequestInit).body));
-    expect(params.get('message')).toContain('thetribe.at');
+    // Deliberately moved from thetribe.at to the region's country domain.
+    expect(params.get('message')).toContain('https://www.deintribe.at/event/kakao-zeremonie');
+    expect(params.get('message')).not.toContain('thetribe');
   });
 
   it('keeps status published when the first comment is rejected', async () => {
@@ -332,6 +334,28 @@ describe('publishApprovedEvent', () => {
       expect(h.posts.size).toBe(0);
       expect(h.fetchMock).not.toHaveBeenCalled();
       expect(h.generateImage).not.toHaveBeenCalled();
+    });
+
+    it('does not post a curated event before the organizer consented', async () => {
+      const h = makeHarness();
+      const curation = { organizerRef: 'o1', claimable: true };
+      const outcome = await publishApprovedEvent(
+        h.deps,
+        'e1',
+        { status: 'pending' },
+        { ...futureEvent, curation }
+      );
+      expect(outcome).toBe('no-consent');
+      expect(h.posts.size).toBe(0);
+      expect(h.fetchMock).not.toHaveBeenCalled();
+      expect(
+        await publishApprovedEvent(
+          h.deps,
+          'e1',
+          { status: 'pending' },
+          { ...futureEvent, curation: { ...curation, consentAt: new Date() } }
+        )
+      ).toBe('published');
     });
 
     it('does not post a cancelled event and writes no dedupe doc', async () => {

@@ -1,3 +1,4 @@
+import ModerationGuidanceNotice from '../components/ModerationGuidanceNotice';
 import { useState, useEffect, useRef } from 'react';
 import { bezirkLabel } from '../utils/regions';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -56,14 +57,23 @@ import {
 } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
+import {
+  NO_CONSENT_APPROVE_MESSAGE,
+  approveBlockedReason,
+  isCuratedEvent,
+  isUnclaimedCuratedEvent,
+} from '../utils/eventImport';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
-import { parseContactText, parseRegistrationText } from '../utils/contactFormat';
+import { parseRegistrationText } from '../utils/contactFormat';
 import RegistrationText from '../components/RegistrationText';
+import ContactText from '../components/ContactText';
 import { MemberBadgeFrame } from '../components/MemberBadge';
 import {
+  getCustomOccurrenceTime,
   getMonthlyWeekdayPhrase,
   getNextUpcomingOccurrence,
   getRecurrenceDatesForDetail,
+  hasOwnOccurrenceTime,
 } from '../utils/eventOccurrences';
 import { isEventCancelled, isOccurrenceCancelled } from '../utils/eventCancellation';
 import CancelledBadge from '../components/CancelledBadge';
@@ -83,6 +93,7 @@ import FavoriteButton from '../components/FavoriteButton';
 import LoginPromptModal from '../components/LoginPromptModal';
 import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
 import ShareButton from '../components/ShareButton';
+import EventRegistrationButton from '../components/EventRegistrationButton';
 import { AdminInstagramPreview } from '../components/InstagramPostPreview';
 import AdminCoverPreview from '../components/AdminCoverPreview';
 import EventCoverImage from '../components/EventCoverImage';
@@ -242,6 +253,7 @@ export default function EventDetailPage() {
   // null = closed; a string (maybe empty) = reject dialog open with that reason.
   const [rejectReason, setRejectReason] = useState(null);
   const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState(null);
   const [showUnpublishDialog, setShowUnpublishDialog] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [calendarLoginPromptOpen, setCalendarLoginPromptOpen] = useState(false);
@@ -451,24 +463,40 @@ export default function EventDetailPage() {
 
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
+  // "Keine Angabe": the organizer did not state a price (e.g. imported events); never shown as free
+  const isUnspecified = event.contribution === 'unspecified';
   const jsonLd = generateEventJsonLd(event, regions);
   const isOwner = user && event.createdBy === user.uid;
   const ticketLink = getTicketLink(event);
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
   const deleteReasonRequired = requiresDeleteReason(user, event, role, staffRegionIds);
+  // Imported and not yet claimed: nobody to write to or to mail (docs/event-import.md).
+  const internalOnly = isUnclaimedCuratedEvent(event);
   const fallbackImage = getEventFallbackImage(event);
   const showRemoteImage = Boolean(event.imageUrl);
 
   const showApproveButton = (isAdmin || isEventModerator) && event.status === 'pending';
 
+  const approveBlocked = approveBlockedReason(event);
+
   const handleApprove = async () => {
+    if (approveBlocked) {
+      setApproveError(approveBlocked);
+      return;
+    }
+    setApproveError(null);
     setApproving(true);
     try {
       await approveEvent(event.id);
       setEvent((prev) => (prev ? { ...prev, status: 'approved' } : prev));
     } catch (err) {
       console.error('Approve failed:', err);
+      setApproveError(
+        err?.code === 'permission-denied' && isCuratedEvent(event)
+          ? NO_CONSENT_APPROVE_MESSAGE
+          : 'Das Event konnte nicht genehmigt werden. Bitte versuche es noch einmal.'
+      );
     } finally {
       setApproving(false);
     }
@@ -490,7 +518,7 @@ export default function EventDetailPage() {
   };
 
   const handleReject = async () => {
-    if (!rejectReason) return;
+    if (!rejectReason && !internalOnly) return;
     setDeleting(true);
     try {
       await updateDoc(doc(db, 'events', event.id), buildRejectUpdate(user?.uid, rejectReason));
@@ -653,6 +681,9 @@ export default function EventDetailPage() {
   const visibleRecurrenceDates = showAllDates
     ? recurrenceDates
     : recurrenceDates.slice(0, MAX_COLLAPSED_DATES);
+  // A single date of a series may have its own time (Trello 6afd86b4).
+  const shownTime = getCustomOccurrenceTime(event, occurrenceDate || event.date);
+  const formatTimeRange = ({ time, endTime }) => `${time}${endTime ? ` — ${endTime} Uhr` : ' Uhr'}`;
 
   return (
     <div className="event-detail-page">
@@ -672,6 +703,8 @@ export default function EventDetailPage() {
         <span>{backLabel}</span>
       </Link>
 
+      {showApproveButton && <ModerationGuidanceNotice />}
+
       {(showEditButton ||
         showDeleteButton ||
         showApproveButton ||
@@ -688,13 +721,19 @@ export default function EventDetailPage() {
             <button
               type="button"
               onClick={handleApprove}
-              disabled={approving}
+              disabled={approving || Boolean(approveBlocked)}
+              title={approveBlocked || undefined}
               className="btn btn-success"
               data-testid="approve-event-button"
             >
               <CheckCircle size={16} />
               <span>{approving ? 'Genehmige…' : 'Event genehmigen'}</span>
             </button>
+          )}
+          {showApproveButton && (approveBlocked || approveError) && (
+            <p className="moderation-error" role="alert" data-testid="approve-event-error">
+              {approveBlocked || approveError}
+            </p>
           )}
           {showUnpublishButton && (
             <button
@@ -791,7 +830,7 @@ export default function EventDetailPage() {
             </div>
           )}
           <div
-            className={`event-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : 'badge--fee'}`}
+            className={`event-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : isUnspecified ? 'badge--unspecified' : 'badge--fee'}`}
           >
             <Ticket size={14} />
             <span>
@@ -799,11 +838,13 @@ export default function EventDetailPage() {
                 ? 'Kostenlos'
                 : isDonation
                   ? 'Freie Spende'
-                  : event.fee
-                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
-                        event.feeNote ? ` / ${event.feeNote}` : ''
-                      }`
-                    : event.feeNote || 'Kostenpflichtig'}
+                  : isUnspecified
+                    ? 'Keine Angabe'
+                    : event.fee
+                      ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
+                          event.feeNote ? ` / ${event.feeNote}` : ''
+                        }`
+                      : event.feeNote || 'Kostenpflichtig'}
             </span>
           </div>
           {canSeeFavoriteCount && favoriteCount !== null && (
@@ -812,7 +853,7 @@ export default function EventDetailPage() {
               <span>{favoriteCount === 1 ? '1 Favorit' : `${favoriteCount} Favoriten`}</span>
             </div>
           )}
-          {event.firstSessionFree && !isFree && !isDonation && (
+          {event.firstSessionFree && !isFree && !isDonation && !isUnspecified && (
             <div className="event-badge badge--free" data-testid="first-session-free-badge">
               <span>1. Einheit gratis</span>
             </div>
@@ -852,6 +893,14 @@ export default function EventDetailPage() {
                       >
                         {formatDate(date)}
                       </span>
+                      {hasOwnOccurrenceTime(event, date) && (
+                        <span
+                          className="event-detail-date-time"
+                          data-testid="event-detail-date-time"
+                        >
+                          {formatTimeRange(getCustomOccurrenceTime(event, date))}
+                        </span>
+                      )}
                       {dateCancelled && <CancelledBadge className="event-detail-date-badge" />}
                       {showDateToggle &&
                         (dateIsCancelledSingly ? (
@@ -924,14 +973,13 @@ export default function EventDetailPage() {
           </div>
         </div>
 
-        {event.time && (
+        {shownTime.time && (
           <div className="detail-item">
             <Clock size={18} className="detail-icon" />
             <div>
               <span className="detail-label">Uhrzeit</span>
-              <span className="detail-value">
-                {event.time}
-                {event.endTime ? ` — ${event.endTime} Uhr` : ' Uhr'}
+              <span className="detail-value" data-testid="event-detail-time">
+                {formatTimeRange(shownTime)}
               </span>
             </div>
           </div>
@@ -998,25 +1046,11 @@ export default function EventDetailPage() {
                   <span data-testid="event-kontakt" className="detail-contact">
                     {event.organizer && getOrganizerName(event) && '('}
                     {/* One inline wrapper: as direct flex items the blank before a link would collapse. */}
-                    <span className="detail-contact-text">
-                      {parseContactText(event.kontakt).map((segment, index) => {
-                        if (segment.type === 'email') {
-                          return (
-                            <a key={index} href={`mailto:${segment.value}`} className="detail-link">
-                              {segment.value}
-                            </a>
-                          );
-                        }
-                        if (segment.type === 'phone') {
-                          return (
-                            <a key={index} href={`tel:${segment.value}`} className="detail-link">
-                              {segment.value}
-                            </a>
-                          );
-                        }
-                        return <span key={index}>{segment.value}</span>;
-                      })}
-                    </span>
+                    <ContactText
+                      kontakt={event.kontakt}
+                      messengers={event.kontaktMessenger}
+                      className="detail-contact-text"
+                    />
                     {event.organizer && getOrganizerName(event) && ')'}
                   </span>
                 )}
@@ -1065,6 +1099,13 @@ export default function EventDetailPage() {
         )}
       </div>
 
+      <EventRegistrationButton
+        event={event}
+        user={user}
+        occurrenceDate={occurrenceDate}
+        className="event-link"
+      />
+
       {ticketLink && (
         <a
           href={ticketLink}
@@ -1101,7 +1142,8 @@ export default function EventDetailPage() {
           eventStatus={event.status}
           organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
           onReady={() => setEventMessagesReady(true)}
-          onReject={isOwner ? undefined : setRejectReason}
+          internalOnly={internalOnly}
+          onReject={isOwner ? undefined : (reason) => setRejectReason(reason ?? '')}
         />
       )}
 
@@ -1138,9 +1180,13 @@ export default function EventDetailPage() {
         onCancel={() => setRejectReason(null)}
         loading={deleting}
         danger
-        confirmDisabled={!rejectReason}
+        confirmDisabled={!rejectReason && !internalOnly}
       >
-        {rejectReason ? (
+        {internalOnly ? (
+          <p data-testid="event-reject-internal">
+            {`Das Event „${event.title}" wird abgelehnt und in den Papierkorb verschoben. Es gehört noch der Redaktion und hat keine Veranstalter:in, deshalb wird keine E-Mail verschickt.`}
+          </p>
+        ) : rejectReason ? (
           <>
             <p>
               {`Das Event „${event.title}" wird abgelehnt und in den Papierkorb der einreichenden Person verschoben. Sie bekommt eine E-Mail mit dieser Nachricht als Grund:`}

@@ -101,6 +101,19 @@
   outline-offset: 2px;
 }
 
+.region-chooser-legal {
+  margin: var(--space-6) 0 0;
+  text-align: right;
+  font-size: var(--text-85);
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.region-chooser-legal a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .region-chooser-apply {
   margin-top: var(--space-8);
 }

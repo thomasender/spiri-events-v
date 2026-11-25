@@ -268,6 +268,27 @@ describe('carousel records (no eventId, the list sends their own id)', () => {
     expect(h.posts.has(`feed_${ID}`)).toBe(false);
   });
 
+  it('rebuilds a Bodensee record from Bodensee events only (record regionId)', async () => {
+    const BO_ID = 'carousel_bodensee_landkreiskonstanz_2026-11-02';
+    const h = carouselHarness({ record: null });
+    h.posts.set(BO_ID, {
+      type: 'carousel',
+      bezirk: 'Landkreis Konstanz',
+      regionId: 'bodensee',
+      weekStart: '2026-11-02',
+      part: 1,
+      status: 'failed',
+      attempts: 1,
+    });
+    h.deps.listEvents = async () => [
+      carouselEvent,
+      { ...carouselEvent, id: 'vk', bezirk: 'Landkreis Konstanz' },
+      { ...carouselEvent, id: 'bk', bezirk: 'Landkreis Konstanz', regionId: 'bodensee' },
+    ];
+    expect(await retryCarouselPost(h.deps, BO_ID)).toBe('published');
+    expect(h.posts.get(BO_ID)).toMatchObject({ status: 'published', eventIds: ['bk'] });
+  });
+
   it('records the Instagram error when the retry fails again', async () => {
     const h = carouselHarness({ record: { status: 'skipped' }, publishFails: true });
     expect(await retryCarouselPost(h.deps, ID)).toBe('failed');

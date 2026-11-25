@@ -23,6 +23,15 @@ vi.mock('../../src/hooks/useReviewNotifications', () => ({
   }),
 }));
 
+const mockTeamNotes = vi.hoisted(() => ({ unread: 0 }));
+
+vi.mock('../../src/hooks/useStaffNotifications', () => ({
+  // Like the real hook: no notes unless the caller says the user is staff.
+  useStaffNotifications: (_uid: string, enabled: boolean) => ({
+    unreadCount: enabled ? mockTeamNotes.unread : 0,
+  }),
+}));
+
 const mockProfile = vi.hoisted(() => ({
   photoURL: null as string | null,
   placeSelection: null as { regionId: string | null } | null,
@@ -99,6 +108,7 @@ beforeEach(() => {
   mockAuth.role = null;
   mockAuth.staffRegionIds = [];
   mockAdminAlerts.unread = 0;
+  mockTeamNotes.unread = 0;
   mockAdminAlerts.pending = 0;
   if (mockAuth.user) mockAuth.user.photoURL = undefined;
   mockProfile.photoURL = null;
@@ -152,14 +162,15 @@ describe('Header (logged out)', () => {
     expect(screen.queryByText('Abmelden')).toBeNull();
   });
 
-  it('renders an "Event erstellen" link for logged-out users that points to /login', () => {
+  it('renders an "Event erstellen" link for logged-out users that opens the wizard directly', () => {
     const { container } = render(
       <MemoryRouter>
         <Header />
       </MemoryRouter>
     );
 
-    const createLinks = container.querySelectorAll('a[href="/login"]');
+    // Guests fill in the wizard first; the login comes at its end.
+    const createLinks = container.querySelectorAll('a[href="/admin/new"]');
     expect(createLinks.length).toBeGreaterThan(0);
     const labels = Array.from(createLinks).map((link) => link.textContent?.trim() ?? '');
     expect(labels.some((l) => l.includes('Event erstellen'))).toBe(true);
@@ -652,6 +663,30 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
 
     expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('2');
     expect(screen.queryByTestId('menu-toggle-unread-badge')).toBeNull();
+  });
+
+  it('adds unread team notes (moderator applications) to the Verwaltung badge for staff only', () => {
+    mockAuth.user = { uid: 'mod-uid' };
+    mockAuth.role = 'RegionModerator';
+    mockAuth.staffRegionIds = ['tirol'];
+    mockTeamNotes.unread = 3;
+
+    const { unmount } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+    expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('3');
+    unmount();
+
+    mockAuth.role = null;
+    mockAuth.staffRegionIds = [];
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+    expect(screen.queryByTestId('verwaltung-unread-badge')).not.toBeInTheDocument();
   });
 
   it('ignores Review news for non-staff', () => {

@@ -18,11 +18,9 @@ export const FORMAT_DIMENSIONS: Record<InstagramFormat, { width: number; height:
 
 export const CAPTION_MAX_LENGTH = 2200;
 export const TITLE_MAX_LENGTH = 70;
-export const SITE_URL = 'https://www.thetribe.at';
-
 /**
- * Domain that Instagram captions and images SHOW (display text only; links such as
- * the first comment keep SITE_URL). Follows the country of the post's region:
+ * Domain that Instagram captions, images and links use (eventPageUrl builds
+ * https://<domain>/event/<slug> from it). Follows the country of the post's region:
  * Austria www.deintribe.at, Germany www.deintribe.de, Switzerland www.deintribe.ch. Any other
  * country (Liechtenstein) gets the default country's (Austrian) domain, like
  * countryOfRegion's fallback.
@@ -89,6 +87,7 @@ export interface InstagramEventInput {
   recurrence?: unknown;
   recurrenceEndDate?: unknown;
   customDates?: unknown;
+  customTimes?: unknown;
   exceptionDates?: unknown;
   cancelled?: unknown;
   cancelledDates?: unknown;
@@ -370,9 +369,15 @@ export function resolveCategoryColor(
   return registry?.[name] || DEFAULT_CATEGORY_COLORS[name] || FALLBACK_CATEGORY_COLOR;
 }
 
-export function eventPageUrl(slug: unknown): string {
+/**
+ * Link to the event page on the country domain of the event's region: event
+ * URLs carry no region (slugs are global), so Bodensee is
+ * https://www.deintribe.de/event/<slug>. A missing region means Vorarlberg (.at).
+ */
+export function eventPageUrl(slug: unknown, regionId?: unknown): string {
   const clean = asString(slug);
-  return clean ? `${SITE_URL}/event/${clean}` : SITE_URL;
+  const origin = `https://${siteDomainForRegion(regionId)}`;
+  return clean ? `${origin}/event/${clean}` : origin;
 }
 
 /** Organizer's display name for the slide footer; '' when unknown. */
@@ -515,7 +520,7 @@ export function buildCaptionFooter(hashtags: string, domain: string = DEFAULT_SI
  * in comments, but they are easy to copy.
  */
 export function buildFirstComment(event: InstagramEventInput): string {
-  return `ℹ️ Alle Infos zum Event: ${eventPageUrl(event.slug)}`;
+  return `ℹ️ Alle Infos zum Event: ${eventPageUrl(event.slug, event.regionId)}`;
 }
 
 /** Most dates a caption lists; with more, the "die Termine" line is left out. */
@@ -629,7 +634,7 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
       .join('\n'),
     [
       dates.length > 0 && dates.length <= MAX_CAPTION_DATES
-        ? `🗓 die Termine: ${dates.map((o) => formatDayMonth(asString(o.date))).join('; ')}`
+        ? `🗓 die Termine: ${dates.map((o) => formatCaptionDate(event, o)).join('; ')}`
         : '',
       pattern && `🔁 Der Event wiederholt sich ${pattern}.`,
     ]
@@ -638,6 +643,16 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
   ]
     .filter(Boolean)
     .join('\n\n');
+}
+
+/** "12. März", with its own time when a date of the series has one ("12. März 18:00 Uhr"). */
+function formatCaptionDate(event: InstagramEventInput, occurrence: InstagramEventInput): string {
+  const day = formatDayMonth(asString(occurrence.date));
+  if (asString(occurrence.time) === asString(event.time)) {
+    if (asString(occurrence.endTime) === asString(event.endTime)) return day;
+  }
+  const time = formatEventTime(occurrence.time, occurrence.endTime);
+  return time ? `${day} ${time}` : day;
 }
 
 /** "Soundhealing in Altach:" (second line of the caption); '' without a category. */

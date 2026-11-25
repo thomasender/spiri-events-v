@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeFacetCounts } from '../../src/utils/filterFacetCounts';
+import { computeFacetCounts, sortCategoriesByCount } from '../../src/utils/filterFacetCounts';
 
 const ref = new Date(2026, 9, 14); // Wed 2026-10-14
 const occ = (date: string, category: string, bezirk: string, isOnline = false) => ({
@@ -77,5 +77,17 @@ describe('computeFacetCounts', () => {
     expect(c.date.heute).toBe(1);
     expect(c.date.aktuelleWoche).toBe(1);
     expect(c.category).toEqual({ Tanz: 1 });
+  });
+});
+
+describe('sortCategoriesByCount', () => {
+  it('puts the category with most events first and keeps ties in the given order', () => {
+    const counts = { Yoga: 1, Tanz: 5, Musik: 1, Kakao: 0 };
+    expect(sortCategoriesByCount(['Yoga', 'Kakao', 'Tanz', 'Musik'], counts)).toEqual([
+      'Tanz',
+      'Yoga',
+      'Musik',
+      'Kakao',
+    ]);
   });
 });

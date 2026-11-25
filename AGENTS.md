@@ -189,6 +189,19 @@ two-line "read this when".
 - Read `docs/instagram-regions.md` ONLY when you touch the per-region Instagram backend
   (regional accounts, token refresh, backfill) or onboard a regional Instagram account.
 - Read `docs/event-celebration.md` ONLY when you touch the confetti after submitting an event.
+- Read `docs/event-registration.md` ONLY when you touch "Zum Event anmelden" (button/modal,
+  `submitEventRegistration`, `events/{id}/registrations`, the guest `pendingRegistration` flow).
+- Read `docs/guest-event-draft.md` ONLY when you touch who may open `/admin/new`, the wizard's
+  draft storage (`wizardDraftStorage.js`, `wizardDraftFiles.js`), its end page for guests /
+  unconfirmed e-mails, or the `next` of the confirmation mail (`AuthActionPage`).
+- Read `docs/push-notifications.md` ONLY when you touch Web Push (`public/push-sw.js`,
+  `src/lib/pushMessaging.js`, `functions/src/push.ts` / `pushRouting.ts`, `pushTokens`, the push
+  part of the profile) or set up the VAPID key.
+- Read `docs/event-import.md` ONLY when you touch curated/imported events: the `import_*`
+  collections, `events.curation`, `eventImport.ts` / `eventImport.js`, the claim
+  (`eventImportClaim.ts`, `/uebernehmen`, "Meine Events" banner, wizard hint), the preview /
+  consent / outreach mail (`importConsent*.ts`, `/vorschau/import/:token`, `/datenschutz-import`), the curator account script,
+  or a public event path (JSON list, ICS, prerender/sitemap, Instagram) that must hide them.
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 

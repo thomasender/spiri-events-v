@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { parseContactText, parseRegistrationText } from '../../src/utils/contactFormat';
+import {
+  contactPhone,
+  messengerLinks,
+  normalizeMessengerSelection,
+  parseContactText,
+  parseRegistrationText,
+  defaultCallingCode,
+  toInternationalPhone,
+} from '../../src/utils/contactFormat';
 
 describe('parseContactText', () => {
   it('returns no segments for empty input', () => {
@@ -79,5 +87,97 @@ describe('parseRegistrationText', () => {
   it('does not make javascript: or other schemes clickable', () => {
     const segments = parseRegistrationText('javascript:alert(1)');
     expect(segments.some((s) => s.type === 'link')).toBe(false);
+  });
+});
+
+describe('toInternationalPhone', () => {
+  it('keeps a +43 number and drops blanks, brackets, dashes and slashes', () => {
+    expect(toInternationalPhone('+43 676 555 0000')).toBe('+436765550000');
+    expect(toInternationalPhone('+43 (676) 555-00/00')).toBe('+436765550000');
+    expect(toInternationalPhone('+43 (0) 676 555 0000')).toBe('+436765550000');
+    expect(toInternationalPhone('+43 0676 555 0000')).toBe('+436765550000');
+  });
+
+  it('turns 0043 into +43', () => {
+    expect(toInternationalPhone('0043 676 5550000')).toBe('+436765550000');
+    expect(toInternationalPhone('0049 171 2345678')).toBe('+491712345678');
+  });
+
+  it('reads a leading 0 as an Austrian number', () => {
+    expect(toInternationalPhone('0676 555 0000')).toBe('+436765550000');
+    expect(toInternationalPhone('0664/1234567')).toBe('+436641234567');
+  });
+
+  it('reads a leading 0 with the country code of the site domain', () => {
+    expect(defaultCallingCode('tribe.ch')).toBe('41');
+    expect(defaultCallingCode('www.thetribe.DE')).toBe('49');
+    expect(defaultCallingCode('thetribe.at')).toBe('43');
+    expect(defaultCallingCode('localhost')).toBe('43');
+    expect(defaultCallingCode(undefined)).toBe('43');
+    expect(toInternationalPhone('079 123 45 67', 'x.ch')).toBe('+41791234567');
+    expect(toInternationalPhone('0171 2345678', 'x.de')).toBe('+491712345678');
+    expect(contactPhone('Tel 0171 2345678', 'x.de')).toBe('+491712345678');
+    expect(messengerLinks('0171 2345678', ['whatsapp'], 'x.de')[0].href).toBe(
+      'https://wa.me/491712345678'
+    );
+  });
+
+  it('returns null when the number is not clearly international or no number', () => {
+    expect(toInternationalPhone('676 5550000')).toBeNull();
+    expect(toInternationalPhone('0676')).toBeNull();
+    expect(toInternationalPhone('+0676 5550000')).toBeNull();
+    expect(toInternationalPhone('anna@example.com')).toBeNull();
+    expect(toInternationalPhone('Bitte anrufen')).toBeNull();
+    expect(toInternationalPhone('')).toBeNull();
+    expect(toInternationalPhone(null)).toBeNull();
+    expect(toInternationalPhone('+1234567890123456')).toBeNull();
+  });
+});
+
+describe('contactPhone', () => {
+  it('finds the phone number in the contact text', () => {
+    expect(contactPhone('0676 555 0000')).toBe('+436765550000');
+    expect(contactPhone('Anna, Tel. +43 664 1234567')).toBe('+436641234567');
+  });
+
+  it('is null for an e-mail or free text', () => {
+    expect(contactPhone('anna@example.com')).toBeNull();
+    expect(contactPhone('Einfach vorbeikommen')).toBeNull();
+    expect(contactPhone('')).toBeNull();
+    expect(contactPhone(undefined)).toBeNull();
+  });
+});
+
+describe('normalizeMessengerSelection', () => {
+  it('keeps known ids once, in display order', () => {
+    expect(normalizeMessengerSelection(['signal', 'whatsapp', 'signal', 'sms'])).toEqual([
+      'whatsapp',
+      'signal',
+    ]);
+    expect(normalizeMessengerSelection(undefined)).toEqual([]);
+    expect(normalizeMessengerSelection('whatsapp')).toEqual([]);
+  });
+});
+
+describe('messengerLinks', () => {
+  it('builds the links for the chosen messengers', () => {
+    expect(messengerLinks('0676 555 0000', ['whatsapp', 'telegram', 'signal'])).toEqual([
+      { id: 'whatsapp', label: 'WhatsApp', href: 'https://wa.me/436765550000' },
+      { id: 'telegram', label: 'Telegram', href: 'https://t.me/+436765550000' },
+      { id: 'signal', label: 'Signal', href: 'https://signal.me/#p/+436765550000' },
+    ]);
+  });
+
+  it('links only the chosen ones', () => {
+    expect(messengerLinks('+436765550000', ['signal']).map((l) => l.id)).toEqual(['signal']);
+    expect(messengerLinks('+436765550000', [])).toEqual([]);
+    expect(messengerLinks('+436765550000', undefined)).toEqual([]);
+  });
+
+  it('gives no links for an e-mail, free text or a number it cannot place', () => {
+    expect(messengerLinks('anna@example.com', ['whatsapp'])).toEqual([]);
+    expect(messengerLinks('Bitte anrufen', ['whatsapp'])).toEqual([]);
+    expect(messengerLinks('676 5550000', ['whatsapp'])).toEqual([]);
+    expect(messengerLinks(null, ['whatsapp'])).toEqual([]);
   });
 });

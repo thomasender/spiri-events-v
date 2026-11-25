@@ -21,6 +21,32 @@
   color: var(--text-light);
 }
 
+/* Wide screens: the groups only structure the phone layout (`display: contents`
+   keeps the old single flow). The copyright is last in the DOM, so it goes first here. */
+.footer-group,
+.footer-group-row {
+  display: contents;
+}
+
+.footer-divider {
+  display: none;
+}
+
+@media (min-width: 641px) {
+  .footer-copy {
+    order: -1;
+  }
+
+  .footer-nav .region-pick-button--footer {
+    order: 1;
+  }
+
+  .footer-group--legal a,
+  .footer-group--legal button {
+    order: 2;
+  }
+}
+
 .footer-nav {
   display: flex;
   flex-wrap: wrap;
@@ -66,13 +92,67 @@
   }
 }
 
-@media (max-width: 480px) {
-  .footer-container {
+/*
+ * Phone (same breakpoint as the floating buttons): one centred column. Donate
+ * button, then Über uns | Standort | FAQ, a thin line, the small install link,
+ * the two legal rows and the copyright. The last three text lines share font,
+ * weight, line height and gap, so their visible spacing is equal. The bottom
+ * padding keeps the links clear of the floating chat / plus buttons.
+ */
+@media (max-width: 640px) {
+  .footer {
+    padding-bottom: calc(var(--footer-padding-y) + var(--space-16) + var(--space-6));
+  }
+
+  .footer-container,
+  .footer-nav,
+  .footer-group {
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--footer-stack-gap);
     text-align: center;
   }
 
   .footer-nav {
+    width: 100%;
+  }
+
+  .footer-group {
+    display: flex;
+    width: 100%;
+  }
+
+  .footer-group--main {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--footer-stack-gap) var(--footer-link-gap);
+  }
+
+  .footer-group-row {
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: var(--footer-stack-gap) var(--footer-link-gap);
+  }
+
+  .footer-divider {
+    display: block;
+    width: 100%;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-copy,
+  .footer-group--legal a,
+  .footer-group--legal button,
+  .footer-install-link {
+    font-size: var(--text-85);
+    font-weight: 400;
+    line-height: 1.2;
+  }
+
+  .footer-copy {
+    order: 0;
+    margin: 0;
   }
 }

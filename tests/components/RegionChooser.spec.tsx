@@ -28,4 +28,18 @@ describe('RegionChooser intro', () => {
     expect(intro.textContent).toContain('Dein Kalender für Yoga, Breathwork, Meditation,');
     expect(intro.textContent).toContain('weitere Veranstaltungen.');
   });
+
+  it('links to the neutral Impressum and Datenschutz pages', () => {
+    render(
+      <MemoryRouter>
+        <RegionChooser />
+      </MemoryRouter>
+    );
+    const legal = screen.getByTestId('region-chooser-legal');
+    expect(legal.textContent).toContain('Rechtliches: Impressum und Datenschutz');
+    expect(screen.getByRole('link', { name: 'Impressum' }).getAttribute('href')).toBe('/impressum');
+    expect(screen.getByRole('link', { name: 'Datenschutz' }).getAttribute('href')).toBe(
+      '/datenschutz'
+    );
+  });
 });

@@ -1,0 +1,242 @@
+import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  ASSOCIATION_IMPRINT,
+  IMPORT_RETENTION_DAYS,
+  renderOutreachMail,
+  type OutreachMailInput,
+} from '../../functions/src/importOutreachMail';
+import { MAILGUN_EU_BASE, sendMailgunMessage } from '../../functions/src/mailgun';
+
+const input = (over: Partial<OutreachMailInput> = {}): OutreachMailInput => ({
+  to: 'info@yoga-tirol.at',
+  organizerName: 'Yogaverein <Tirol>',
+  website: 'https://www.yoga-tirol.at',
+  contactEmail: 'info@yoga-tirol.at',
+  regionName: 'Tirol',
+  events: [
+    { title: 'Kakaozeremonie', date: '2026-12-05', link: 'https://www.yoga-tirol.at/kakao' },
+  ],
+  previewUrl: 'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN',
+  declineUrl: 'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen',
+  privacyUrl: 'https://tribe-vbg-staging.web.app/datenschutz-import',
+  linkValidUntil: '2026-11-25T10:00:00.000Z',
+  deleteAfter: '2027-02-16T10:00:00.000Z',
+  ...over,
+});
+
+describe('outreach mail', () => {
+  const mail = renderOutreachMail(input());
+
+  it('contains who we are, the events with links, the source of the address and both links', () => {
+    for (const part of [
+      'ehrenamtlich betriebener Veranstaltungskalender für bewusste Veranstaltungen',
+      '05.12.2026: Kakaozeremonie (https://www.yoga-tirol.at/kakao)',
+      'aus dem Impressum bzw. den Kontaktangaben dieser Website',
+      'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN',
+      'https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen',
+      'löschen wir dein Event automatisch am 16.02.2027',
+      'gültig bis 25.11.2026',
+    ]) {
+      expect(mail.text).toContain(part);
+    }
+    expect(mail.html).toContain(
+      'href="https://tribe-vbg-staging.web.app/vorschau/import/TOKEN?aktion=ablehnen"'
+    );
+  });
+
+  it('is short: no association line, no region sentence, no cost promise, no "nuclear" promise', () => {
+    for (const gone of [
+      'gemeinnützigen Vereins',
+      'Derzeit bauen wir',
+      'Ohne deine Zustimmung veröffentlichen wir nichts',
+      'Mehrwert',
+      'Dies ist unsere einzige E-Mail',
+    ]) {
+      expect(mail.text).not.toContain(gone);
+      expect(mail.html).not.toContain(gone);
+    }
+    expect(mail.html).toContain('Dein Event verdient es, entdeckt zu werden.');
+    expect(mail.html).toContain('Du behältst die Kontrolle');
+    const two = renderOutreachMail(
+      input({
+        events: [
+          { title: 'A', date: '2026-12-05', link: 'https://www.yoga-tirol.at/a' },
+          { title: 'B', date: '2026-12-06', link: 'https://www.yoga-tirol.at/b' },
+        ],
+      })
+    );
+    expect(two.html).toContain('Deine Events verdienen es, entdeckt zu werden.');
+    expect(two.text).toContain('löschen wir deine Events automatisch am 16.02.2027');
+  });
+
+  it("shows the event's real picture from the organizer's site in the preview card, https only", () => {
+    const withImage = (imageUrl: string | null) =>
+      renderOutreachMail(
+        input({
+          events: [
+            {
+              title: 'Kakaozeremonie',
+              date: '2026-12-05',
+              link: 'https://www.yoga-tirol.at/kakao',
+              imageUrl,
+            },
+          ],
+        })
+      ).html;
+    const html = withImage('https://www.yoga-tirol.at/img/kakao.jpg?a=1&b=2');
+    expect(html).toContain('<img src="https://www.yoga-tirol.at/img/kakao.jpg?a=1&amp;b=2"');
+    expect(html).toContain('alt="Kakaozeremonie"');
+    expect(withImage(null)).not.toContain('kakao.jpg');
+    expect(withImage('http://www.yoga-tirol.at/kakao.jpg')).not.toContain('kakao.jpg');
+    expect(withImage('javascript:alert(1)')).not.toContain('javascript:');
+  });
+
+  it('carries the Art. 14 GDPR block and the full imprint', () => {
+    for (const part of [
+      'Datenschutzinformation (Art. 14 DSGVO)',
+      'Verantwortlich:',
+      'Zweck:',
+      'Art. 6 Abs. 1 lit. f DSGVO',
+      'Daten:',
+      'Quelle:',
+      'Speicherdauer:',
+      'Widerspruch',
+      'Art. 21 DSGVO',
+      'Österreichische Datenschutzbehörde',
+      'https://tribe-vbg-staging.web.app/datenschutz-import',
+      'Impressum',
+      ASSOCIATION_IMPRINT.name,
+      `ZVR-Zahl: ${ASSOCIATION_IMPRINT.zvr}`,
+      ASSOCIATION_IMPRINT.street,
+      ASSOCIATION_IMPRINT.city,
+      ASSOCIATION_IMPRINT.email,
+    ]) {
+      expect(mail.text).toContain(part);
+    }
+    expect(mail.html).toContain('Datenschutzinformation (Art. 14 DSGVO)');
+    expect(mail.html).toContain(`ZVR-Zahl: ${ASSOCIATION_IMPRINT.zvr}`);
+  });
+
+  it('words the vision per region and links the regional domain (Trello vlEQpyMW)', () => {
+    const de = renderOutreachMail(input({ regionIn: 'in Berlin', country: 'DE' }));
+    expect(de.text).toContain('sichtbar machen und Menschen vor Ort');
+    expect(de.text).toContain('in Berlin sichtbar machen');
+    expect(de.text).toContain('Zugehörigkeit in Berlin.');
+    expect(de.text).toContain('www.deintribe.de');
+    expect(renderOutreachMail(input({ country: 'CH' })).html).toContain('www.deintribe.ch');
+    const none = renderOutreachMail(input());
+    expect(none.text).toContain('in deiner Region sichtbar machen');
+    expect(none.text).toContain('www.deintribe.at');
+    expect(none.text).not.toMatch(/DACH/);
+  });
+
+  it('default look loads logo and team photos only from our own domain, no hero, no tracking pixel', () => {
+    const base = 'https://tribe-vbg-staging.web.app';
+    const rich = renderOutreachMail(input({ assetBase: base }));
+    const srcs = [...rich.html.matchAll(/<img\b[^>]*\bsrc="([^"]+)"/g)].map((m) => m[1]);
+    expect(srcs).toEqual(
+      ['logo.png', 'peter.jpg', 'thomas.jpg', 'jana.jpg'].map((f) => `${base}/mail/${f}`)
+    );
+    expect(rich.html).not.toMatch(/hero/i);
+    expect(rich.html).not.toMatch(/width="1"|height="1"/);
+    // same words in text and in both looks (legal parts included)
+    const plain = renderOutreachMail(input({ assetBase: base, variant: 'schlicht' }));
+    expect(plain.html).not.toMatch(/<img\b/i);
+    expect(plain.text).toBe(rich.text);
+    for (const m of [rich, plain]) {
+      expect(m.html).toContain('Datenschutzinformation (Art. 14 DSGVO)');
+      expect(m.html).toContain('aktion=ablehnen');
+    }
+  });
+
+  it('has no reminder and no marketing wording', () => {
+    const all = `${mail.subject}\n${mail.text}`.toLowerCase();
+    for (const word of [
+      'erinner',
+      'nochmals',
+      'noch einmal melden',
+      'letzte chance',
+      'gratis',
+      'kostenlos',
+      'exklusiv',
+      'angebot',
+      'rabatt',
+      'jetzt',
+      'newsletter',
+      'reichweite',
+      'sichtbarkeit',
+      '!',
+    ]) {
+      expect(all).not.toContain(word);
+    }
+    // Without an asset origin the mail falls back to the image-free look.
+    expect(mail.html).not.toMatch(/<img\b/i);
+  });
+
+  it('escapes organizer data in the HTML and marks test sends', () => {
+    expect(mail.html).toContain('Yogaverein &lt;Tirol&gt;');
+    expect(mail.html).not.toContain('Yogaverein <Tirol>');
+    expect(mail.subject).toBe('Anfrage von tribe: Veranstaltungen von Yogaverein <Tirol>');
+    expect(renderOutreachMail(input({ test: true })).subject.startsWith('[TEST] ')).toBe(true);
+  });
+
+  it('lists at most ten events', () => {
+    const many = Array.from({ length: 13 }, (_, i) => ({
+      title: `E${i}`,
+      date: '2026-12-05',
+      link: `https://www.yoga-tirol.at/${i}`,
+    }));
+    const text = renderOutreachMail(input({ events: many })).text;
+    expect(text).toContain('E9 ');
+    expect(text).not.toContain('E10 ');
+    expect(text).toContain('und 3 weitere');
+  });
+
+  it('uses the imprint data of the legal page', () => {
+    const legal = readFileSync(join(__dirname, '../../src/pages/LegalPage.jsx'), 'utf8');
+    for (const value of [
+      ASSOCIATION_IMPRINT.name,
+      ASSOCIATION_IMPRINT.zvr,
+      ASSOCIATION_IMPRINT.street,
+      ASSOCIATION_IMPRINT.phone,
+    ]) {
+      expect(legal).toContain(value);
+    }
+    // The static privacy page of the import names the same essentials.
+    for (const value of [
+      'Art. 6 Abs. 1 lit. f DSGVO',
+      'Österreichische Datenschutzbehörde',
+      '90 Tagen',
+    ]) {
+      expect(legal).toContain(value);
+    }
+  });
+});
+
+describe('Mailgun tracking switch', () => {
+  it('turns open and click tracking off for mails with private links', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init: { body: string }) =>
+        new Response(JSON.stringify({ id: 'x' }), { status: 200 })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await sendMailgunMessage(MAILGUN_EU_BASE, {
+      apiKey: 'k',
+      domain: 'mg.example',
+      from: 'a@mg.example',
+      to: 'b@example.org',
+      subject: 's',
+      text: 't',
+      html: 'h',
+      tracking: false,
+      variables: { organizerId: 'org1' },
+    });
+    const body = new URLSearchParams(fetchMock.mock.calls[0][1].body);
+    expect(body.get('v:organizerId')).toBe('org1');
+    expect(body.get('o:tracking')).toBe('no');
+    expect(body.get('o:tracking-clicks')).toBe('no');
+    expect(body.get('o:tracking-opens')).toBe('no');
+  });
+});

@@ -1,4 +1,5 @@
 import { DEFAULT_SITE_ORIGIN } from './siteOrigin';
+import { describeOccurrence } from './occurrenceDescription';
 
 export type NotificationType =
   | 'submitted'
@@ -177,7 +178,14 @@ function brandHeader(): string {
     </table>`;
 }
 
-type FooterKind = 'notification' | 'auth' | 'favorite' | 'directMessage' | 'eventChat';
+type FooterKind =
+  | 'notification'
+  | 'auth'
+  | 'favorite'
+  | 'directMessage'
+  | 'eventChat'
+  | 'eventRegistration'
+  | 'eventRegistrationConfirm';
 
 /** Why the person gets the mail; the settings link doubles as the way to switch it off. */
 const FOOTER_REASON: Partial<Record<FooterKind, string>> = {
@@ -189,7 +197,23 @@ const FOOTER_REASON: Partial<Record<FooterKind, string>> = {
     'Du erhältst diese E-Mail, weil im Event Chat einer Veranstaltung, die du erstellt hast, eine neue Nachricht steht. Wir schicken dir dazu höchstens eine E-Mail pro Tag.',
 };
 
+/** Reasons for mails without a switch in the profile (no settings link). */
+const FOOTER_REASON_NO_SETTINGS: Partial<Record<FooterKind, string>> = {
+  eventRegistration:
+    'Du erhältst diese E-Mail, weil sich jemand über Tribe zu einer Veranstaltung angemeldet hat, die du erstellt hast oder bei der du als Kontakt angegeben bist.',
+  eventRegistrationConfirm:
+    'Du erhältst diese E-Mail, weil du dich über Tribe zu diesem Event angemeldet hast. Pro Event schicken wir dir nur eine Bestätigung.',
+};
+
 function footerHtml(kind: FooterKind = 'notification'): string {
+  const plainReason = FOOTER_REASON_NO_SETTINGS[kind];
+  if (plainReason) {
+    return `
+      <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
+        ${plainReason}
+        Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:${COLOR_MUTED};text-decoration:underline;">admin@thetribe.at</a>.
+      </p>`;
+  }
   const reason = FOOTER_REASON[kind];
   if (reason) {
     return `
@@ -214,6 +238,10 @@ function footerHtml(kind: FooterKind = 'notification'): string {
 }
 
 function footerText(kind: FooterKind = 'notification'): string {
+  const plainReason = FOOTER_REASON_NO_SETTINGS[kind];
+  if (plainReason) {
+    return `\n--\n${plainReason}\nBei Fragen wende dich an admin@thetribe.at.`;
+  }
   const reason = FOOTER_REASON[kind];
   if (reason) {
     return `\n--\n${reason}\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
@@ -801,6 +829,113 @@ export function buildEventChatPayload({
     subject,
     html: wrapHtml(htmlBody, 'eventChat'),
     text: textBody + footerText('eventChat'),
+  };
+}
+
+// ---- Event registration ("Zum Event anmelden", docs/event-registration.md) ----
+
+export interface EventRegistrationOrganizerPayloadInput {
+  recipient: string;
+  recipientName?: string | null;
+  event: { title: string; slug?: string | null; time?: string | null };
+  attendeeName: string;
+  contact: string;
+  contactType: 'email' | 'phone';
+  /** Chosen date of a series (YYYY-MM-DD), if any. */
+  occurrenceDate?: string | null;
+  /** "Now" for the colloquial date wording; tests only. */
+  now?: Date;
+}
+
+function contactLinkHtml(contact: string, contactType: 'email' | 'phone'): string {
+  const href =
+    contactType === 'email' ? `mailto:${contact}` : `tel:${contact.replace(/[^\d+]/g, '')}`;
+  return `<a href="${escapeHtml(href)}" style="color:${COLOR_TEXT};text-decoration:underline;">${escapeHtml(contact)}</a>`;
+}
+
+/** Mail to the organizer: someone registered (name + contact). */
+export function buildEventRegistrationOrganizerPayload({
+  recipient,
+  recipientName,
+  event,
+  attendeeName,
+  contact,
+  contactType,
+  occurrenceDate,
+  now,
+}: EventRegistrationOrganizerPayloadInput): EmailPayload {
+  const name = chatMailLine(recipientName);
+  const attendee = chatMailName(attendeeName, 'Jemand');
+  const title = shorten(chatMailLine(event.title), CHAT_MAIL_TITLE_MAX) || 'deine Veranstaltung';
+  const url = eventUrl(event.slug);
+  const dateLabel = describeOccurrence(occurrenceDate, event.time, now);
+  const contactLabel = contactType === 'email' ? 'E-Mail' : 'Telefon';
+  const subject = `Neue Anmeldung: ${title}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Neue Anmeldung</h1>
+    <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
+    <p style="${paragraphStyle()}">für <strong>${escapeHtml(title)}</strong>${dateLabel ? ` <strong>${escapeHtml(dateLabel)}</strong>` : ''} hat sich jemand über Tribe angemeldet:</p>
+    <p style="${paragraphStyle()}background:${COLOR_BG_SOFT};padding:12px 14px;border-radius:8px;border:1px solid ${COLOR_BORDER};">
+      <strong>Name:</strong> ${escapeHtml(attendee)}<br/>
+      <strong>${contactLabel}:</strong> ${contactLinkHtml(contact, contactType)}
+    </p>
+    <p style="${paragraphStyle()}">Bitte melde dich bei Bedarf direkt bei dieser Person. Tribe führt keine Teilnehmerliste und vergibt keine Plätze.</p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${url}" style="${brandButtonStyle()}">Event ansehen</a>
+    </p>`;
+  const textBody =
+    `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
+    `für „${title}“${dateLabel ? ` ${dateLabel}` : ''} hat sich jemand über Tribe angemeldet:\n\n` +
+    `Name: ${attendee}\n` +
+    `${contactLabel}: ${contact}\n\n` +
+    `Bitte melde dich bei Bedarf direkt bei dieser Person. Tribe führt keine Teilnehmerliste und vergibt keine Plätze.\n\n` +
+    `Event ansehen: ${url}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'eventRegistration'),
+    text: textBody + footerText('eventRegistration'),
+  };
+}
+
+export interface EventRegistrationConfirmationPayloadInput {
+  recipient: string;
+  attendeeName?: string | null;
+  event: { title: string; slug?: string | null; time?: string | null };
+  occurrenceDate?: string | null;
+  /** "Now" for the colloquial date wording; tests only. */
+  now?: Date;
+}
+
+/** Mail to the person who registered (only when they gave an e-mail address). */
+export function buildEventRegistrationConfirmationPayload({
+  recipient,
+  attendeeName,
+  event,
+  occurrenceDate,
+  now,
+}: EventRegistrationConfirmationPayloadInput): EmailPayload {
+  const name = chatMailName(attendeeName, '');
+  const title = shorten(chatMailLine(event.title), CHAT_MAIL_TITLE_MAX) || 'ein Event';
+  const url = eventUrl(event.slug);
+  const dateLabel = describeOccurrence(occurrenceDate, event.time, now);
+  const subject = `Deine Anmeldung: ${title}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Deine Anmeldung ist angekommen</h1>
+    <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
+    <p style="${paragraphStyle()}">danke für deine Anmeldung zu <strong>${escapeHtml(title)}</strong>${dateLabel ? ` <strong>${escapeHtml(dateLabel)}</strong>` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.</p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${url}" style="${brandButtonStyle()}">Event ansehen</a>
+    </p>`;
+  const textBody =
+    `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
+    `danke für deine Anmeldung zu „${title}“${dateLabel ? ` ${dateLabel}` : ''}. Wir haben die Veranstaltenden informiert; sie melden sich bei Bedarf direkt bei dir.\n\n` +
+    `Event ansehen: ${url}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'eventRegistrationConfirm'),
+    text: textBody + footerText('eventRegistrationConfirm'),
   };
 }
 

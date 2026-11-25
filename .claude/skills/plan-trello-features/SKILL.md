@@ -31,9 +31,9 @@ They take ARIs, not short links. `trelloReadList` `list_by_board` gives the
 column IDs, `get` on a list gives its cards (max 25), `trelloReadCard` `get`
 reads a card, `trelloWriteCard` `add_comment` / `move` comment and move.
 
-They **cannot assign members** to a card. The `@petermathis1` mention in the
-comment is what notifies Peter. If Thomas asks for an assignment, say so and
-let him do it in Trello.
+**Never assign Peter (or anyone) to a card**, and never list "assign Peter" as
+a to-do for Thomas. The `@petermathis1` mention in the comment is what notifies
+Peter; commenting and moving the card to Testing is the whole handover.
 
 ## Step 1: List the column
 
@@ -133,7 +133,8 @@ Never stop at "committed" once Thomas has approved the build. In this order:
    plainly what he should test on production, and add short questions for
    anything still unclear), then move the card to **Testing**.
 5. Tell Thomas: commit, deploy result, card moved, anything he must do by hand
-   (e.g. assign Peter in Trello), and anything the subagent could not verify.
+   (only real manual steps, e.g. `firebase deploy --only storage`; never
+   "assign Peter"), and anything the subagent could not verify.
 
 ## Guardrails
 

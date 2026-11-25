@@ -6,6 +6,7 @@ import { HelmetProvider } from 'react-helmet-async';
 const mockAuth = vi.hoisted(() => ({
   user: { uid: 'user-uid', email: 'user@test.local', emailVerified: true },
   role: null,
+  canCreateEvents: true,
 }));
 
 const mockProfile = vi.hoisted(() => ({ value: null }));
@@ -47,6 +48,10 @@ vi.mock('../../src/hooks/useEvents', () => ({
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
+vi.mock('../../src/hooks/useDuplicateCheck', () => ({
+  useDuplicateCheck: () => ({ findDuplicates: async () => [] }),
+}));
+
 vi.mock('../../src/hooks/useCategories', () => ({
   useCategories: () => [
     'Yoga',
@@ -69,6 +74,16 @@ vi.mock('../../src/lib/imageUpload', () => ({
 }));
 
 import EventFormWizard from '../../src/components/EventFormWizard';
+import { clearWizardDraftFiles, saveWizardDraftFiles } from '../../src/utils/wizardDraftFiles';
+
+// The Titelbild of a seeded draft (kept in memory by wizardDraftFiles); a save
+// re-checks it, so every seeded draft gets one unless a test removes it.
+function seedCover() {
+  clearWizardDraftFiles('user-uid');
+  saveWizardDraftFiles('user-uid', {
+    cover: new File(['x'], 'cover.jpg', { type: 'image/jpeg' }),
+  });
+}
 
 const FUTURE_DATE = (() => {
   const d = new Date();
@@ -121,6 +136,7 @@ function renderWizard() {
 }
 
 beforeEach(() => {
+  seedCover();
   mockAuth.user = { uid: 'user-uid', email: 'user@test.local', emailVerified: true };
   mockAuth.role = null;
   mockProfile.value = null;
@@ -148,8 +164,8 @@ describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO re
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
 
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => {
@@ -166,8 +182,8 @@ describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO re
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
 
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => {
@@ -193,8 +209,8 @@ describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO re
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
 
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => {
@@ -210,8 +226,8 @@ describe('EventFormWizard confetti celebration', () => {
     renderWizard();
 
     fireEvent.click(screen.getByTestId('submit-event-button'));
+    await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
     const confirmDialog = document.querySelector('.confirm-dialog');
-    await waitFor(() => expect(confirmDialog).toBeTruthy());
     fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
 
     await waitFor(() => expect(screen.getByTestId('success-dialog')).toBeInTheDocument());
@@ -226,5 +242,23 @@ describe('EventFormWizard confetti celebration', () => {
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/admin'));
     expect(mockConfetti).not.toHaveBeenCalled();
+  });
+});
+
+describe('EventFormWizard organizer prefill', () => {
+  it('uses the profile name instead of the e-mail prefix, also when the profile loads late', async () => {
+    mockProfile.value = null;
+    const view = renderWizard();
+    expect(await screen.findByLabelText(/Veranstalter/)).toHaveValue('user');
+
+    mockProfile.value = { displayName: 'Anna Blume', slug: 'user-uid' };
+    view.rerender(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/admin/new']}>
+          <EventFormWizard />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+    await waitFor(() => expect(screen.getByLabelText(/Veranstalter/)).toHaveValue('Anna Blume'));
   });
 });

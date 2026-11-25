@@ -21,12 +21,14 @@ import {
 } from '../utils/eventFormat';
 import { parseContactText } from '../utils/contactFormat';
 import RegistrationText from './RegistrationText';
+import ContactText from './ContactText';
 import DistrictBadge from './DistrictBadge';
 import { MemberBadgeFrame } from './MemberBadge';
 import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
 import RichTextView from './RichTextView';
 import EventCoverImage from './EventCoverImage';
+import EventRegistrationButton from './EventRegistrationButton';
 import { getMonthlyWeekdayPhrase } from '../utils/eventOccurrences';
 import './EventModal.css';
 
@@ -89,7 +91,8 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
   return label;
 }
 
-export default function EventModal({ event, onClose }) {
+// `user` (optional): the signed-in member, prefills the registration form.
+export default function EventModal({ event, onClose, user = null }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const fallbackImage = getEventFallbackImage(event);
 
@@ -113,6 +116,8 @@ export default function EventModal({ event, onClose }) {
 
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
+  // "Keine Angabe": the organizer did not state a price (e.g. imported events); never shown as free
+  const isUnspecified = event.contribution === 'unspecified';
   const hasRemoteImage = Boolean(event.imageUrl);
 
   return (
@@ -142,7 +147,7 @@ export default function EventModal({ event, onClose }) {
               </div>
             )}
             <div
-              className={`modal-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : 'badge--fee'}`}
+              className={`modal-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : isUnspecified ? 'badge--unspecified' : 'badge--fee'}`}
             >
               <Ticket size={14} />
               <span>
@@ -150,14 +155,16 @@ export default function EventModal({ event, onClose }) {
                   ? 'Kostenlos'
                   : isDonation
                     ? 'Freie Spende'
-                    : event.fee
-                      ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
-                          event.feeNote ? ` / ${event.feeNote}` : ''
-                        }`
-                      : event.feeNote || 'Kostenpflichtig'}
+                    : isUnspecified
+                      ? 'Keine Angabe'
+                      : event.fee
+                        ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
+                            event.feeNote ? ` / ${event.feeNote}` : ''
+                          }`
+                        : event.feeNote || 'Kostenpflichtig'}
               </span>
             </div>
-            {event.firstSessionFree && !isFree && !isDonation && (
+            {event.firstSessionFree && !isFree && !isDonation && !isUnspecified && (
               <div className="modal-badge badge--free" data-testid="first-session-free-badge">
                 <span>1. Einheit gratis</span>
               </div>
@@ -287,23 +294,7 @@ export default function EventModal({ event, onClose }) {
               <div>
                 <span className="detail-label">Kontakt</span>
                 <span className="detail-value">
-                  {parseContactText(event.kontakt).map((segment, index) => {
-                    if (segment.type === 'email') {
-                      return (
-                        <a key={index} href={`mailto:${segment.value}`} className="detail-link">
-                          {segment.value}
-                        </a>
-                      );
-                    }
-                    if (segment.type === 'phone') {
-                      return (
-                        <a key={index} href={`tel:${segment.value}`} className="detail-link">
-                          {segment.value}
-                        </a>
-                      );
-                    }
-                    return <span key={index}>{segment.value}</span>;
-                  })}
+                  <ContactText kontakt={event.kontakt} messengers={event.kontaktMessenger} />
                 </span>
               </div>
             </div>
@@ -333,6 +324,8 @@ export default function EventModal({ event, onClose }) {
             <RichTextView html={event.description} />
           </div>
         )}
+
+        <EventRegistrationButton event={event} user={user} className="modal-link" />
 
         {event.link && (
           <a

@@ -14,6 +14,14 @@ export interface EventSnapshot {
   trashKind?: string | null;
   /** Stable key of the content an owner edits (see eventContentKey). */
   contentKey?: string | null;
+  /** True for events imported by the curation team (they carry `curation`, docs/event-import.md). */
+  curated?: boolean;
+  /**
+   * Curated and not yet claimed (`curation.claimable !== false`): owned by the
+   * curator account, no organizer address. No status / trash / reject / change
+   * request mail may go out for it (docs/event-import.md, "Review comments").
+   */
+  curatedUnclaimed?: boolean;
 }
 
 // Fields an owner can change on an approved event (src/utils/eventReviewFields.js).
@@ -41,11 +49,13 @@ const CONTENT_KEY_FIELDS = [
   'firstSessionFree',
   'link',
   'kontakt',
+  'kontaktMessenger',
   'registration',
   'category',
   'recurrence',
   'recurrenceEndDate',
   'customDates',
+  'customTimes',
   'organizer',
 ] as const;
 
@@ -53,7 +63,11 @@ const CONTENT_KEY_FIELDS = [
 export function eventContentKey(data: Record<string, unknown> | undefined | null): string | null {
   if (!data) return null;
   const empty = (v: unknown) =>
-    v == null || v === '' || v === false || (Array.isArray(v) && v.length === 0);
+    v == null ||
+    v === '' ||
+    v === false ||
+    (Array.isArray(v) && v.length === 0) ||
+    (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
   const picked: Record<string, unknown> = {};
   for (const field of CONTENT_KEY_FIELDS) {
     const value = data[field];
@@ -141,6 +155,9 @@ export function decideEventStatusNotification(
   const beforeStatus = isStatus(before.status) ? before.status : null;
   const afterStatus = isStatus(after.status) ? after.status : null;
   if (!afterStatus) return null;
+  // Unclaimed curated events have no organizer to mail (the curator mailbox is not
+  // one): approve, reject, delete and unpublish stay internal until the claim.
+  if (after.curatedUnclaimed && afterStatus !== 'pending') return null;
 
   // An owner edited an approved event and it stayed approved (Trello 6af0678b):
   // the owner still gets the "Dein Event ist live" mail.
@@ -198,6 +215,8 @@ export function decideEventStatusNotification(
   }
 
   if (afterStatus === 'pending') {
+    // Curated events are written by the import (accept callable), nobody submitted them.
+    if (after.curated) return null;
     return {
       type: 'submitted',
       event: buildEventFor(eventId, after, eventTitle, slug),
@@ -217,6 +236,9 @@ export function decideCreatedEventNotification(
   const afterStatus = isStatus(after.status) ? after.status : null;
   if (afterStatus !== 'pending') return null;
   if (after.lastNotifiedStatus === 'pending') return null;
+  // Curated events are written by the import (accept callable), nobody submitted
+  // them: no "new event submitted" mail (docs/event-import.md).
+  if (after.curated) return null;
   return {
     type: 'submitted',
     event: buildEventFor(eventId, after, eventTitle, slug),
@@ -232,6 +254,7 @@ export function decideAdminMessageNotification(
   slug?: string | null
 ): ChangesRequestedDecision | null {
   if (message.authorRole !== 'Admin') return null;
+  if (eventSnapshot.curatedUnclaimed) return null;
   // A rejection reason is mailed with "Dein Event wurde abgelehnt" once staff
   // rejects the event, not as a change request (no double mail).
   if (message.kind === 'rejection') return null;

@@ -6,6 +6,7 @@ import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
 import { useRegion } from '../hooks/useRegion';
 import { homePathFor } from '../utils/regionRouting';
 import { DEFAULT_INSTAGRAM_HANDLE, instagramChannels, instagramProfileUrl } from '../utils/regions';
+import { TERMS_LAST_UPDATED } from '../utils/terms';
 
 // Dark launch: the per-region wording and the channel list only appear once at
 // least two Instagram channels exist; with one channel the text stays as it was.
@@ -70,6 +71,7 @@ Tel: +43 68181828713`,
 *Bei der Registrierung:*
 - E-Mail-Adresse (für die Authentifizierung)
 - Passwort (verschlüsselt gespeichert, Firebase Authentication)
+- Zeitpunkt und Fassung Ihrer Zustimmung zu den [Nutzungsbedingungen](/nutzungsbedingungen) (als Nachweis; bei Konten, die vor Einführung der Nutzungsbedingungen angelegt wurden, nicht vorhanden)
 
 *Bei der Erstellung von Events:*
 - Titel, Datum, Uhrzeit, Ort
@@ -101,7 +103,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 
 *Wenn Sie Mitglied des Vereins Tribe Vorarlberg sind:*
 - Die Angabe, dass Sie Vereinsmitglied sind; sie wird nur mit Ihrer Einwilligung als Abzeichen an Ihrem Profilbild öffentlich angezeigt (siehe Abschnitt 18)
-- Bei der Vereinsaufnahme: die Angaben zu Ihrer Mitgliedschaft und zur Zahlung des Mitgliedsbeitrags (siehe Abschnitt 19)
+- Bei der Vereinsaufnahme: Angaben zur Mitgliedschaft und zur Zahlung des Beitrags (siehe Abschnitt 20)
 
 *Bei einer Spende mit Eintrag in der Spenderliste (freiwillig):*
 - Ein optionaler Kommentar (max. 140 Zeichen), den Sie nur zusammen mit Ihrer Einwilligung zur Nennung in der Spenderliste angeben können; er wird zusammen mit Ihrem Eintrag öffentlich auf der „Über uns“-Seite angezeigt. Sie können Ihre Einwilligung jederzeit per E-Mail an admin@thetribe.at widerrufen, dann entfernen wir Kommentar und Eintrag
@@ -121,7 +123,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 
 *Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):*
 - Statistik mit Google Analytics (siehe Abschnitt 7)
-- Veröffentlichung im Verzeichnis und auf Instagram (siehe Abschnitte 11 und 12)
+- Veröffentlichung im Verzeichnis und auf Social Media (siehe Abschnitte 11 und 12)
 
 *Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):*
 - Bereitstellung der App-Funktionalität
@@ -131,13 +133,13 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
-        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12, die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7, sowie die Zahlungsabwicklung über Mollie bei Mitgliedsbeiträgen und Spenden, siehe unten und Abschnitt 19). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
+        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf unseren Social-Media-Kanälen, derzeit Instagram, mit Ihrer Einwilligung, siehe Abschnitt 12, sowie die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7, sowie die Zahlung von Mitgliedsbeiträgen über Mollie, siehe Abschnitt 20). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
 Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs-, Datenbank- und Hosting-Dienste erforderlich ist.
 
-*E-Mail-Versand (Mailgun):* Unsere automatischen E-Mails (z.B. zum Status Ihrer Events, zum Zurücksetzen des Passworts und Benachrichtigungen über neue Nachrichten, siehe Abschnitte 14 und 15) versenden wir über den Dienst Mailgun der Mailgun Technologies, Inc. (USA). Wir nutzen die EU-Region von Mailgun. Mailgun erhält dafür Ihre E-Mail-Adresse und den Inhalt der jeweiligen E-Mail und speichert Versandprotokolle (Empfängeradresse, Betreff, Zeitpunkt, Zustellstatus) für begrenzte Zeit, um die Zustellung nachvollziehen zu können. Mailgun ist als Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO tätig und verarbeitet die Daten nur nach unserer Weisung. Soweit dabei Daten in die USA übermittelt werden können, erfolgt dies auf Grundlage der EU-Standardvertragsklauseln bzw. des EU-US Data Privacy Framework.
+*Zahlung (Mollie):* Bei einem Mitgliedsbeitrag wickelt der Zahlungsdienstleister Mollie die Zahlung ab. Mollie erhält dafür die nötigen Angaben (Name, E-Mail-Adresse, Betrag, Zahlungsart). Kartennummer oder Bankverbindung geben Sie direkt bei Mollie ein; wir erhalten sie nicht. Näheres in Abschnitt 20.
 
-*Zahlungsabwicklung (Mollie):* Wenn Sie einen Mitgliedsbeitrag oder eine Spende bezahlen, wickeln wir die Zahlung über den Zahlungsdienstleister Mollie ab. Mollie erhält dafür die zur Zahlung nötigen Angaben (insbesondere Name, E-Mail-Adresse, Betrag und gewählte Zahlungsart) und verarbeitet sie für die Abwicklung der Zahlung. Zahlungsdaten wie Kartennummer oder Bankverbindung geben Sie direkt bei Mollie ein; wir selbst erhalten sie nicht. Es gelten zusätzlich die Datenschutzbestimmungen von Mollie. Näheres zur Vereinsmitgliedschaft steht in Abschnitt 19.
+*E-Mail-Versand (Mailgun):* Unsere automatischen E-Mails (z.B. zum Status Ihrer Events, zum Zurücksetzen des Passworts und Benachrichtigungen über neue Nachrichten, siehe Abschnitte 14 und 15) versenden wir über den Dienst Mailgun der Mailgun Technologies, Inc. (USA). Wir nutzen die EU-Region von Mailgun. Mailgun erhält dafür Ihre E-Mail-Adresse und den Inhalt der jeweiligen E-Mail und speichert Versandprotokolle (Empfängeradresse, Betreff, Zeitpunkt, Zustellstatus) für begrenzte Zeit, um die Zustellung nachvollziehen zu können. Mailgun ist als Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO tätig und verarbeitet die Daten nur nach unserer Weisung. Soweit dabei Daten in die USA übermittelt werden können, erfolgt dies auf Grundlage der EU-Standardvertragsklauseln bzw. des EU-US Data Privacy Framework.
 
 Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. Google Kalender) abonnieren, ruft dieser Dienst die öffentlichen Event-Daten auf Ihre Veranlassung bei uns ab (siehe Abschnitt 13).`,
       },
@@ -153,10 +155,10 @@ Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. 
 - *Zeitpunkt der letzten Benachrichtigungs-E-Mail:* Wird nur zur Begrenzung der Anzahl der E-Mails gespeichert und automatisch gelöscht, bei Privatnachrichten nach einem Tag, beim ${CANDLE_ROOM_NAME} nach zwei Tagen (siehe Abschnitte 14 und 15)
 - *Online-Status:* Der Zeitstempel wird beim Verlassen der Seite, beim Abmelden und beim Ausschalten der Option gelöscht, spätestens nach einem Tag automatisch (siehe Abschnitt 16)
 - *Vereinsmitgliedschaft (Abzeichen):* Wird entfernt, wenn Ihre Mitgliedschaft endet, wenn Sie Ihre Einwilligung widerrufen oder wenn Sie Ihr Konto löschen (siehe Abschnitt 18)
-- *Mitgliedsdaten und Zahlungsdaten (Mitgliedschaft, Spenden):* Werden so lange gespeichert, wie es für die Mitgliedschaft bzw. die Abwicklung nötig ist; danach werden sie gelöscht, soweit uns keine gesetzlichen Aufbewahrungspflichten zur Speicherung verpflichten (siehe Abschnitt 19)
+- *Mitgliedsdaten (Vereinsaufnahme):* Solange die Mitgliedschaft besteht; Zahlungsbelege nach den gesetzlichen Aufbewahrungsfristen (siehe Abschnitt 20)
 - *Server-Protokolle:* Siehe Abschnitt 9
 
-Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt, soweit keine gesetzliche Aufbewahrungspflicht entgegensteht.`,
+Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
       },
       {
         heading: '6. Ihre Rechte',
@@ -214,10 +216,13 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von Google: [https
 - Datenspeicherung (Cloud Firestore)
 - Bereitstellung der Website und der Server-Funktionen (Firebase Hosting, Cloud Functions), z.B. für den Kalender-Export
 - Nutzungsstatistik (Google Analytics, nur mit Ihrer Einwilligung, siehe Abschnitt 7)
+- Push-Benachrichtigungen (Firebase Cloud Messaging, nur wenn Sie sie einschalten, siehe unten)
 
 Die Datenverarbeitung durch Firebase erfolgt auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO. Google verarbeitet Daten ausschließlich nach unserer Weisung und nicht für eigene Zwecke.
 
 *Server-Protokolle:* Bei jedem Aufruf der Website und ihrer Server-Funktionen (z.B. beim Abruf einer Kalenderdatei oder des Kalender-Abos) werden technisch bedingt Zugriffsdaten protokolliert: Ihre IP-Adresse, Datum und Uhrzeit, die aufgerufene Adresse sowie die Angaben Ihres Browsers bzw. Ihrer Kalender-App (User-Agent). Diese Protokolle werden von Google als Auftragsverarbeiter erstellt und gespeichert. Wir nutzen sie ausschließlich, um den Betrieb und die Sicherheit der Website zu gewährleisten und Fehler oder Missbrauch zu erkennen, und führen sie nicht mit anderen Daten zusammen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren und funktionsfähigen Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Die Protokolle werden nur so lange gespeichert, wie es für Betrieb und Sicherheit erforderlich ist, und danach automatisch gelöscht.
+
+*Push-Benachrichtigungen (freiwillig):* In Ihrem Profil können Sie für ein Gerät Push-Benachrichtigungen einschalten, z.B. wenn Ihr Event genehmigt wurde oder es eine Rückfrage dazu gibt (für das Team auch: neue Einreichungen und Antworten). Erst nach Ihrem Klick fragt Ihr Browser um Erlaubnis. Dafür nutzen wir Firebase Cloud Messaging (Google). Gespeichert werden eine zufällige Geräte-Kennung (Token), die Art des Geräts (z.B. Android, iPhone, Computer) sowie wann das Gerät eingerichtet und zuletzt genutzt wurde. Die Kennung wird über Google und den Push-Dienst Ihres Browsers bzw. Betriebssystems (z.B. Apple, Mozilla, Google) zugestellt; die Benachrichtigung enthält nur den Titel des Events, keine Nachrichteninhalte. Sie können Push jederzeit im Profil oder in den Einstellungen Ihres Browsers ausschalten; beim Ausschalten, beim Abmelden und beim Löschen des Kontos wird die Kennung gelöscht, nicht mehr gültige Kennungen löschen wir automatisch. Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).
 
 Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https://policies.google.com/privacy`,
       },
@@ -255,7 +260,8 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Moderation:* Das Tribe-Team kann einzelne Einträge aus dem Verzeichnis ausblenden, etwa bei unpassenden oder rechtswidrigen Inhalten. Ihr Profil bleibt davon unberührt.`,
       },
       {
-        heading: '12. Veröffentlichung auf Instagram (freiwillig)',
+        heading: '12. Veröffentlichung auf Social Media (freiwillig)',
+        anchor: 'social-media',
         channelList: true,
         text: (ctx) => {
           const multi = ctx.channels.length >= MIN_CHANNELS_FOR_LIST;
@@ -265,19 +271,17 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
               : `Wir betreiben den Instagram-Kanal ${singleChannel(ctx.channels)}, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.`
           }
 
+Derzeit nutzen wir für die Veröffentlichung ausschließlich Instagram (Meta Platforms Ireland Limited, die für ihren Dienst eigene Verantwortliche ist). Nehmen wir weitere Plattformen hinzu, informieren wir Sie vorher und veröffentlichen dort nur mit Ihrer erneuten Zustimmung.
+
 *Was wird veröffentlicht?*
 - Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf ${multi ? 'dem Instagram-Kanal der Region Ihres Events' : 'unserem Instagram-Kanal'} veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
 - Veröffentlicht werden die Angaben zum Event (Titel, Datum, Uhrzeit, Ort, Beschreibung, Bild und ein Link zur Event-Seite)
 - Wenn Sie in Ihrem Profil einen Instagram-Namen angegeben haben, markieren wir Ihr Instagram-Profil im Bild des Beitrags, laden es als Co-Autor (Collab) zum Beitrag ein und erwähnen es in der Beschreibung („@name“). Die Einladung müssen Sie in Instagram selbst annehmen; kann sie nicht gesendet werden, wird der Beitrag ohne Einladung veröffentlicht
 - Sie können in Ihrem Profil festlegen, ob die Zustimmung für neue Events standardmäßig gesetzt sein soll; sie ist standardmäßig ausgeschaltet. Pro Event können Sie diese Einstellung ändern
 
-*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Instagram veröffentlicht und Ihr Profil weder markiert noch eingeladen noch erwähnt.
+*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Social Media (derzeit Instagram) veröffentlicht und Ihr Profil weder markiert noch eingeladen noch erwähnt.
 
-*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.${
-            multi
-              ? ' Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.'
-              : ''
-          }
+*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta. Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.
 
 *Widerruf und Löschung:*
 - Sie können Ihre Zustimmung jederzeit für künftige Events ausschalten
@@ -438,39 +442,209 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Beim Löschen Ihres Kontos wird die Angabe zusammen mit Ihrem öffentlichen Profil gelöscht`,
       },
       {
-        id: 'vereinsmitglieder',
-        heading: '19. Vereinsmitglieder',
-        text: `Dieser Abschnitt gilt, wenn Sie beim Verein Tribe Vorarlberg Mitglied werden oder es bereits sind. Er informiert Sie nach Art. 13 DSGVO über die Verarbeitung Ihrer Daten für die Vereinsmitgliedschaft.
+        heading: '19. Anmeldung zu Events',
+        text: `Bei Events können Sie sich über den Button „Zum Event anmelden“ bzw. „Über Tribe anmelden“ anmelden, mit oder ohne Konto.
 
-*Verantwortlicher:* Der Verein Tribe Vorarlberg, dessen Kontaktdaten Sie in Abschnitt 1 finden.
-
-*Welche Daten verarbeiten wir?*
-- Ihre Angaben zur Mitgliedschaft (zum Beispiel Name, E-Mail-Adresse, gewählte Mitgliedschaft bzw. Beitragshöhe, Datum des Beitritts und, falls vorhanden, des Austritts)
-- Angaben zur Zahlung des Mitgliedsbeitrags (zum Beispiel Betrag, Zeitpunkt, Status der Zahlung und gewählte Zahlungsart)
-- Wenn Sie bereits ein Konto auf dieser Website haben, übernehmen wir Ihren Namen und Ihre E-Mail-Adresse aus Ihrem Konto in die Vereinsaufnahme, damit Sie diese nicht erneut eingeben müssen
-
-*Wofür verwenden wir die Daten?*
-- Aufnahme und Verwaltung Ihrer Mitgliedschaft, einschließlich der Mitgliederliste des Vereins
-- Abwicklung und Verbuchung des Mitgliedsbeitrags
-- Kontakt mit Ihnen in Angelegenheiten der Mitgliedschaft
-- Erfüllung gesetzlicher Pflichten, zum Beispiel zur Buchhaltung
-
-*Rechtsgrundlagen:*
-- Die Durchführung der Mitgliedschaft und die Abwicklung des Beitrags beruhen auf dem Mitgliedschaftsverhältnis zum Verein (Art. 6 Abs. 1 lit. b DSGVO)
-- Gesetzliche Aufbewahrungspflichten (Art. 6 Abs. 1 lit. c DSGVO)
-- Soweit wir Sie um Ihre Zustimmung bitten, ist die Rechtsgrundlage Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit mit Wirkung für die Zukunft widerrufen können. Das betrifft zum Beispiel das Abzeichen am Profilbild (siehe Abschnitt 18)
-
-*Empfänger:* Für die Zahlung des Mitgliedsbeitrags nutzen wir den Zahlungsdienstleister Mollie (siehe Abschnitt 4). Mollie erhält die für die Zahlung nötigen Angaben. Darüber hinaus geben wir Ihre Mitgliedsdaten nicht an Dritte weiter, außer wir sind gesetzlich dazu verpflichtet. Technisch werden die Daten, wie die übrigen Daten dieser Website, bei unseren Dienstleistern gespeichert (siehe Abschnitt 9).
-
-*Speicherdauer:* Wir speichern Ihre Mitgliedsdaten, solange Ihre Mitgliedschaft besteht und solange es für ihre Abwicklung nötig ist. Daten, die für die Buchhaltung des Vereins relevant sind (zum Beispiel Zahlungsbelege), bewahren wir für die gesetzlichen Aufbewahrungsfristen auf, nach der Bundesabgabenordnung (BAO) in der Regel sieben Jahre. Danach werden sie gelöscht.
-
-*Ihre Rechte:* Sie haben die in Abschnitt 6 beschriebenen Rechte, insbesondere auf Auskunft, Berichtigung, Löschung und Widerspruch. Schreiben Sie uns dazu an admin@thetribe.at. Wenn Sie der Meinung sind, dass die Verarbeitung Ihrer Daten gegen das Datenschutzrecht verstößt, können Sie sich bei der Datenschutzbehörde beschweren (www.dsb.gv.at).
-
-*Zusammenspiel mit dem Abzeichen:* Dass Sie Mitglied sind, ist nicht automatisch öffentlich. Das Abzeichen am Profilbild (Abschnitt 18) wird nur mit Ihrer gesonderten Einwilligung angezeigt.`,
+- Wir verarbeiten Ihren Namen und die von Ihnen angegebene E-Mail-Adresse oder Telefonnummer, das Event (und gegebenenfalls den gewählten Termin), den Zeitpunkt sowie, wenn Sie angemeldet sind, eine interne Konto-Kennung
+- Name und Kontaktangabe schicken wir per E-Mail an die Veranstalterin bzw. den Veranstalter des Events, damit sie sich bei Ihnen melden können. Bei einer E-Mail-Adresse erhalten Sie einmal pro Event eine Bestätigung per E-Mail. Mit Konto wird das Event zusätzlich in Ihren Favoriten gespeichert
+- Es gibt keine öffentliche Teilnehmerliste. Die gespeicherte Anmeldung können nur die Veranstalter:innen des Events und die Administrator:innen einsehen; sie wird gelöscht, sobald das Event vorbei ist. Die E-Mail an die Veranstalter:innen liegt danach in deren Postfach, darauf haben wir keinen Einfluss
+- Für Bestätigungen speichern wir bis zum Ende des Events zusätzlich einen nicht lesbaren Prüfwert (Hash) Ihrer E-Mail-Adresse, damit Sie nicht mehrfach dieselbe Bestätigung erhalten
+- Ohne Konto merkt sich Ihr Browser Name, E-Mail-Adresse und Event bis zum Schließen des Tabs (Sitzungsspeicher), damit Sie danach ohne erneute Eingabe ein Konto anlegen können
+- Rechtsgrundlage ist die Durchführung Ihrer Anfrage (Art. 6 Abs. 1 lit. b DSGVO). Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9), der E-Mail-Versand läuft über Mailgun (siehe Abschnitt 4)`,
       },
       {
-        heading: '20. Änderungen dieser Datenschutzerklärung',
-        text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
+        anchor: 'vereinsmitglieder',
+        heading: '20. Vereinsmitglieder',
+        text: `Dieser Abschnitt gilt, wenn Sie beim Verein Tribe Vorarlberg Mitglied werden oder es sind.
+
+*Verantwortlicher:* Verein Tribe Vorarlberg, Kontakt siehe Abschnitt 1.
+
+*Welche Daten?* Name, E-Mail-Adresse, gewählter Monatsbeitrag, Zahlungsstatus und Beitrittsdatum. Wenn Sie schon ein Konto haben, übernehmen wir Name und E-Mail-Adresse daraus, damit Sie sie nicht noch einmal eingeben müssen.
+
+*Wofür?* Für die Mitgliederverwaltung, die Abwicklung des Beitrags und die Einladung zu Vereinsveranstaltungen.
+
+*Rechtsgrundlage:* Ihre Mitgliedschaft (Art. 6 Abs. 1 lit. b DSGVO). Für freiwillige Extras wie einen Newsletter Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit widerrufen können. Für die Buchhaltung gesetzliche Pflichten (Art. 6 Abs. 1 lit. c DSGVO).
+
+*Wer erhält die Daten?* Den Beitrag wickelt Mollie ab (siehe Abschnitt 4). Sonst geben wir Ihre Daten nicht weiter, außer das Gesetz verlangt es.
+
+*Wie lange?* Solange Ihre Mitgliedschaft besteht. Danach löschen wir die Daten, außer Buchhaltungsunterlagen: Diese müssen wir nach der Bundesabgabenordnung in der Regel sieben Jahre aufbewahren.
+
+*Ihre Rechte:* Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch (siehe Abschnitt 6). Schreiben Sie dazu an admin@thetribe.at. Sie können sich außerdem bei der österreichischen Datenschutzbehörde beschweren (www.dsb.gv.at).
+
+*Abzeichen:* Dass Sie Mitglied sind, ist nicht automatisch öffentlich. Das Abzeichen am Profilbild gibt es nur mit Ihrer gesonderten Einwilligung (siehe Abschnitt 18).`,
+      },
+      {
+        heading: '21. Änderungen dieser Datenschutzerklärung',
+        text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.
+
+Die Regeln für die Nutzung der Website finden Sie in unseren [Nutzungsbedingungen](/nutzungsbedingungen).`,
+      },
+    ],
+  },
+  nutzungsbedingungen: {
+    title: 'Nutzungsbedingungen',
+    description:
+      'Nutzungsbedingungen von tribe Vorarlberg: wie unser gemeinnütziger Verein die Plattform betreibt, wofür wir keine Verantwortung übernehmen und welche Regeln für alle gelten.',
+    lastUpdated: TERMS_LAST_UPDATED,
+    sections: [
+      {
+        heading: '1. Worum es geht',
+        text: `Diese Nutzungsbedingungen gelten für die Nutzung dieser Website und aller ihrer Funktionen (zum Beispiel Veranstaltungskalender, Verzeichnis, Profile, Chat, Privatnachrichten und Anmeldung zu Events), mit oder ohne Konto.
+
+Wenn du ein Konto erstellst, stimmst du diesen Nutzungsbedingungen und unserer [Datenschutzerklärung](/datenschutz) zu. Für die Nutzung ohne Konto gelten sie sinngemäß.
+
+Betreiber ist der Verein Tribe Vorarlberg (Angaben im [Impressum](/impressum)). Wenn hier „wir“ steht, ist der Verein gemeint; „du“ bist du als Nutzer:in.`,
+      },
+      {
+        heading: '2. Ein Verein, kein Geschäft',
+        text: `Tribe ist ein ehrenamtliches Projekt des gemeinnützigen Vereins Tribe Vorarlberg. Wir möchten Menschen, Veranstaltungen und Angebote rund um eine ganzheitliche, bewusste Lebensweise sichtbar machen und miteinander verbinden.
+
+- Die Nutzung der Website ist für dich kostenlos. Durch die Nutzung oder die Registrierung entsteht kein entgeltlicher Vertrag mit uns
+- Wir sind nicht Veranstalter, Anbieter, Vermittler oder Vertragspartner der gezeigten Veranstaltungen und Angebote, sofern nicht ausdrücklich etwas anderes angegeben ist. Verträge (zum Beispiel über die Teilnahme an einem Event) kommen ausschließlich zwischen dir und den jeweiligen Anbieter:innen zustande
+- Freiwillige Spenden und Vereinsmitgliedschaften unterstützen den Verein. Sie begründen keinen Anspruch auf bestimmte Leistungen, Funktionen oder Veröffentlichungen`,
+      },
+      {
+        heading: '3. Keine Verpflichtung zum Betrieb',
+        text: `Wir betreiben die Website ehrenamtlich und nach unseren Möglichkeiten. Daraus ergibt sich keine Verpflichtung, sie in einer bestimmten Form oder überhaupt zu betreiben.
+
+- Es besteht kein Anspruch darauf, dass die Website oder einzelne Funktionen jederzeit erreichbar, fehlerfrei oder vollständig sind
+- Wir dürfen Funktionen jederzeit ändern, einschränken, einstellen oder neu hinzufügen und die Website ganz oder teilweise vorübergehend oder dauerhaft einstellen
+- Es besteht kein Anspruch auf die Veröffentlichung von Events, Profilen, Einträgen im Verzeichnis oder Beiträgen in unseren Kanälen (zum Beispiel auf Instagram). Ob und wie lange wir etwas veröffentlichen, entscheiden wir nach eigenem Ermessen
+- Bitte bewahre wichtige Inhalte (Texte, Bilder) selbst auf. Wir schulden keine Datensicherung für dich`,
+      },
+      {
+        heading: '4. Inhalte von anderen und keine Empfehlung',
+        text: `Die meisten Inhalte auf dieser Website stammen nicht von uns, sondern von Veranstalter:innen und anderen Nutzer:innen: Events, Beschreibungen, Bilder, Preise, Profile, Links, Chat-Beiträge und Nachrichten.
+
+- *Keine Empfehlung:* Dass ein Mensch, ein Event oder ein Angebot auf der Website gezeigt wird, ist keine Empfehlung, Gutheißung, Bewertung oder Qualitätsaussage von uns. Das gilt auch für Hervorhebungen, die Reihenfolge der Anzeige, Abzeichen (zum Beispiel für Vereinsmitglieder) und Beiträge in unseren Kanälen
+- *Keine Prüfung:* Wir prüfen fremde Inhalte nicht laufend und sind dazu auch nicht verpflichtet. Auch wenn wir Events vor der Veröffentlichung ansehen, übernehmen wir keine Gewähr für ihre Richtigkeit, Vollständigkeit, Aktualität, Qualität oder Rechtmäßigkeit
+- *Verantwortung der Anbieter:innen:* Für ihre Inhalte, Angebote und Veranstaltungen (Durchführung, Absage, Preise, Sicherheit, Qualifikation) sind ausschließlich die jeweiligen Anbieter:innen verantwortlich
+- *Links:* Für Inhalte, Angebote, Preise und Datenschutz auf verlinkten Websites anderer sind ausschließlich deren Betreiber verantwortlich. Wir machen uns diese Inhalte nicht zu eigen
+- *Teilnahme auf eigene Verantwortung:* Die Teilnahme an Veranstaltungen und die Inanspruchnahme von Angeboten erfolgen auf deine eigene Verantwortung. Angebote auf dieser Website ersetzen keine ärztliche, psychotherapeutische oder sonstige fachliche Beratung oder Behandlung. Bitte prüfe selbst, ob ein Angebot für dich passt
+
+Wenn dir ein rechtswidriger oder problematischer Inhalt auffällt, schreib uns bitte an [admin@thetribe.at](mailto:admin@thetribe.at) oder nutze die Melde-Funktion. Wir sehen ihn uns an und entfernen ihn gegebenenfalls.`,
+      },
+      {
+        heading: '5. Deine Inhalte und deine Verantwortung',
+        text: `Du bist für alles verantwortlich, was du auf der Website veröffentlichst oder verschickst (Events, Texte, Bilder, Links, Profilangaben, Chat-Beiträge und Nachrichten).
+
+- Deine Angaben müssen wahr und dürfen nicht irreführend sein. Halte deine Events aktuell und sage abgesagte Termine ab
+- Du darfst nur Inhalte hochladen, an denen du die nötigen Rechte hast (zum Beispiel Urheberrechte an Texten und Fotos). Wer auf Fotos erkennbar ist, muss mit der Veröffentlichung einverstanden sein
+- Deine Inhalte dürfen nicht gegen Gesetze oder Rechte anderer verstoßen
+- Wenn andere wegen deiner Inhalte Ansprüche gegen uns erheben, weil du gegen diese Bedingungen oder gegen Gesetze verstoßen hast, unterstützt du uns bei der Klärung und hältst uns, soweit gesetzlich zulässig, schad- und klaglos
+
+*Rechte an deinen Inhalten:* Die Rechte an deinen Inhalten bleiben bei dir. Du erlaubst uns, sie unentgeltlich und nicht ausschließlich zu speichern, auf dieser Website, in Kalenderdateien und im Kalender-Abo zu zeigen und technisch anzupassen (zum Beispiel Bildgröße, Zuschnitt, Kürzung für Vorschauen), soweit das für den Betrieb und die Bewerbung der Plattform nötig ist. Auf Social Media (derzeit Instagram) veröffentlichen wir deine Events nur, wenn du dem beim jeweiligen Event zustimmst. Die Erlaubnis endet, wenn du einen Inhalt oder dein Konto löschst; bereits verschickte E-Mails, heruntergeladene Kalenderdateien und veröffentlichte Beiträge in unseren Kanälen können wir nicht in jedem Fall zurückholen.
+
+Die Nutzung von Inhalten dieser Website durch andere (zum Beispiel Kopieren für kommerzielle Zwecke oder automatisiertes Auslesen) ist im [Impressum](/impressum) unter „Nutzung der Inhalte und Datenbank“ geregelt.`,
+      },
+      {
+        heading: '6. Respektvolles Miteinander',
+        text: `Tribe lebt von einem wertschätzenden Miteinander. Bitte
+
+- begegne anderen respektvoll, auch bei unterschiedlichen Meinungen und Wegen
+- verzichte auf Beleidigungen, Bedrohungen, Belästigung, Hetze, Diskriminierung und das Bloßstellen anderer
+- verschicke keine Werbung, Kettenbriefe oder Spam, insbesondere nicht über Chat und Privatnachrichten, und nutze Kontaktdaten anderer nicht für Werbung
+- veröffentliche nur Events und Angebote, die zum Thema der Plattform passen, und keine Inhalte, die gefährlich, pornografisch, gewaltverherrlichend oder sonst rechtswidrig sind
+- verbreite keine Heilversprechen oder Aussagen, die Menschen von notwendiger ärztlicher Behandlung abhalten könnten
+- gib dich nicht als jemand anderes aus, lege keine Konten für andere ohne deren Einverständnis an und gib deine Zugangsdaten nicht weiter
+- störe die Website nicht technisch und versuche nicht, Schutzmechanismen zu umgehen
+
+Für den Chat gelten zusätzlich die Chat-Regeln, die beim ersten Betreten angezeigt werden.`,
+      },
+      {
+        heading: '7. Moderation, Sperre und Ausschluss',
+        text: `Damit Tribe ein guter Ort bleibt, dürfen wir nach eigenem Ermessen
+
+- Inhalte (Events, Profile, Einträge, Bilder, Nachrichten) ablehnen, ändern lassen, ausblenden oder löschen
+- Nutzer:innen vorübergehend oder dauerhaft von einzelnen Funktionen (zum Beispiel dem Chat) oder von der ganzen Website ausschließen und ihr Konto sperren oder löschen
+
+Das gilt insbesondere bei Verstößen gegen diese Nutzungsbedingungen, kann aber auch aus anderen Gründen geschehen. Wir sind nicht verpflichtet, unsere Entscheidung zu begründen oder vorher anzukündigen. Ein Anspruch auf Nutzung, auf Wiederherstellung oder auf Veröffentlichung besteht nicht.
+
+Du kannst dein Konto jederzeit selbst in deinem Profil löschen. Was dabei mit deinen Daten passiert, steht in der [Datenschutzerklärung](/datenschutz).`,
+      },
+      {
+        heading: '8. Haftung',
+        text: `Wir stellen die Website unentgeltlich und ehrenamtlich zur Verfügung. Deshalb ist unsere Haftung so weit beschränkt, wie es das Gesetz erlaubt:
+
+- Wir haften nur für Schäden, die wir vorsätzlich oder grob fahrlässig verursacht haben
+- Für Inhalte, Angebote und Veranstaltungen anderer (siehe Abschnitt 4) sowie für verlinkte Websites haften wir nicht. Erfahren wir von einem rechtswidrigen Inhalt, entfernen wir ihn oder sperren den Zugang dazu
+- Für Schäden durch Unterbrechungen, Fehler, Datenverlust oder die Einstellung der Website haften wir nur bei Vorsatz oder grober Fahrlässigkeit
+
+Diese Einschränkungen gelten nicht für Schäden aus der Verletzung von Leben, Körper oder Gesundheit und nicht, soweit zwingende gesetzliche Bestimmungen (insbesondere des Konsumentenschutzgesetzes) eine weitergehende Haftung vorsehen. Sie gelten auch zugunsten der Mitglieder, Organe und ehrenamtlichen Helfer:innen des Vereins.`,
+      },
+      {
+        heading: '9. Datenschutz',
+        text: `Wie wir mit deinen personenbezogenen Daten umgehen, erklären wir in unserer [Datenschutzerklärung](/datenschutz). Bei der Registrierung speichern wir zusätzlich, wann du welcher Fassung dieser Nutzungsbedingungen zugestimmt hast.`,
+      },
+      {
+        heading: '10. Änderungen dieser Nutzungsbedingungen',
+        text: `Wir können diese Nutzungsbedingungen ändern, zum Beispiel wenn sich die Website, ihre Funktionen oder die Rechtslage ändern. Die jeweils aktuelle Fassung steht immer auf dieser Seite, mit dem Datum oben.
+
+Über wesentliche Änderungen informieren wir registrierte Nutzer:innen rechtzeitig vorher, zum Beispiel per E-Mail oder auf der Website, und bitten wenn nötig erneut um Zustimmung. Wenn du mit einer Änderung nicht einverstanden bist, kannst du dein Konto jederzeit löschen.`,
+      },
+      {
+        heading: '11. Anwendbares Recht und Schlussbestimmungen',
+        text: `Es gilt österreichisches Recht unter Ausschluss der Verweisungsnormen des internationalen Privatrechts. Wenn du Verbraucher:in bist, bleiben die zwingenden Verbraucherschutzbestimmungen des Staates, in dem du deinen gewöhnlichen Aufenthalt hast, unberührt.
+
+Sollte eine Bestimmung dieser Nutzungsbedingungen unwirksam sein, bleiben die übrigen Bestimmungen gültig.
+
+Fragen zu diesen Nutzungsbedingungen beantworten wir gerne unter [admin@thetribe.at](mailto:admin@thetribe.at).`,
+      },
+    ],
+  },
+  // Art. 14 GDPR information for organizers whose public events we found
+  // (event import, docs/event-import.md). Linked from the outreach mail and
+  // the preview page /vorschau/:token. Keep in line with art14Lines() in
+  // functions/src/importOutreachMail.ts.
+  'datenschutz-import': {
+    title: 'Datenschutz: Anfrage an Veranstalter:innen',
+    description:
+      'Datenschutzinformation nach Art. 14 DSGVO für Veranstalter:innen, deren öffentlich angekündigte Veranstaltungen tribe gefunden hat.',
+    lastUpdated: 'November 2026',
+    sections: [
+      {
+        heading: '1. Worum es geht',
+        text: `Wir sammeln Veranstaltungen rund um eine bewusste, ganzheitliche Lebensweise. Dazu sehen wir uns öffentlich angekündigte Veranstaltungen auf Websites von Veranstalter:innen an. Bevor wir etwas davon zeigen, fragen wir die Veranstalter:in einmal per E-Mail, ob sie einverstanden ist. Ohne Zustimmung veröffentlichen wir nichts.`,
+      },
+      {
+        heading: '2. Verantwortlicher',
+        text: `**Tribe Vorarlberg - Verein zur Förderung einer ganzheitlichen Lebensweise und Gesundheitsförderung**
+
+ZVR-Zahl: 1865711062
+Vordere Achmühlerstraße 17C
+A-6850 Dornbirn
+Vorarlberg / Österreich
+
+E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`,
+      },
+      {
+        heading: '3. Welche Daten, woher',
+        text: `- Name der Organisation und Website
+- Eine allgemeine Kontaktadresse (z.B. info@ oder kontakt@) aus dem Impressum bzw. den Kontaktangaben der Website, keine persönliche Adresse
+- Rechtsform (Unternehmen, Verein, Einzelperson), damit wir Namen von Privatpersonen nicht anzeigen
+- Angaben zu den Veranstaltungen: Titel, Datum, Uhrzeit, Ort, Preis, Beschreibung, Link und die Adresse des Bildes auf der Website
+
+Quelle ist jeweils die öffentlich zugängliche Website der Veranstalter:in. Bilder speichern wir vor einer Zustimmung nicht: Die private Vorschau lädt sie direkt von der Website der Veranstalter:in in deren Browser. Wir protokollieren, wann die Vorschau aufgerufen wurde und welche Bildadressen sie gezeigt hat, ohne IP-Adresse.`,
+      },
+      {
+        heading: '4. Zweck und Rechtsgrundlage',
+        text: `Wir fragen einmal an, ob wir die Veranstaltungen in unserem Kalender zeigen dürfen. Rechtsgrundlage für die Anfrage ist unser berechtigtes Interesse, Veranstaltungen sichtbar zu machen (Art. 6 Abs. 1 lit. f DSGVO). Die Veröffentlichung selbst erfolgt nur mit Zustimmung (Art. 6 Abs. 1 lit. a DSGVO).`,
+      },
+      {
+        heading: '5. Empfänger',
+        text: `Google Ireland Limited (Firebase: Datenbank und Hosting) und Mailgun (E-Mail-Versand, EU-Region) als Auftragsverarbeiter, wie in unserer [Datenschutzerklärung](/datenschutz) beschrieben.`,
+      },
+      {
+        heading: '6. Speicherdauer',
+        text: `- Keine Antwort: Wir senden nur diese eine E-Mail, ohne Erinnerung. Nach 90 Tagen löschen wir die Kontaktadresse und alle Angaben zu den Veranstaltungen. Übrig bleibt nur der Vermerk, dass wir angefragt haben (Name der Organisation, Website), damit wir nicht noch einmal schreiben.
+- Ablehnung: Wir löschen die Angaben sofort und behalten nur einen nicht lesbaren Prüfwert (Hash) der E-Mail-Adresse und der Domain, damit wir nie wieder anfragen.
+- Zustimmung: Die Veranstaltung ist sichtbar, solange sie online ist oder bis zum Widerruf.`,
+      },
+      {
+        heading: '7. Deine Rechte',
+        text: `Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung sowie das Recht, der Verarbeitung zu widersprechen (Art. 15 bis 18 und 21 DSGVO). Eine Zustimmung kannst du jederzeit widerrufen. Schreib dafür formlos an [admin@thetribe.at](mailto:admin@thetribe.at).
+
+Du kannst dich bei der Aufsichtsbehörde beschweren: Österreichische Datenschutzbehörde, Barichgasse 40-42, 1030 Wien, [www.dsb.gv.at](https://www.dsb.gv.at).`,
       },
     ],
   },
@@ -530,7 +704,9 @@ Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
       },
       {
         heading: 'Haftungsausschluss',
-        text: `### 1. Inhalte und Veranstaltungen
+        text: `Für die Nutzung der Website gelten außerdem unsere [Nutzungsbedingungen](/nutzungsbedingungen).
+
+### 1. Inhalte und Veranstaltungen
 
 Dein Tribe dient als Plattform zur Veröffentlichung und Auffindbarkeit von Veranstaltungen, Angeboten und Informationen Dritter. Die auf der Website veröffentlichten Inhalte, insbesondere Texte, Bilder, Termine, Preise, Beschreibungen und sonstige Angaben, werden teilweise von externen Veranstalter:innen und Nutzer:innen bereitgestellt.
 
@@ -621,6 +797,16 @@ function renderInline(text, keyPrefix) {
       const linkMatch = /\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/.exec(token);
       const linkText = linkMatch[1];
       const url = linkMatch[2];
+      // Own pages (`/nutzungsbedingungen`, ...) stay in the tab, via the router.
+      if (url.startsWith('/')) {
+        parts.push(
+          <Link key={`${keyPrefix}-link-${i++}`} to={url} className="legal-link">
+            {linkText}
+          </Link>
+        );
+        lastIndex = regex.lastIndex;
+        continue;
+      }
       const isMailto = url.startsWith('mailto:');
       const linkProps = { key: `${keyPrefix}-link-${i++}`, href: url, className: 'legal-link' };
       if (!isMailto) {
@@ -809,18 +995,18 @@ function InstagramChannelList({ channels }) {
 
 export default function LegalPage({ page }) {
   const data = content[page];
-  const { hash } = useLocation();
   // Channels of the active regions (Vorarlberg: code default when no handle is stored).
   const { regions, allRegions, pageSlug } = useRegion();
   const homePath = homePathFor({ pageSlug, regions: allRegions });
   const channels = instagramChannels(regions);
+  const { hash } = useLocation();
 
-  // Deep links like /datenschutz#vereinsmitglieder: scroll once the sections
-  // exist in the DOM, and again whenever the hash changes.
+  // Deep links such as /datenschutz#social-media: the router does not scroll to
+  // the anchor by itself once the content is rendered from data.
   useEffect(() => {
-    if (!data || !hash) return;
+    if (!hash) return;
     document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView?.();
-  }, [data, hash]);
+  }, [hash, page]);
 
   if (!data) {
     return (
@@ -843,8 +1029,8 @@ export default function LegalPage({ page }) {
         <h1 className="legal-title">{data.title}</h1>
         <div className="legal-content">
           {data.sections.map((section, index) => (
-            <section key={index} id={section.id}>
-              <h2>{section.heading}</h2>
+            <section key={index}>
+              <h2 id={section.anchor}>{section.heading}</h2>
               <LegalText
                 text={
                   typeof section.text === 'function' ? section.text({ channels }) : section.text

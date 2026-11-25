@@ -112,6 +112,19 @@ describe('EventModal', () => {
       expect(screen.getByText('Freie Spende')).toBeInTheDocument();
     });
 
+    it('shows "Keine Angabe" (never "Kostenpflichtig" or "Kostenlos") for an unspecified price', () => {
+      render(
+        <EventModal
+          event={{ ...mockEvent, contribution: 'unspecified', fee: null, firstSessionFree: true }}
+          onClose={() => {}}
+        />
+      );
+      expect(screen.getByText('Keine Angabe')).toBeInTheDocument();
+      expect(screen.queryByText('Kostenpflichtig')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kostenlos')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('first-session-free-badge')).not.toBeInTheDocument();
+    });
+
     it('shows formatted price for paid events without a note', () => {
       render(
         <EventModal
@@ -174,6 +187,26 @@ describe('EventModal', () => {
     it('omits the Anmeldung when empty or blank', () => {
       render(<EventModal event={{ ...mockEvent, registration: '  ' }} onClose={() => {}} />);
       expect(screen.queryByTestId('event-modal-registration')).toBeNull();
+    });
+  });
+
+  describe('messenger links for the contact number', () => {
+    it('links the chosen messengers with the international number', () => {
+      render(
+        <EventModal
+          event={{ ...mockEvent, kontakt: '+43 664 1234567', kontaktMessenger: ['telegram'] }}
+          onClose={() => {}}
+        />
+      );
+      const links = screen.getByTestId('contact-messengers').querySelectorAll('a');
+      expect([...links].map((l) => l.textContent)).toEqual(['Telegram']);
+      expect(links[0]).toHaveAttribute('href', 'https://t.me/+436641234567');
+    });
+
+    it('shows none without a choice', () => {
+      render(<EventModal event={{ ...mockEvent, kontakt: '0664 1234567' }} onClose={() => {}} />);
+      expect(screen.getByRole('link', { name: '06641234567' })).toBeInTheDocument();
+      expect(screen.queryByTestId('contact-messengers')).toBeNull();
     });
   });
 });

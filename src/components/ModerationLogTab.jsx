@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowUp, RefreshCw, Search, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useModerationLog } from '../hooks/useModerationLog';
+import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useRegionLabels } from '../hooks/useRegionLabels';
 import { useRegionModerators } from '../hooks/useRegionModerators';
+import { resolveRegionId } from '../utils/regions';
 import { getStaffAccess } from '../utils/staffRoles';
 import { FIELD_LABELS } from '../utils/eventFieldLabels';
 import {
@@ -19,13 +21,19 @@ import {
   buildLogQuerySpec,
   countByAction,
   entryAtMillis,
+  eventEditPath,
+  eventPublicPath,
   formatLogTime,
+  formatShortDate,
+  groupLogByEvent,
+  matchesClarificationSearch,
   matchesLogSearch,
   nextSort,
   personOptions,
   roleLabel,
   sortLogEntries,
 } from '../utils/moderationLog';
+import ModerationClarificationTable from './ModerationClarificationTable';
 import './ModerationLogTab.css';
 
 function formatEventDate(value) {
@@ -124,6 +132,36 @@ export default function ModerationLogTab() {
     [entries, search, sort, helpers]
   );
   const summary = useMemo(() => countByAction(visible), [visible]);
+  const milestones = useMemo(() => groupLogByEvent(entries), [entries]);
+
+  // "In Klärung": pending events with a staff message, live (not paged), the
+  // longest in Klärung first. The search of this tab narrows them down too.
+  const {
+    events: pendingWithMessages,
+    inKlaerungAuthorNameByEvent,
+    firstMessageAtByEvent,
+  } = useEventsWithMessages();
+  const clarificationRows = useMemo(
+    () =>
+      pendingWithMessages
+        .filter((e) => firstMessageAtByEvent[e.id])
+        .map((e) => ({
+          id: e.id,
+          title: e.title,
+          regionName: nameOf(resolveRegionId(e)),
+          moderatorName: inKlaerungAuthorNameByEvent[e.id] || null,
+          sinceMs: firstMessageAtByEvent[e.id],
+          createdAt: e.createdAt,
+          updatedAt: e.updatedAt,
+        }))
+        .filter((row) => matchesClarificationSearch(row, search))
+        .sort((a, b) => a.sinceMs - b.sinceMs),
+    [pendingWithMessages, firstMessageAtByEvent, inKlaerungAuthorNameByEvent, search, nameOf]
+  );
+  // Reading the clock during render is intended: the durations track real time
+  // and refresh whenever the rows or "Aktualisieren" change.
+  // eslint-disable-next-line react-hooks/purity, react-hooks/exhaustive-deps
+  const now = useMemo(() => Date.now(), [clarificationRows, refreshKey]);
 
   if (!isSuperAdmin) return null;
 
@@ -262,6 +300,8 @@ export default function ModerationLogTab() {
         </button>
       </div>
 
+      <ModerationClarificationTable rows={clarificationRows} now={now} multiRegion={multiRegion} />
+
       {loading && <p className="modlog-muted">Protokoll wird geladen …</p>}
       {error && !loading && (
         <p className="modlog-error" role="alert" data-testid="modlog-error">
@@ -326,6 +366,14 @@ export default function ModerationLogTab() {
                 <tbody>
                   {visible.map((entry) => {
                     const eventDate = formatEventDate(entry.eventDate);
+                    const publicPath = eventPublicPath(entry);
+                    const editPath = eventEditPath(entry);
+                    const m = milestones[entry.eventId];
+                    const overview = [
+                      m?.submittedAt && `Eingereicht ${formatShortDate(m.submittedAt)}`,
+                      m?.editedAt && `Bearbeitet ${formatShortDate(m.editedAt)}`,
+                      m?.approvedAt && `Genehmigt ${formatShortDate(m.approvedAt)}`,
+                    ].filter(Boolean);
                     return (
                       <tr key={entry.id} data-testid="modlog-row">
                         <td className="modlog-time">{formatLogTime(entryAtMillis(entry))}</td>
@@ -335,19 +383,26 @@ export default function ModerationLogTab() {
                           </span>
                         </td>
                         <td className="modlog-event">
-                          {entry.action === 'deleted' ? (
+                          {publicPath ? (
+                            <Link className="modlog-event-title" to={publicPath}>
+                              {entry.eventTitle || 'Ohne Titel'}
+                            </Link>
+                          ) : (
                             <span className="modlog-event-title">
                               {entry.eventTitle || 'Ohne Titel'}
                             </span>
-                          ) : (
-                            <Link
-                              className="modlog-event-title"
-                              to={`/admin/edit/${entry.eventId}`}
-                            >
-                              {entry.eventTitle || 'Ohne Titel'}
+                          )}
+                          {editPath && (
+                            <Link className="modlog-detail modlog-edit-link" to={editPath}>
+                              Bearbeiten
                             </Link>
                           )}
                           {eventDate && <span className="modlog-detail">Termin: {eventDate}</span>}
+                          {overview.length > 0 && (
+                            <span className="modlog-detail" data-testid="modlog-overview">
+                              {overview.join(' · ')}
+                            </span>
+                          )}
                           <EntryDetails entry={entry} />
                         </td>
                         {multiRegion && (

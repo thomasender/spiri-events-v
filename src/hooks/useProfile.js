@@ -32,6 +32,9 @@ export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnDirectMessage',
   'notifyOnEventChat',
   'notifyNewsletter',
+  'pushOnEventStatus',
+  'pushOnReviewMessage',
+  'pushStaffReview',
 ];
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
@@ -44,6 +47,10 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   notifyOnDirectMessage: true,
   notifyOnEventChat: true,
   notifyNewsletter: false,
+  // Push (docs/push-notifications.md): opt-in.
+  pushOnEventStatus: false,
+  pushOnReviewMessage: false,
+  pushStaffReview: false,
 };
 
 const EMPTY_PROFILE = {
@@ -69,6 +76,8 @@ const EMPTY_PROFILE = {
   instagramConsentDefault: false,
   onboardingDismissed: false,
   placeSelection: null,
+  eventFormDefaults: null,
+  savedVenues: [],
   onboardingCompleted: null,
   createdAt: null,
   updatedAt: null,
@@ -125,6 +134,12 @@ function normalize(data) {
     onboardingDismissed: data.onboardingDismissed === true,
     // "Wo bist du?" place + radius mirrored by PlaceSelectionSync (null without one).
     placeSelection: normalizeSelection(data.placeSelection),
+    // Remembered answers of the create-event wizard (src/utils/eventFormDefaults.js).
+    eventFormDefaults:
+      data.eventFormDefaults && typeof data.eventFormDefaults === 'object'
+        ? data.eventFormDefaults
+        : null,
+    savedVenues: Array.isArray(data.savedVenues) ? data.savedVenues : [],
     // true = finished, false = new account that has not finished it yet,
     // null = older account from before the wizard (see shouldOfferOnboarding).
     onboardingCompleted:

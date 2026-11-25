@@ -1,3 +1,5 @@
+import { DEFAULT_REGION_ID } from './regions';
+
 // Test convenience for admins: the mandatory fields of the create-event wizard
 // come pre-filled (tomorrow, 12:00, "Sonstiges", Bludenz, ...). Only for the
 // Admin role, never for moderators or users.
@@ -21,6 +23,10 @@ export function applyAdminPrefill(formData, { now = new Date() } = {}) {
   if (!next.isOnline && !next.city && !next.bezirk) {
     next.city = 'Bludenz';
     next.bezirk = 'Bludenz';
+    // The place's region, as if Bludenz had been picked: without it the event fell back to
+    // the region the Admin was in (Bodensee) and was reviewed there (Trello 5dDYWLrm).
+    next.placeRegionId = DEFAULT_REGION_ID;
+    next.cityPicked = true;
   }
   return next;
 }

@@ -14,6 +14,8 @@ import {
   shouldNotifyAdminsOfEdit,
 } from './eventEditNotice';
 import { parseStaffRole } from './staffRoles';
+import { staffEditPush } from './pushRouting';
+import { sendPushPlan } from './push';
 import {
   MODERATION_LOG_COLLECTION,
   actorRoleFromStaffDoc,
@@ -100,14 +102,15 @@ const millisOf = (value: unknown): number | null =>
 /**
  * Who gets the alert: after a change request ("bitte ändere dein Event") only the
  * staff member who asked (pickResponsibleStaff), as long as they are still staff;
- * otherwise every Super-Admin, as before.
+ * otherwise every Super-Admin, as before. `responsible` is set only in the first
+ * case (the event is "in Klärung" with that person): only they get a push.
  */
 async function alertRecipients(
   eventId: string,
   kind: NonNullable<ReturnType<typeof shouldNotifyAdminsOfEdit>>,
   after: Record<string, unknown>,
   actorUid: string | null
-): Promise<string[]> {
+): Promise<{ uids: string[]; responsible: string | null }> {
   const db = getFirestore();
   const eventRef = db.collection('events').doc(eventId);
   const [messages, reverts] = await Promise.all([
@@ -130,12 +133,12 @@ async function alertRecipients(
     })),
   });
   if (responsible) {
-    if (responsible === actorUid) return [];
+    if (responsible === actorUid) return { uids: [], responsible: null };
     const roleDoc = await db.doc(`admin_users/${responsible}`).get();
-    if (parseStaffRole(roleDoc.data())) return [responsible];
+    if (parseStaffRole(roleDoc.data())) return { uids: [responsible], responsible };
   }
   const admins = await db.collection('admin_users').where('role', '==', 'Admin').get();
-  return admins.docs.map((d) => d.id);
+  return { uids: admins.docs.map((d) => d.id), responsible: null };
 }
 
 /**
@@ -156,7 +159,18 @@ async function notifyAdminsOfEdit(
   if (!kind || !after) return;
   try {
     const db = getFirestore();
-    const recipients = await alertRecipients(eventId, kind, after, actor.by);
+    const { uids: recipients, responsible } = await alertRecipients(eventId, kind, after, actor.by);
+    // Push "Update in Klärung" (own try/catch, rate-limited): not tied to the alert writes.
+    await sendPushPlan(
+      staffEditPush({
+        eventId,
+        title: typeof after.title === 'string' ? after.title : null,
+        kind,
+        responsibleUid: responsible,
+        actorUid: actor.by,
+      }),
+      { eventId, type: 'review_edit' }
+    );
     const changeCount = Object.keys(changes).length;
     const base = {
       eventId,

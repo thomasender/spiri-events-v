@@ -1,0 +1,142 @@
+.event-registration-modal {
+  max-width: 500px;
+  padding: var(--space-8) var(--space-8) var(--space-6);
+}
+
+.event-registration-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  padding-right: var(--space-10);
+}
+
+.event-registration-header h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-150);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.event-registration-icon {
+  color: var(--accent-primary);
+}
+
+.event-registration-intro,
+.event-registration-privacy {
+  color: var(--text-secondary);
+  font-size: var(--text-95);
+  line-height: 1.5;
+  margin-bottom: var(--space-5);
+}
+
+.event-registration-privacy {
+  font-size: var(--text-85);
+  color: var(--text-light);
+  margin: var(--space-3) 0 0;
+}
+
+.event-registration-privacy a {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
+.event-registration-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.event-registration-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Honeypot: off screen, not display:none (some bots skip hidden fields). */
+.event-registration-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.event-registration-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-6) var(--space-4) var(--space-4);
+}
+
+.event-registration-success-icon {
+  color: var(--accent-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.event-registration-success h2 {
+  font-family: var(--font-heading);
+  font-size: var(--text-160);
+  font-weight: 500;
+  margin-bottom: var(--space-3);
+  color: var(--text-primary);
+}
+
+.event-registration-success p {
+  color: var(--text-secondary);
+  font-size: var(--text-95);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+  max-width: 400px;
+}
+
+.event-registration-success p.event-registration-warning {
+  color: var(--error);
+}
+
+.event-registration-cta {
+  margin-top: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.event-registration-cta .event-registration-actions {
+  justify-content: center;
+  margin-top: 0;
+}
+
+.event-registration-success > .btn {
+  margin-top: var(--space-3);
+}
+
+/* The button on the detail page / in the event modal. */
+.event-registration-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@media (max-width: 480px) {
+  .event-registration-modal {
+    padding: var(--space-6) var(--space-5) var(--space-5);
+  }
+
+  .event-registration-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .event-registration-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

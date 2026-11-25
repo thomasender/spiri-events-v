@@ -44,11 +44,16 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-container">
-        <span className="footer-copy">{COPYRIGHT_NOTICE}</span>
+        {/* Last in the DOM so it ends the phone layout; on wider screens CSS puts it first. */}
         <nav className="footer-nav" aria-label="Footer-Navigation">
           <DonateLink className="footer-donate-link" testId="footer-donate-link" />
-          <Link to={aboutPath}>Über uns</Link>
-          <Link to="/faq">FAQ</Link>
+          <div className="footer-group footer-group--main">
+            <Link to={aboutPath}>Über uns</Link>
+            {/* Everyone, whatever the role (visitors also have it in the header). */}
+            <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
+            <Link to="/faq">FAQ</Link>
+          </div>
+          <span className="footer-divider" aria-hidden="true" />
           {showInstallLink && (
             <button
               type="button"
@@ -60,19 +65,25 @@ export default function Footer() {
               App installieren
             </button>
           )}
-          {/* Everyone, whatever the role (visitors also have it in the header). */}
-          <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
-          <Link to="/impressum">Impressum</Link>
-          <Link to="/datenschutz">Datenschutz</Link>
-          <button
-            type="button"
-            className="footer-cookie-link"
-            onClick={requestConsentBanner}
-            data-testid="footer-cookie-settings"
-          >
-            Cookie-Einstellungen
-          </button>
+          <div className="footer-group footer-group--legal">
+            <div className="footer-group-row">
+              <Link to="/impressum">Impressum</Link>
+              <Link to="/datenschutz">Datenschutz</Link>
+            </div>
+            <div className="footer-group-row">
+              <Link to="/nutzungsbedingungen">Nutzungsbedingungen</Link>
+              <button
+                type="button"
+                className="footer-cookie-link"
+                onClick={requestConsentBanner}
+                data-testid="footer-cookie-settings"
+              >
+                Cookie-Einstellungen
+              </button>
+            </div>
+          </div>
         </nav>
+        <span className="footer-copy">{COPYRIGHT_NOTICE}</span>
       </div>
     </footer>
   );

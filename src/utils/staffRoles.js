@@ -110,10 +110,13 @@ export const ADMIN_TABS = [
   'chat',
   'instagram',
   'analytics',
+  'funfacts',
   'mailgun',
   'ledger',
   'moderation',
+  'team',
   'regions',
+  'import',
   'about',
   'faq',
 ];
@@ -126,6 +129,7 @@ const MODERATOR_TABS = [
   'members',
   'helpers',
   'about',
+  'team',
 ];
 const ORGANIZER_TABS = ['events', 'drafts', 'messages', 'trash'];
 

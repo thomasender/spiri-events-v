@@ -11,6 +11,7 @@ const mockAuth = vi.hoisted(() => ({
 
 const mockFavoriteCount = vi.hoisted(() => ({ count: 3 as number | null, calls: [] as boolean[] }));
 
+vi.mock('../../src/components/ModerationGuidanceNotice', () => ({ default: () => null }));
 vi.mock('../../src/hooks/useEventFavoriteCount', () => ({
   useEventFavoriteCount: (_id: string, enabled: boolean) => {
     mockFavoriteCount.calls.push(enabled);
@@ -515,6 +516,30 @@ describe('EventDetailPage — admin approve button', () => {
     expect(mockAlerts.markRead).not.toHaveBeenCalled();
   });
 
+  it('disables approval for an imported event without consent and says why', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        status: 'pending',
+        curation: { organizerRef: 'o1', claimable: true },
+      },
+    };
+
+    renderPage();
+    const button = await screen.findByTestId('approve-event-button');
+    expect(button).toBeDisabled();
+    expect(screen.getByTestId('approve-event-error')).toHaveTextContent(
+      'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.'
+    );
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(mockEvents.approveEvent).not.toHaveBeenCalled();
+  });
+
   it('does not offer approval to the event owner', async () => {
     mockAuth.user = { uid: 'other-user-uid' };
     setStatus('pending');
@@ -547,6 +572,48 @@ describe('EventDetailPage — contact text spacing (cQ80gpL3)', () => {
     // The text and the link must share one inline parent, not be separate flex items.
     expect(link.parentElement).not.toBe(kontakt);
     expect(link.parentElement?.textContent).toBe('Whatsapp oder Telegram 068181828713');
+  });
+});
+
+describe('EventDetailPage — messenger links for the contact number (6af6d067)', () => {
+  it('links only the messengers the organizer chose, after the phone number', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: '0676 555 0000', kontaktMessenger: ['signal', 'whatsapp'] },
+    };
+    renderPage();
+    const kontakt = await screen.findByTestId('event-kontakt');
+    expect(within(kontakt).getByRole('link', { name: '06765550000' })).toHaveAttribute(
+      'href',
+      'tel:06765550000'
+    );
+    const links = within(screen.getByTestId('contact-messengers')).getAllByRole('link');
+    expect(links.map((l) => l.textContent)).toEqual(['WhatsApp', 'Signal']);
+    expect(links[0]).toHaveAttribute('href', 'https://wa.me/436765550000');
+    expect(links[1]).toHaveAttribute('href', 'https://signal.me/#p/+436765550000');
+    for (const link of links) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  it('shows no messenger links for older events or an e-mail contact', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: '0676 555 0000' },
+    };
+    const { unmount } = renderPage();
+    await screen.findByTestId('event-kontakt');
+    expect(screen.queryByTestId('contact-messengers')).toBeNull();
+    unmount();
+
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: 'anna@example.com', kontaktMessenger: ['whatsapp'] },
+    };
+    renderPage();
+    await screen.findByTestId('event-kontakt');
+    expect(screen.queryByTestId('contact-messengers')).toBeNull();
   });
 });
 
@@ -1021,6 +1088,24 @@ describe('EventDetailPage — recurrence dates list (4bVW6i7o)', () => {
       expect(currentItems).toHaveLength(1);
       expect(currentItems[0]).toHaveTextContent('1. September 2026');
     });
+
+    it('shows the own time of a date next to it and as Uhrzeit of that date (6afd86b4)', async () => {
+      mockFirestoreDoc.getDocResult = {
+        id: customDatesEvent.id,
+        data: {
+          ...customDatesEvent,
+          customTimes: { '2026-08-18': { time: '09:00', endTime: '' } },
+        },
+      };
+      renderCustomDatesEventPage('2026-08-18');
+      expect(await screen.findByText('Individuelle Termine')).toBeInTheDocument();
+
+      const times = screen.getAllByTestId('event-detail-date-time');
+      expect(times).toHaveLength(1);
+      expect(times[0]).toHaveTextContent('09:00 Uhr');
+      expect(times[0].closest('li')).toHaveTextContent('18. August 2026');
+      expect(screen.getByTestId('event-detail-time')).toHaveTextContent('09:00 Uhr');
+    });
   });
 
   describe('weekly series', () => {
@@ -1129,6 +1214,18 @@ describe('EventDetailPage — contribution badge (VtFz800s)', () => {
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
     expect(screen.getByText('Freie Spende')).toBeInTheDocument();
+  });
+
+  it('shows "Keine Angabe" for events whose organizer named no price', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'unspecified', fee: null },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('Keine Angabe')).toBeInTheDocument();
+    expect(screen.queryByText('Kostenpflichtig')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kostenlos')).not.toBeInTheDocument();
   });
 
   it('shows formatted price only for fee events with a fee and no note', async () => {

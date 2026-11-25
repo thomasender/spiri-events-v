@@ -40,12 +40,14 @@ export const FREE_EDIT_FIELDS = Object.freeze([
   'firstSessionFree',
   'link',
   'kontakt',
+  'kontaktMessenger',
   'registration',
   'category',
   'organizer',
   'recurrence',
   'recurrenceEndDate',
   'customDates',
+  'customTimes',
   'imageFocalPoint',
   'imageZoom',
 ]);
@@ -72,10 +74,21 @@ export const OWNER_APPROVED_PATCH_FIELDS = Object.freeze([
 const POSITION_FIELDS = ['city', 'bezirk', 'isOnline'];
 
 // Old events lack fields the form fills with empty defaults ('', null, [],
-// false): those count as "unchanged".
-const isEmpty = (v) => v == null || v === '' || v === false || (Array.isArray(v) && v.length === 0);
+// {}, false): those count as "unchanged".
+const isEmpty = (v) =>
+  v == null ||
+  v === '' ||
+  v === false ||
+  (Array.isArray(v) && v.length === 0) ||
+  (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
 const normalize = (v) => (isEmpty(v) ? null : v);
-const same = (a, b) => JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
+// Key order of maps (Firestore returns them sorted) is no change.
+const sortKeys = (_key, v) =>
+  v && typeof v === 'object' && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : v;
+const same = (a, b) =>
+  JSON.stringify(normalize(a), sortKeys) === JSON.stringify(normalize(b), sortKeys);
 
 const organizerName = (organizer) => {
   if (!organizer) return '';
@@ -127,6 +140,10 @@ export function reviewEditChanges(
   for (const field of FREE_EDIT_FIELDS) {
     if (field === 'organizer' || field === 'regionId' || !(field in (after || {}))) continue;
     if (!same(before?.[field], after[field])) patch[field] = after[field];
+  }
+  // Series exceptions (dates taken out of a series) are free as well.
+  if (after && 'exceptionDates' in after && !same(before?.exceptionDates, after.exceptionDates)) {
+    patch.exceptionDates = after.exceptionDates;
   }
   // Legacy events carry no regionId: compare the resolved region.
   if (resolveRegionId(before) !== resolveRegionId(after)) patch.regionId = after.regionId;

@@ -56,6 +56,8 @@ function buildOffers(event) {
   const availability = 'https://schema.org/InStock';
   const withNote = (offer) => (event.feeNote ? { ...offer, description: event.feeNote } : offer);
 
+  // "Keine Angabe": no price stated, so no offer (never price 0)
+  if (event.contribution === 'unspecified') return null;
   if (event.contribution === 'free') {
     return { '@type': 'Offer', price: '0', priceCurrency: currency, availability };
   }

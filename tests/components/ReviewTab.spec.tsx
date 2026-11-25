@@ -48,6 +48,16 @@ vi.mock('../../src/hooks/useRegions', () => ({
   useRegions: () => ({ regions: mockRegions.current, loading: false }),
 }));
 
+const mockImport = vi.hoisted(() => ({
+  organizers: [] as Array<Record<string, unknown>>,
+  outreach: null as Record<string, unknown> | null,
+}));
+
+vi.mock('../../src/hooks/useImportData', () => ({
+  useAllImportOrganizers: () => ({ items: mockImport.organizers, loading: false, error: null }),
+  useLastOutreach: () => mockImport.outreach,
+}));
+
 vi.mock('../../src/hooks/useUserDisplayNames', () => ({
   useUserDisplayNames: () => mockUserDisplayNames,
 }));
@@ -70,9 +80,31 @@ vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => mockAuth.current,
 }));
 
+vi.mock('../../src/components/ModerationGuidanceNotice', () => ({ default: () => null }));
 vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
 
-vi.mock('../../src/lib/firebase', () => ({ db: {} }));
+const mockCallable = vi.hoisted(() => ({ fn: vi.fn(async () => ({ data: {} })), name: '' }));
+vi.mock('../../src/lib/firebase', () => ({
+  db: {},
+  callable: (name: string) => {
+    mockCallable.name = name;
+    return mockCallable.fn;
+  },
+}));
+
+const mockOutdated = vi.hoisted(() => ({
+  posts: [] as Array<Record<string, unknown>>,
+  args: [] as unknown[],
+}));
+vi.mock('../../src/hooks/useInstagramAdmin', () => ({
+  useOutdatedInstagramPosts: (...args: unknown[]) => {
+    mockOutdated.args = args;
+    return mockOutdated.posts;
+  },
+}));
+
+const mockCopy = vi.hoisted(() => vi.fn(async () => true));
+vi.mock('../../src/utils/copyToClipboard', () => ({ copyToClipboard: mockCopy }));
 
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
@@ -108,6 +140,13 @@ beforeEach(() => {
   mockUseEventsWithMessages.lastStaffMessageByEvent = {};
   mockUserDisplayNames.namesByUid = {};
   mockUserDisplayNames.loading = false;
+  mockImport.organizers = [];
+  mockImport.outreach = null;
+  mockOutdated.posts = [];
+  mockOutdated.args = [];
+  mockCallable.fn.mockClear();
+  mockCallable.name = '';
+  mockCopy.mockClear();
 });
 
 describe('ReviewTab — three sections (j67qz6b2)', () => {
@@ -653,5 +692,194 @@ describe('ReviewTab — image check on pending rows', () => {
     mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Ohne Bild', status: 'pending' }];
     renderReviewTab();
     expect(screen.queryByTestId('review-image-check-toggle-p1')).toBeNull();
+  });
+});
+
+describe('ReviewTab — imported events without consent', () => {
+  const curated = (consentAt: unknown) => ({
+    id: 'imp1',
+    title: 'Importiertes Event',
+    status: 'pending',
+    regionId: 'vorarlberg',
+    createdBy: 'curator',
+    curation: { sourceUrl: 'https://x.test', consentAt },
+  });
+
+  it('puts an import without consent into its own section, with no approve button', () => {
+    mockUsePendingEvents.pendingEvents = [
+      curated(null),
+      { id: 'p1', title: 'Normal', status: 'pending' },
+    ];
+    renderReviewTab();
+    const pending = screen.getByTestId('review-section-pending');
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('1');
+    expect(pending).not.toHaveTextContent('Importiertes Event');
+    const awaiting = screen.getByTestId('review-section-import-awaiting');
+    expect(awaiting).toHaveTextContent('Import: wartet auf den Veranstalter');
+    expect(screen.getByTestId('review-section-import-count')).toHaveTextContent('1');
+    expect(awaiting).toHaveTextContent('Importiertes Event');
+    const badges = screen.getByTestId('review-curation-imp1');
+    expect(badges).toHaveTextContent('importiert');
+    expect(badges).toHaveTextContent('ohne Consent');
+    expect(awaiting.querySelector('button[title*="Genehmigen"]')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Genehmigen' })).toHaveLength(1);
+  });
+
+  it('shows only the import section (no empty pending section) when only imports wait', () => {
+    mockUsePendingEvents.pendingEvents = [curated(null)];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-section-pending')).not.toBeInTheDocument();
+    expect(screen.getByTestId('review-section-import-awaiting')).toBeInTheDocument();
+    expect(screen.queryByTestId('review-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('groups by organizer and tells a Super-Admin how far the mail is', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { ...curated(null), curation: { organizerRef: 'o1', sourceUrl: 'https://x.test' } },
+      {
+        ...curated(null),
+        id: 'imp2',
+        curation: { organizerRef: 'o1', sourceUrl: 'https://x.test' },
+      },
+    ];
+    mockImport.organizers = [{ id: 'o1', name: 'Shambhala Berlin', consent: 'asked' }];
+    mockImport.outreach = { status: 'sent', sentAt: new Date('2026-11-20T10:00:00Z') };
+    renderReviewTab();
+    const group = screen.getByTestId('review-import-organizer-o1');
+    expect(group).toHaveTextContent('Shambhala Berlin');
+    expect(screen.getByTestId('review-import-status-o1')).toHaveTextContent(
+      'Mail gesendet am 20.11.2026, noch keine Antwort'
+    );
+  });
+
+  it('says "noch nicht angeschrieben" without a mail', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { ...curated(null), curation: { organizerRef: 'o1', sourceUrl: 'https://x.test' } },
+    ];
+    mockImport.organizers = [{ id: 'o1', name: 'Neu', consent: 'none' }];
+    renderReviewTab();
+    expect(screen.getByTestId('review-import-status-o1')).toHaveTextContent(
+      'noch nicht angeschrieben'
+    );
+  });
+
+  it('allows approve with consent', () => {
+    mockUsePendingEvents.pendingEvents = [curated('TS')];
+    renderReviewTab();
+    expect(screen.getByTestId('review-curation-imp1')).not.toHaveTextContent('ohne Consent');
+    expect((screen.getByRole('button', { name: 'Genehmigen' }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
+  });
+
+  it('shows a clear German message when the rules refuse the approval', async () => {
+    mockUsePendingEvents.pendingEvents = [curated('TS')];
+    mockApproveEvent.mockRejectedValue({ code: 'permission-denied' });
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Genehmigen' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('review-approve-error')).toHaveTextContent(
+        'Dieses importierte Event hat noch keine Zustimmung des Veranstalters und kann nicht genehmigt werden.'
+      )
+    );
+  });
+
+  it('rejects an unclaimed imported event without a reason and says no mail goes out', async () => {
+    mockUsePendingEvents.pendingEvents = [curated('TS')];
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Ablehnen' }));
+    expect(screen.getByTestId('review-reject-internal')).toHaveTextContent(
+      'keine E-Mail verschickt'
+    );
+    const confirm = screen
+      .getAllByRole('button', { name: 'Ablehnen' })
+      .find((b) => b.classList.contains('confirm-confirm'))!;
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledTimes(1));
+    expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
+      status: 'trashed',
+      trashKind: 'rejected',
+      trashReason: null,
+    });
+  });
+});
+
+describe('ReviewTab — Instagram-Post anpassen', () => {
+  const outdatedPost = {
+    id: 'feed_e1',
+    eventId: 'e1',
+    eventTitle: 'Kakao Zeremonie',
+    regionId: 'vorarlberg',
+    permalink: 'https://www.instagram.com/p/abc/',
+    outdatedFields: ['date', 'place'],
+    suggestedCaption: '📅 So, 13. Dez · 18:00 Uhr\n\nKakao Zeremonie',
+    outdatedAt: new Date('2026-11-25T10:00:00Z'),
+  };
+
+  it('is hidden without outdated posts', () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Neu', status: 'pending' }];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-section-instagram-outdated')).not.toBeInTheDocument();
+  });
+
+  it('lists the post with changed fields, new caption, link and how-to, even with nothing else to review', () => {
+    mockOutdated.posts = [outdatedPost];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-empty-state')).not.toBeInTheDocument();
+    const item = screen.getByTestId('review-instagram-post-e1');
+    expect(item).toHaveTextContent('Kakao Zeremonie');
+    expect(screen.getByTestId('review-instagram-fields')).toHaveTextContent(
+      'Geändert: Datum, Adresse'
+    );
+    expect(screen.getByTestId('review-instagram-caption')).toHaveValue(
+      outdatedPost.suggestedCaption
+    );
+    expect(screen.getByTestId('review-instagram-open')).toHaveAttribute(
+      'href',
+      'https://www.instagram.com/p/abc/'
+    );
+    expect(item).toHaveTextContent('„Bearbeiten“');
+    // A Super-Admin reads all regions.
+    expect(mockOutdated.args).toEqual([true, null]);
+  });
+
+  it('a moderator only subscribes to her regions', () => {
+    mockAuth.current = {
+      user: { uid: 'mod-uid' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol'],
+    };
+    renderReviewTab();
+    expect(mockOutdated.args).toEqual([true, 'tirol']);
+  });
+
+  it('copies the new caption', async () => {
+    mockOutdated.posts = [outdatedPost];
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-instagram-copy'));
+    await waitFor(() =>
+      expect(screen.getByTestId('review-instagram-copy')).toHaveTextContent('Kopiert')
+    );
+    expect(mockCopy).toHaveBeenCalledWith(outdatedPost.suggestedCaption);
+  });
+
+  it('"Erledigt" calls markInstagramPostUpdated for the event', async () => {
+    mockOutdated.posts = [outdatedPost];
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-instagram-done'));
+    await waitFor(() => expect(mockCallable.fn).toHaveBeenCalledWith({ eventId: 'e1' }));
+    expect(mockCallable.name).toBe('markInstagramPostUpdated');
+  });
+
+  it('shows an error when "Erledigt" fails', async () => {
+    mockOutdated.posts = [outdatedPost];
+    mockCallable.fn.mockRejectedValueOnce(new Error('permission-denied'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-instagram-done'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('nicht geklappt');
+    expect(screen.getByTestId('review-instagram-done')).not.toBeDisabled();
+    consoleError.mockRestore();
   });
 });

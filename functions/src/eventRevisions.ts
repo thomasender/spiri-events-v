@@ -57,7 +57,13 @@ export function normalizeValue(value: unknown): unknown {
 }
 
 function isEmpty(value: unknown): boolean {
-  return value === null || value === '' || (Array.isArray(value) && value.length === 0);
+  return (
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0) ||
+    // An empty map (e.g. customTimes of an event without own times) is no value either.
+    (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0)
+  );
 }
 
 function sameValue(a: unknown, b: unknown): boolean {

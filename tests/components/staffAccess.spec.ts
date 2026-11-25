@@ -47,9 +47,21 @@ describe('allowedAdminTabs', () => {
     expect([...allowedAdminTabs(superAdmin)]).toContain('about');
     expect([...allowedAdminTabs(superAdmin)]).toContain('faq');
     expect([...allowedAdminTabs(superAdmin)]).toContain('protokoll');
+    expect([...allowedAdminTabs(superAdmin)]).toContain('team');
     expect([...allowedAdminTabs(tirolMod)].sort()).toEqual(
-      ['about', 'drafts', 'events', 'helpers', 'members', 'messages', 'review', 'trash'].sort()
+      [
+        'about',
+        'drafts',
+        'events',
+        'helpers',
+        'members',
+        'messages',
+        'review',
+        'team',
+        'trash',
+      ].sort()
     );
+    // Organizers never see the team notes (moderator applications).
     expect([...allowedAdminTabs(organizer)].sort()).toEqual(
       ['drafts', 'events', 'messages', 'trash'].sort()
     );
@@ -87,6 +99,22 @@ describe('event permissions for moderators', () => {
     expect(
       requiresDeleteReason(user, { ...tirolEvent, createdBy: 'mod' }, 'RegionModerator', ['tirol'])
     ).toBe(false);
+  });
+
+  it('no reason is needed for an unclaimed imported event, but after the claim again', () => {
+    const curated = {
+      ...tirolEvent,
+      createdBy: 'curator',
+      curation: { organizerRef: 'o1', claimable: true },
+    };
+    expect(requiresDeleteReason(user, curated, 'RegionModerator', ['tirol'])).toBe(false);
+    expect(requiresDeleteReason(user, curated, 'Admin')).toBe(false);
+    const claimed = {
+      ...curated,
+      createdBy: 'owner',
+      curation: { ...curated.curation, claimable: false },
+    };
+    expect(requiresDeleteReason(user, claimed, 'RegionModerator', ['tirol'])).toBe(true);
   });
 
   it('a moderator never edits content of other people’s events', () => {

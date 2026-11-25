@@ -1,28 +1,44 @@
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { buildEventJsonLd, stripHtmlToText } from '../src/utils/eventJsonLd.js'
-import { BRAND_NAME, DEFAULT_SITE_DESCRIPTION } from '../src/config/brand.js'
-import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug, mergeRegions, resolveRegionId } from '../src/utils/regions.js'
-import { REGION_MODE_META_MULTI, REGION_MODE_META_NAME, activeRegions } from '../src/utils/regionRouting.js'
-import { regionTexts, LEGACY_CALENDAR_TITLE } from '../src/utils/regionTexts.js'
-import { getEventOccurrences } from '../src/utils/eventOccurrences.js'
-import { annotateOnlineRegionIds, onlineEventVisibleIn, onlineOrganizerUids } from '../src/utils/onlineEventEligibility.js'
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { buildEventJsonLd, stripHtmlToText } from '../src/utils/eventJsonLd.js';
+import { BRAND_NAME, DEFAULT_SITE_DESCRIPTION } from '../src/config/brand.js';
+import {
+  DEFAULT_REGION_ID,
+  STATIC_REGIONS,
+  getRegionBySlug,
+  isRegionSlug,
+  mergeRegions,
+  resolveRegionId,
+} from '../src/utils/regions.js';
+import {
+  REGION_MODE_META_MULTI,
+  REGION_MODE_META_NAME,
+  activeRegions,
+} from '../src/utils/regionRouting.js';
+import { regionTexts, LEGACY_CALENDAR_TITLE } from '../src/utils/regionTexts.js';
+import { getEventOccurrences } from '../src/utils/eventOccurrences.js';
+import {
+  annotateOnlineRegionIds,
+  onlineEventVisibleIn,
+  onlineOrganizerUids,
+} from '../src/utils/onlineEventEligibility.js';
+import { isCuratedWithoutConsent } from '../src/utils/eventImport.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const ROOT_DIR = path.resolve(__dirname, '..')
-const DIST_PATH = path.resolve(ROOT_DIR, 'dist')
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(__dirname, '..');
+const DIST_PATH = path.resolve(ROOT_DIR, 'dist');
 
-export const BASE_URL = 'https://www.thetribe.at'
-export const DEFAULT_OG_IMAGE_URL = `${BASE_URL}/hero.jpeg`
-export const OG_IMAGE_WIDTH = 1389
-export const OG_IMAGE_HEIGHT = 768
+export const BASE_URL = 'https://www.thetribe.at';
+export const DEFAULT_OG_IMAGE_URL = `${BASE_URL}/hero.jpeg`;
+export const OG_IMAGE_WIDTH = 1389;
+export const OG_IMAGE_HEIGHT = 768;
 // Neutral site name and description: the default pages name no region (Trello nolfWvHb).
-export const SITE_NAME = BRAND_NAME
-export const DEFAULT_DESCRIPTION = DEFAULT_SITE_DESCRIPTION
+export const SITE_NAME = BRAND_NAME;
+export const DEFAULT_DESCRIPTION = DEFAULT_SITE_DESCRIPTION;
 
-export const THEME_COLOR_LIGHT = '#f4f2f0'
-export const THEME_COLOR_DARK = '#1a1a1a'
+export const THEME_COLOR_LIGHT = '#f4f2f0';
+export const THEME_COLOR_DARK = '#1a1a1a';
 
 // Shared <head> tags for the PWA install surface: favicon, apple-touch-icon,
 // manifest, MS tile config. Kept in one place so the calendar index and the
@@ -43,7 +59,7 @@ export function pwaHeadTags() {
     `<link rel="manifest" href="/site.webmanifest" />`,
     `<meta name="msapplication-config" content="/browserconfig.xml" />`,
     `<meta name="msapplication-TileColor" content="${THEME_COLOR_LIGHT}" />`,
-  ].join('\n  ')
+  ].join('\n  ');
 }
 
 export function pwaRegisterScript() {
@@ -53,29 +69,39 @@ export function pwaRegisterScript() {
   // external <script src> rather than inlining so the CSP in firebase.json
   // (script-src 'self' https://apis.google.com, no 'unsafe-inline') lets it
   // through on the prerendered HTMLs.
-  return `<script src="/registerSW.js"></script>`
+  return `<script src="/registerSW.js"></script>`;
 }
 
 export function toAbsoluteUrl(pathOrUrl, baseUrl = BASE_URL) {
-  if (!pathOrUrl) return DEFAULT_OG_IMAGE_URL
-  if (typeof pathOrUrl !== 'string') return DEFAULT_OG_IMAGE_URL
-  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl
-  if (pathOrUrl.startsWith('//')) return `https:${pathOrUrl}`
-  if (!pathOrUrl.startsWith('/')) return `${baseUrl}/${pathOrUrl}`
-  return `${baseUrl}${pathOrUrl}`
+  if (!pathOrUrl) return DEFAULT_OG_IMAGE_URL;
+  if (typeof pathOrUrl !== 'string') return DEFAULT_OG_IMAGE_URL;
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  if (pathOrUrl.startsWith('//')) return `https:${pathOrUrl}`;
+  if (!pathOrUrl.startsWith('/')) return `${baseUrl}/${pathOrUrl}`;
+  return `${baseUrl}${pathOrUrl}`;
 }
 
 export function getEventPath(event) {
-  return event.slug || event.id
+  return event.slug || event.id;
+}
+
+// Filesystems cap a single path segment at 255 bytes (ENAMETOOLONG). The app
+// resolves /event/<slug> by exact Firestore match, so an existing slug must not
+// be shortened. Overlong ones get no static page (the SPA fallback still serves
+// the event, only without a prerendered OG preview) and are logged as skipped.
+export const MAX_EVENT_PATH_LENGTH = 100;
+
+export function isEventPathTooLong(eventPath) {
+  return String(eventPath).length > MAX_EVENT_PATH_LENGTH;
 }
 
 // Each event at its next upcoming date, soonest first. A running series whose first
 // date is already past still counts (at its next date), like in the calendar.
 function withNextDate(events) {
   return events
-    .map(e => (e.date ? getEventOccurrences(e, { mode: 'list' })[0] : null))
+    .map((e) => (e.date ? getEventOccurrences(e, { mode: 'list' })[0] : null))
     .filter(Boolean)
-    .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0))
+    .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 }
 
 const CATEGORY_FALLBACKS = {
@@ -86,8 +112,8 @@ const CATEGORY_FALLBACKS = {
   Singen: '/event-fallbacks/singen.jpg',
   Soundhealing: '/event-fallbacks/soundhealing.jpeg',
   Sonstiges: '/hero.jpeg',
-}
-const DEFAULT_EVENT_FALLBACK = '/hero.jpeg'
+};
+const DEFAULT_EVENT_FALLBACK = '/hero.jpeg';
 
 // Hardcoded fallback for the theme snapshot. Mirrors `src/utils/themeDefaults.js`
 // and is only used when `data-export/firestore-export/theme.json` is
@@ -122,62 +148,62 @@ export const THEME_FALLBACK = {
   '--pending-text': '#8a6d2f',
   '--sound-healing': '#6b568b',
   '--category-teal': '#4a7572',
-}
+};
 
 // Renders the `:root { ... }` CSS block that paints all admin-managed
 // theme variables into the prerendered HTML so crawlers and OG previews
 // see the same palette as the live app. Falls back to `THEME_FALLBACK`
 // when a key is missing from the snapshot.
 export function buildThemeRootBlock(theme) {
-  const lines = []
+  const lines = [];
   for (const [name, fallback] of Object.entries(THEME_FALLBACK)) {
-    const value = (theme && typeof theme[name] === 'string') ? theme[name] : fallback
-    lines.push(`      ${name}: ${value};`)
+    const value = theme && typeof theme[name] === 'string' ? theme[name] : fallback;
+    lines.push(`      ${name}: ${value};`);
   }
-  return `:root {\n${lines.join('\n')}\n    }`
+  return `:root {\n${lines.join('\n')}\n    }`;
 }
 
 export function getEventFallbackImage(event) {
-  const category = event?.category
-  return CATEGORY_FALLBACKS[category] || DEFAULT_EVENT_FALLBACK
+  const category = event?.category;
+  return CATEGORY_FALLBACKS[category] || DEFAULT_EVENT_FALLBACK;
 }
 
 export function getEventOgImage(event) {
   if (event?.imageUrl) {
-    return toAbsoluteUrl(event.imageUrl)
+    return toAbsoluteUrl(event.imageUrl);
   }
-  return toAbsoluteUrl(getEventFallbackImage(event))
+  return toAbsoluteUrl(getEventFallbackImage(event));
 }
 
 function escapeHtml(value) {
-  if (value == null) return ''
+  if (value == null) return '';
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+    .replace(/'/g, '&#39;');
 }
 
 function escapeJson(value) {
   return JSON.stringify(value)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026')
+    .replace(/&/g, '\\u0026');
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr)
-  if (!match) return ''
-  const [, year, month, day] = match
-  const date = new Date(Number(year), Number(month) - 1, Number(day))
+  if (!dateStr) return '';
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if (!match) return '';
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
   return date.toLocaleDateString('de-DE', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  })
+  });
 }
 
 export function generateEventJsonLd(event, regions = STATIC_REGIONS) {
@@ -185,23 +211,23 @@ export function generateEventJsonLd(event, regions = STATIC_REGIONS) {
     image: getEventOgImage(event),
     description: stripHtmlToText(event.description),
     regionName: getRegionBySlug(resolveRegionId(event), regions)?.name,
-  })
+  });
 }
 
 // Meta descriptions are cut at ~160 characters (what search results show), on a
 // word boundary with an ellipsis rather than mid-word.
 export function buildEventDescription(event) {
-  const text = stripHtmlToText(event.description)
+  const text = stripHtmlToText(event.description);
   if (text) {
-    if (text.length <= 160) return text
-    const cut = text.slice(0, 157)
-    const lastSpace = cut.lastIndexOf(' ')
-    return `${(lastSpace > 100 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\-–]+$/, '')}…`
+    if (text.length <= 160) return text;
+    const cut = text.slice(0, 157);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${(lastSpace > 100 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\-–]+$/, '')}…`;
   }
-  const category = event.category || 'Sonstiges'
+  const category = event.category || 'Sonstiges';
   // No Bezirk: no place in the meta description (neutral, Trello nolfWvHb).
-  const place = event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk
-  return place ? `${event.title} - ${category} in ${place}` : `${event.title} - ${category}`
+  const place = event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk;
+  return place ? `${event.title} - ${category} in ${place}` : `${event.title} - ${category}`;
 }
 
 // Renders the static event content (title, date, place, description, link)
@@ -229,11 +255,11 @@ function getEventCoverImageStyle(focalPoint) {
   // Mirror src/lib/eventImage.js#focalPointToStyle — values in [0,1] become
   // percentages. The static fragment uses object-fit: contain, so the
   // focal point only takes effect if the consuming CSS changes to cover.
-  return ` style="object-position: ${focalPoint.x * 100}% ${focalPoint.y * 100}%"`
+  return ` style="object-position: ${focalPoint.x * 100}% ${focalPoint.y * 100}%"`;
 }
 
 function buildEventStaticBody(event, isFree, category, formattedDate) {
-  const imageStyle = getEventCoverImageStyle(event.imageFocalPoint)
+  const imageStyle = getEventCoverImageStyle(event.imageFocalPoint);
   return `
     <div class="event-detail-page">
       <a href="/" class="back-link">← Zurück zum Kalender</a>
@@ -244,7 +270,7 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
         <div class="event-meta-row">
           <span class="category-chip">${escapeHtml(category)}</span>
           <span class="event-badge ${isFree ? 'badge--free' : 'badge--fee'}">
-            ${isFree ? 'Kostenlos' : event.fee != null && event.fee !== '' ? `${escapeHtml(event.fee)}${event.feeMax != null && event.feeMax !== '' && Number(event.feeMax) > Number(event.fee) ? `-${escapeHtml(event.feeMax)}` : ''} €${event.feeNote ? ` / ${escapeHtml(event.feeNote)}` : ''}` : event.feeNote ? escapeHtml(event.feeNote) : 'Kostenpflichtig'}
+            ${isFree ? 'Kostenlos' : event.contribution === 'donation' ? 'Freie Spende' : event.contribution === 'unspecified' ? 'Keine Angabe' : event.fee != null && event.fee !== '' ? `${escapeHtml(event.fee)}${event.feeMax != null && event.feeMax !== '' && Number(event.feeMax) > Number(event.fee) ? `-${escapeHtml(event.feeMax)}` : ''} €${event.feeNote ? ` / ${escapeHtml(event.feeNote)}` : ''}` : event.feeNote ? escapeHtml(event.feeNote) : 'Kostenpflichtig'}
           </span>
         </div>
       </header>
@@ -258,7 +284,9 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
           </div>
         </div>
 
-        ${event.time ? `
+        ${
+          event.time
+            ? `
         <div class="detail-item">
           <svg class="detail-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <div>
@@ -266,7 +294,9 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
             <span class="detail-value">${escapeHtml(event.time)}</span>
           </div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="detail-item">
           <svg class="detail-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -285,21 +315,29 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
         </div>
       </div>
 
-      ${event.description ? `
+      ${
+        event.description
+          ? `
       <div class="event-description">
         <h3>Über das Event</h3>
         <p>${escapeHtml(event.description)}</p>
       </div>
-      ` : ''}
+      `
+          : ''
+      }
 
-      ${event.link ? `
+      ${
+        event.link
+          ? `
       <a href="${escapeHtml(event.link)}" target="_blank" rel="noopener noreferrer" class="btn">
         <span>Mehr Infos & Tickets</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
       </a>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
-  `
+  `;
 }
 
 // Title suffix of an event page. Vorarlberg events (and everything while
@@ -308,12 +346,12 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
 // once more than one region is active (dark launch, see regionTexts.js).
 // `regions` = merged register (mergeRegions result), not only the active ones.
 export function getEventTitleSuffix(event, regions = null) {
-  if (!Array.isArray(regions) || activeRegions(regions).length <= 1) return BRAND_NAME
-  const regionId = resolveRegionId(event)
-  if (regionId === DEFAULT_REGION_ID) return BRAND_NAME
-  const region = getRegionBySlug(regionId, regions)
-  if (!region || !region.name) return BRAND_NAME
-  return `${BRAND_NAME} ${region.name}`
+  if (!Array.isArray(regions) || activeRegions(regions).length <= 1) return BRAND_NAME;
+  const regionId = resolveRegionId(event);
+  if (regionId === DEFAULT_REGION_ID) return BRAND_NAME;
+  const region = getRegionBySlug(regionId, regions);
+  if (!region || !region.name) return BRAND_NAME;
+  return `${BRAND_NAME} ${region.name}`;
 }
 
 export function generateEventHtml(
@@ -323,19 +361,19 @@ export function generateEventHtml(
   cssBundlePath = null,
   regions = null
 ) {
-  const jsonLd = generateEventJsonLd(event, Array.isArray(regions) ? regions : STATIC_REGIONS)
-  const isFree = event.contribution === 'free'
-  const formattedDate = formatDate(event.date)
-  const category = event.category || 'Sonstiges'
-  const description = buildEventDescription(event)
-  const ogImage = getEventOgImage(event)
-  const eventPath = getEventPath(event)
-  const eventUrl = `${BASE_URL}/event/${eventPath}`
-  const themeRoot = buildThemeRootBlock(theme)
+  const jsonLd = generateEventJsonLd(event, Array.isArray(regions) ? regions : STATIC_REGIONS);
+  const isFree = event.contribution === 'free';
+  const formattedDate = formatDate(event.date);
+  const category = event.category || 'Sonstiges';
+  const description = buildEventDescription(event);
+  const ogImage = getEventOgImage(event);
+  const eventPath = getEventPath(event);
+  const eventUrl = `${BASE_URL}/event/${eventPath}`;
+  const themeRoot = buildThemeRootBlock(theme);
   const cssLink = cssBundlePath
     ? `\n  <link rel="stylesheet" href="${escapeHtml(cssBundlePath)}" />`
-    : ''
-  const staticBody = buildEventStaticBody(event, isFree, category, formattedDate)
+    : '';
+  const staticBody = buildEventStaticBody(event, isFree, category, formattedDate);
 
   // When a JS bundle path is known we ship a `#root` with a spinner that
   // React replaces with the full event page (Header, Footer, SimilarEvents,
@@ -354,7 +392,7 @@ export function generateEventHtml(
 `
     : `
   <div id="root">${staticBody}</div>
-`
+`;
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -433,7 +471,7 @@ export function generateEventHtml(
 <body>${body}
   ${pwaRegisterScript()}
 </body>
-</html>`
+</html>`;
 }
 
 // Shared <style> body of the calendar-style pages (`/` and the region pages).
@@ -465,17 +503,24 @@ function calendarPageCss(themeRoot) {
     @keyframes prerender-spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .prerender-loading::after { animation-duration: 3s; } }
     .prerender-no-events { text-align: center; color: var(--text-secondary); padding: 48px 16px; }
-    footer { background: var(--bg-secondary); padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }`
+    footer { background: var(--bg-secondary); padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }`;
 }
 
-export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme = THEME_FALLBACK, regions = null) {
+export function generateCalendarPageHtml(
+  events,
+  jsBundlePath,
+  cssBundlePath,
+  theme = THEME_FALLBACK,
+  regions = null
+) {
   // Two or more active regions: tell the app before its region config loads that a
   // first-time visitor gets "Wo suchst du?" (no Vorarlberg flash, eFPKzCr7). Dark launch:
   // with one active region nothing is added, the page stays byte-identical.
-  const regionModeMeta = Array.isArray(regions) && activeRegions(regions).length >= 2
-    ? `\n  <meta name="${REGION_MODE_META_NAME}" content="${REGION_MODE_META_MULTI}" />`
-    : ''
-  const upcomingEvents = withNextDate(events).slice(0, 20)
+  const regionModeMeta =
+    Array.isArray(regions) && activeRegions(regions).length >= 2
+      ? `\n  <meta name="${REGION_MODE_META_NAME}" content="${REGION_MODE_META_MULTI}" />`
+      : '';
+  const upcomingEvents = withNextDate(events).slice(0, 20);
 
   // JS-enabled users get a clean spinner that React replaces with the real
   // calendar the moment it mounts. The events list used to be rendered for
@@ -483,19 +528,22 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
   // took over. Users without JS still see the static events list below the
   // spinner via <noscript>. Note that this only changes the visible body;
   // the <head> OG tags above still serve the same messengers and crawlers.
-  const noscriptEventsList = upcomingEvents.length > 0
-    ? `<ul class="events-list">${upcomingEvents.map(event => {
-        const eventPath = getEventPath(event)
-        return `
+  const noscriptEventsList =
+    upcomingEvents.length > 0
+      ? `<ul class="events-list">${upcomingEvents
+          .map((event) => {
+            const eventPath = getEventPath(event);
+            return `
         <li>
           <a href="/event/${escapeHtml(eventPath)}">
             <strong>${escapeHtml(event.title)}</strong>
             <span>${escapeHtml([formatDate(event.date), event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk].filter(Boolean).join(' - '))}</span>
           </a>
-        </li>`
-      }).join('')}</ul>`
-    : '<p class="prerender-no-events">Aktuell sind keine bevorstehenden Events geplant.</p>'
-  const themeRoot = buildThemeRootBlock(theme)
+        </li>`;
+          })
+          .join('')}</ul>`
+      : '<p class="prerender-no-events">Aktuell sind keine bevorstehenden Events geplant.</p>';
+  const themeRoot = buildThemeRootBlock(theme);
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -583,25 +631,24 @@ ${calendarPageCss(themeRoot)}
   <script type="module" src="${escapeHtml(jsBundlePath)}"></script>
   ${pwaRegisterScript()}
 </body>
-</html>`
+</html>`;
 }
 
 // Firestore timestamps reach the prerender as ISO strings (snapshot), Date or
 // {seconds}/{_seconds} objects (live reads). Returns 'YYYY-MM-DD' or null.
 export function toLastmod(value) {
-  if (!value) return null
-  let date = null
-  if (value instanceof Date) date = value
-  else if (typeof value === 'string' || typeof value === 'number') date = new Date(value)
-  else if (typeof value.toDate === 'function') date = value.toDate()
+  if (!value) return null;
+  let date = null;
+  if (value instanceof Date) date = value;
+  else if (typeof value === 'string' || typeof value === 'number') date = new Date(value);
+  else if (typeof value.toDate === 'function') date = value.toDate();
   else {
-    const seconds = value.seconds ?? value._seconds
-    if (typeof seconds === 'number') date = new Date(seconds * 1000)
+    const seconds = value.seconds ?? value._seconds;
+    if (typeof seconds === 'number') date = new Date(seconds * 1000);
   }
-  if (!date || Number.isNaN(date.getTime())) return null
-  return date.toISOString().split('T')[0]
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return date.toISOString().split('T')[0];
 }
-
 
 // Pages of an ACTIVE region: `/<slug>` (kind 'calendar') and
 // `/<slug>/verzeichnis` (kind 'directory'). Only generated once at least two
@@ -617,35 +664,43 @@ export function generateRegionPageHtml(
   theme = THEME_FALLBACK,
   { activeCount = 2, activeRegionIds = [region.id] } = {}
 ) {
-  const texts = regionTexts(region, { activeCount })
-  const isDirectory = kind === 'directory'
-  const pagePath = isDirectory ? `/${region.slug}/verzeichnis` : `/${region.slug}`
-  const url = `${BASE_URL}${pagePath}`
+  const texts = regionTexts(region, { activeCount });
+  const isDirectory = kind === 'directory';
+  const pagePath = isDirectory ? `/${region.slug}/verzeichnis` : `/${region.slug}`;
+  const url = `${BASE_URL}${pagePath}`;
   const pageTitle = isDirectory
     ? `${texts.directoryTitle} | ${texts.siteName}`
-    : texts.calendarTitle
-  const description = isDirectory ? texts.directoryDescription : texts.calendarDescription
-  const siteName = texts.siteName
-  const themeRoot = buildThemeRootBlock(theme)
+    : texts.calendarTitle;
+  const description = isDirectory ? texts.directoryDescription : texts.calendarDescription;
+  const siteName = texts.siteName;
+  const themeRoot = buildThemeRootBlock(theme);
 
   const upcomingEvents = isDirectory
     ? []
-    : withNextDate(events.filter(e => e.status === 'approved' || e.status === undefined))
-        .filter(e => activeRegionIds.includes(resolveRegionId(e)) && (e.isOnline || resolveRegionId(e) === region.id))
+    : withNextDate(events.filter((e) => e.status === 'approved' || e.status === undefined))
+        .filter(
+          (e) =>
+            activeRegionIds.includes(resolveRegionId(e)) &&
+            (e.isOnline || resolveRegionId(e) === region.id)
+        )
         // Online events only where their organiser is listed (`onlineRegionIds`, lVFp6Dvw).
-        .filter(e => onlineEventVisibleIn(e, [region.id]))
-        .slice(0, 20)
+        .filter((e) => onlineEventVisibleIn(e, [region.id]))
+        .slice(0, 20);
   const noscriptContent = isDirectory
     ? `<p class="prerender-no-events">${escapeHtml(texts.directoryDescription)}</p>`
     : upcomingEvents.length > 0
-      ? `<ul class="events-list">${upcomingEvents.map(event => `
+      ? `<ul class="events-list">${upcomingEvents
+          .map(
+            (event) => `
         <li>
           <a href="/event/${escapeHtml(getEventPath(event))}">
             <strong>${escapeHtml(event.title)}</strong>
             <span>${escapeHtml(formatDate(event.date))} - ${escapeHtml((event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk) || region.name)}</span>
           </a>
-        </li>`).join('')}</ul>`
-      : '<p class="prerender-no-events">Aktuell sind keine bevorstehenden Events geplant.</p>'
+        </li>`
+          )
+          .join('')}</ul>`
+      : '<p class="prerender-no-events">Aktuell sind keine bevorstehenden Events geplant.</p>';
 
   const jsonLd = isDirectory
     ? ''
@@ -657,7 +712,7 @@ export function generateRegionPageHtml(
     description,
     url,
   })}</script>
-`
+`;
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -722,7 +777,7 @@ ${calendarPageCss(themeRoot)}
   <script type="module" src="${escapeHtml(jsBundlePath)}"></script>
   ${pwaRegisterScript()}
 </body>
-</html>`
+</html>`;
 }
 
 // Which region pages exist for a merged register. Dark launch: with fewer than
@@ -730,12 +785,12 @@ ${calendarPageCss(themeRoot)}
 // stay as they are, no other region page is generated). Otherwise every active
 // region gets `/<slug>` and `/<slug>/verzeichnis`.
 export function getRegionPagePlan(regions) {
-  const active = activeRegions(Array.isArray(regions) ? regions : STATIC_REGIONS)
-  if (active.length < 2) return []
-  return active.flatMap(region => [
+  const active = activeRegions(Array.isArray(regions) ? regions : STATIC_REGIONS);
+  if (active.length < 2) return [];
+  return active.flatMap((region) => [
     { region, kind: 'calendar', path: `/${region.slug}` },
     { region, kind: 'directory', path: `/${region.slug}/verzeichnis` },
-  ])
+  ]);
 }
 
 export function generateSitemap(events, regions = null) {
@@ -748,7 +803,7 @@ export function generateSitemap(events, regions = null) {
     { url: '/datenschutz', priority: '0.3', changefreq: 'monthly' },
     { url: '/impressum', priority: '0.3', changefreq: 'monthly' },
     { url: '/nutzungsbedingungen', priority: '0.3', changefreq: 'monthly' },
-  ]
+  ];
 
   // Region pages (non-default regions only) once at least two regions are
   // active. Inactive regions (coming-soon, noindex) never show up.
@@ -758,36 +813,40 @@ export function generateSitemap(events, regions = null) {
       url: pagePath,
       priority: kind === 'calendar' ? '0.9' : '0.7',
       changefreq: kind === 'calendar' ? 'daily' : 'weekly',
-    }))
+    }));
 
-  const eventPages = withNextDate(events)
-    .map(event => ({
-      url: `/event/${getEventPath(event)}`,
-      priority: '0.8',
-      changefreq: 'weekly',
-      lastmod: toLastmod(event.updatedAt) || toLastmod(event.approvedAt) || toLastmod(event.createdAt),
-    }))
+  const eventPages = withNextDate(events).map((event) => ({
+    url: `/event/${getEventPath(event)}`,
+    priority: '0.8',
+    changefreq: 'weekly',
+    lastmod:
+      toLastmod(event.updatedAt) || toLastmod(event.approvedAt) || toLastmod(event.createdAt),
+  }));
 
-  const allPages = [...staticPages, ...regionPages, ...eventPages]
+  const allPages = [...staticPages, ...regionPages, ...eventPages];
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${allPages.map(page => `  <url>
+${allPages
+  .map(
+    (page) => `  <url>
     <loc>${BASE_URL}${page.url}</loc>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
     ${page.lastmod ? `<lastmod>${page.lastmod}</lastmod>` : ''}
-  </url>`).join('\n')}
-</urlset>`
+  </url>`
+  )
+  .join('\n')}
+</urlset>`;
 }
 
 export function unfirestore(value) {
-  if (value === null || value === undefined) return value
-  if (typeof value !== 'object') return value
-  if (Array.isArray(value)) return value.map(unfirestore)
-  if (value instanceof Date) return value.toISOString()
-  const keys = Object.keys(value)
-  const firestoreTypeKeys = keys.filter(k =>
+  if (value === null || value === undefined) return value;
+  if (typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(unfirestore);
+  if (value instanceof Date) return value.toISOString();
+  const keys = Object.keys(value);
+  const firestoreTypeKeys = keys.filter((k) =>
     [
       'stringValue',
       'integerValue',
@@ -801,30 +860,30 @@ export function unfirestore(value) {
       'bytesValue',
       'nullValue',
     ].includes(k)
-  )
+  );
   if (firestoreTypeKeys.length === 1) {
-    const key = firestoreTypeKeys[0]
-    if (key === 'nullValue') return null
-    if (key === 'stringValue') return value[key]
-    if (key === 'integerValue') return Number(value[key])
-    if (key === 'doubleValue') return Number(value[key])
-    if (key === 'booleanValue') return value[key] === 'true' || value[key] === true
-    if (key === 'timestampValue') return value[key]
-    if (key === 'arrayValue') return unfirestore(value[key]?.values || [])
-    if (key === 'mapValue') return unfirestore(value[key]?.fields || {})
-    if (key === 'geoPointValue') return value[key]
-    if (key === 'referenceValue') return value[key]
-    if (key === 'bytesValue') return value[key]
+    const key = firestoreTypeKeys[0];
+    if (key === 'nullValue') return null;
+    if (key === 'stringValue') return value[key];
+    if (key === 'integerValue') return Number(value[key]);
+    if (key === 'doubleValue') return Number(value[key]);
+    if (key === 'booleanValue') return value[key] === 'true' || value[key] === true;
+    if (key === 'timestampValue') return value[key];
+    if (key === 'arrayValue') return unfirestore(value[key]?.values || []);
+    if (key === 'mapValue') return unfirestore(value[key]?.fields || {});
+    if (key === 'geoPointValue') return value[key];
+    if (key === 'referenceValue') return value[key];
+    if (key === 'bytesValue') return value[key];
   }
-  const out = {}
+  const out = {};
   for (const [k, v] of Object.entries(value)) {
     if (k === 'id') {
-      out.id = v
+      out.id = v;
     } else {
-      out[k] = unfirestore(v)
+      out[k] = unfirestore(v);
     }
   }
-  return out
+  return out;
 }
 
 export function normalizeEvent(event) {
@@ -832,25 +891,25 @@ export function normalizeEvent(event) {
     event.category ||
     (Array.isArray(event.categories) && event.categories.length > 0
       ? event.categories[0]
-      : 'Sonstiges')
+      : 'Sonstiges');
   return {
     ...event,
     category,
     bezirk: event.bezirk || '',
-  }
+  };
 }
 
 export function loadEventsFromExport(exportPath) {
-  const eventsFile = path.join(exportPath, 'events.json')
+  const eventsFile = path.join(exportPath, 'events.json');
   if (!fs.existsSync(eventsFile)) {
-    return { events: [], source: null, error: `No events.json at ${eventsFile}` }
+    return { events: [], source: null, error: `No events.json at ${eventsFile}` };
   }
-  const raw = JSON.parse(fs.readFileSync(eventsFile, 'utf8'))
+  const raw = JSON.parse(fs.readFileSync(eventsFile, 'utf8'));
   if (!Array.isArray(raw)) {
-    return { events: [], source: null, error: `events.json is not an array` }
+    return { events: [], source: null, error: `events.json is not an array` };
   }
-  const events = raw.map(unfirestore).map(normalizeEvent)
-  return { events, source: eventsFile, error: null }
+  const events = raw.map(unfirestore).map(normalizeEvent);
+  return { events, source: eventsFile, error: null };
 }
 
 // Merges two event lists, preferring the second (`incoming`) for events
@@ -865,41 +924,41 @@ export function loadEventsFromExport(exportPath) {
 // shared events produce a fresh merged object — so callers can safely reuse
 // the committed snapshot for the next build.
 export function mergeEventsByIdentity(base, incoming) {
-  const order = []
+  const order = [];
   // Indexed by every key (id + slug) we know the row by, so an event that
   // gets its id reassigned in Firestore but keeps its slug (or vice versa)
   // still merges with its snapshot twin instead of producing a duplicate.
-  const lookupByKey = new Map() // key -> index in `order`
+  const lookupByKey = new Map(); // key -> index in `order`
 
   const keysFor = (event) => {
-    const keys = []
-    if (event.id) keys.push(`id:${event.id}`)
-    if (event.slug) keys.push(`slug:${event.slug}`)
-    return keys
-  }
+    const keys = [];
+    if (event.id) keys.push(`id:${event.id}`);
+    if (event.slug) keys.push(`slug:${event.slug}`);
+    return keys;
+  };
 
   for (const event of base) {
-    const idx = order.length
-    order.push({ ...event })
-    for (const key of keysFor(event)) lookupByKey.set(key, idx)
+    const idx = order.length;
+    order.push({ ...event });
+    for (const key of keysFor(event)) lookupByKey.set(key, idx);
   }
 
   for (const event of incoming) {
-    const keys = keysFor(event)
-    const matchIdx = keys.map((k) => lookupByKey.get(k)).find((i) => i !== undefined)
+    const keys = keysFor(event);
+    const matchIdx = keys.map((k) => lookupByKey.get(k)).find((i) => i !== undefined);
     if (matchIdx !== undefined) {
-      order[matchIdx] = { ...order[matchIdx], ...event }
+      order[matchIdx] = { ...order[matchIdx], ...event };
       // Re-index so future lookups land on the same row even after the
       // merge overwrote the id/slug fields.
-      for (const key of keysFor(order[matchIdx])) lookupByKey.set(key, matchIdx)
+      for (const key of keysFor(order[matchIdx])) lookupByKey.set(key, matchIdx);
     } else {
-      const idx = order.length
-      order.push({ ...event })
-      for (const key of keys) lookupByKey.set(key, idx)
+      const idx = order.length;
+      order.push({ ...event });
+      for (const key of keys) lookupByKey.set(key, idx);
     }
   }
 
-  return order
+  return order;
 }
 
 // Loads the `app_settings/theme` doc snapshot written by
@@ -910,29 +969,33 @@ export function mergeEventsByIdentity(base, incoming) {
 // fall back to `THEME_FALLBACK` so a build never fails just because the
 // theme doc hasn't been refreshed yet.
 export function loadThemeFromExport(exportPath) {
-  const themeFile = path.join(exportPath, 'theme.json')
+  const themeFile = path.join(exportPath, 'theme.json');
   if (!fs.existsSync(themeFile)) {
-    return { theme: { ...THEME_FALLBACK }, source: null, error: `No theme.json at ${themeFile}` }
+    return { theme: { ...THEME_FALLBACK }, source: null, error: `No theme.json at ${themeFile}` };
   }
   try {
-    const raw = JSON.parse(fs.readFileSync(themeFile, 'utf8'))
+    const raw = JSON.parse(fs.readFileSync(themeFile, 'utf8'));
     // Single-doc export shape: { id: 'theme', fields: { '--bg-primary': { stringValue: '#...' }, ... } }
     // or just { '--bg-primary': '#...', ... } if hand-edited.
     const fields =
       raw && typeof raw === 'object' && raw.fields && typeof raw.fields === 'object'
         ? raw.fields
-        : raw
-    const resolved = { ...THEME_FALLBACK }
+        : raw;
+    const resolved = { ...THEME_FALLBACK };
     for (const [name, value] of Object.entries(fields || {})) {
-      if (!Object.prototype.hasOwnProperty.call(THEME_FALLBACK, name)) continue
-      const unwrapped = typeof value === 'string' ? value : unfirestore(value)
+      if (!Object.prototype.hasOwnProperty.call(THEME_FALLBACK, name)) continue;
+      const unwrapped = typeof value === 'string' ? value : unfirestore(value);
       if (typeof unwrapped === 'string') {
-        resolved[name] = unwrapped
+        resolved[name] = unwrapped;
       }
     }
-    return { theme: resolved, source: themeFile, error: null }
+    return { theme: resolved, source: themeFile, error: null };
   } catch (err) {
-    return { theme: { ...THEME_FALLBACK }, source: themeFile, error: `Failed to read theme.json: ${err.message}` }
+    return {
+      theme: { ...THEME_FALLBACK },
+      source: themeFile,
+      error: `Failed to read theme.json: ${err.message}`,
+    };
   }
 }
 
@@ -947,23 +1010,26 @@ export function loadThemeFromExport(exportPath) {
 // never makes it into the messenger preview. SPA reads everywhere use
 // `where('status', '==', 'approved')`, so filtering trashed events here is
 // the matching server-side rule.
-function isIncludedInPrerender(event) {
-  return event && event.status !== 'trashed'
+// Curated (imported) events without the organizer's consent never get a page,
+// a sitemap entry or a calendar listing, whatever their status
+// (docs/event-import.md).
+export function isIncludedInPrerender(event) {
+  return Boolean(event) && event.status !== 'trashed' && !isCuratedWithoutConsent(event);
 }
 
 export async function loadEventsFromFirestore(firebaseConfig) {
   try {
-    const { initializeApp } = await import('firebase/app')
-    const { getFirestore, collection, getDocs } = await import('firebase/firestore')
-    const app = initializeApp(firebaseConfig)
-    const db = getFirestore(app)
-    const snapshot = await getDocs(collection(db, 'events'))
+    const { initializeApp } = await import('firebase/app');
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const snapshot = await getDocs(collection(db, 'events'));
     const events = snapshot.docs
-      .map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
-      .filter(isIncludedInPrerender)
-    return { events, source: 'firestore', error: null }
+      .map((doc) => normalizeEvent({ id: doc.id, ...doc.data() }))
+      .filter(isIncludedInPrerender);
+    return { events, source: 'firestore', error: null };
   } catch (err) {
-    return { events: [], source: null, error: `Live Firestore SDK read threw: ${err.message}` }
+    return { events: [], source: null, error: `Live Firestore SDK read threw: ${err.message}` };
   }
 }
 
@@ -983,28 +1049,41 @@ export function resolveServiceAccountCredential({
 } = {}) {
   if (envCredentialsJson && envCredentialsJson.trim()) {
     try {
-      return { credential: JSON.parse(envCredentialsJson), source: 'FIREBASE_SERVICE_ACCOUNT_JSON env var' }
+      return {
+        credential: JSON.parse(envCredentialsJson),
+        source: 'FIREBASE_SERVICE_ACCOUNT_JSON env var',
+      };
     } catch (err) {
-      return { credential: null, error: `Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: ${err.message}` }
+      return {
+        credential: null,
+        error: `Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: ${err.message}`,
+      };
     }
   }
   if (envCredentialsPath) {
     try {
-      const cred = JSON.parse(fs.readFileSync(envCredentialsPath, 'utf8'))
-      return { credential: cred, source: envCredentialsPath }
+      const cred = JSON.parse(fs.readFileSync(envCredentialsPath, 'utf8'));
+      return { credential: cred, source: envCredentialsPath };
     } catch (err) {
-      return { credential: null, error: `Failed to read GOOGLE_APPLICATION_CREDENTIALS=${envCredentialsPath}: ${err.message}` }
+      return {
+        credential: null,
+        error: `Failed to read GOOGLE_APPLICATION_CREDENTIALS=${envCredentialsPath}: ${err.message}`,
+      };
     }
   }
   if (fallbackPath && fs.existsSync(fallbackPath)) {
     try {
-      const cred = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'))
-      return { credential: cred, source: fallbackPath }
+      const cred = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
+      return { credential: cred, source: fallbackPath };
     } catch (err) {
-      return { credential: null, error: `Failed to read ${fallbackPath}: ${err.message}` }
+      return { credential: null, error: `Failed to read ${fallbackPath}: ${err.message}` };
     }
   }
-  return { credential: null, error: 'No service account credentials available (set GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_SERVICE_ACCOUNT_JSON, or add scripts/service-account.json).' }
+  return {
+    credential: null,
+    error:
+      'No service account credentials available (set GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_SERVICE_ACCOUNT_JSON, or add scripts/service-account.json).',
+  };
 }
 
 // Reads events via the Firebase Admin SDK, which bypasses security rules.
@@ -1025,29 +1104,30 @@ export async function loadEventsFromFirestoreAdmin({
   appName = `prerender-admin-${Date.now()}`,
   fallbackPath = 'scripts/service-account.json',
 } = {}) {
-  const { credential, source: credentialSource, error: credentialError } = resolveServiceAccountCredential({ fallbackPath })
+  const {
+    credential,
+    source: credentialSource,
+    error: credentialError,
+  } = resolveServiceAccountCredential({ fallbackPath });
   if (!credential) {
-    return { events: [], source: null, error: credentialError }
+    return { events: [], source: null, error: credentialError };
   }
   try {
-    const admin = await import('firebase-admin/app')
-    const { getFirestore } = await import('firebase-admin/firestore')
-    const app = admin.initializeApp(
-      { credential: admin.cert(credential), projectId },
-      appName
-    )
+    const admin = await import('firebase-admin/app');
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const app = admin.initializeApp({ credential: admin.cert(credential), projectId }, appName);
     try {
-      const db = getFirestore(app)
-      const snapshot = await db.collection('events').get()
+      const db = getFirestore(app);
+      const snapshot = await db.collection('events').get();
       const events = snapshot.docs
-        .map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
-        .filter(isIncludedInPrerender)
-      return { events, source: `firestore-admin:${credentialSource}`, error: null }
+        .map((doc) => normalizeEvent({ id: doc.id, ...doc.data() }))
+        .filter(isIncludedInPrerender);
+      return { events, source: `firestore-admin:${credentialSource}`, error: null };
     } finally {
-      app.delete().catch(() => {})
+      app.delete().catch(() => {});
     }
   } catch (err) {
-    return { events: [], source: null, error: `Firestore Admin SDK read threw: ${err.message}` }
+    return { events: [], source: null, error: `Firestore Admin SDK read threw: ${err.message}` };
   }
 }
 
@@ -1057,30 +1137,34 @@ export async function loadEventsFromFirestoreRest({
   baseUrl = 'https://firestore.googleapis.com',
 } = {}) {
   if (!projectId || !apiKey) {
-    return { events: [], source: null, error: 'Missing projectId or apiKey for Firestore REST fetch.' }
+    return {
+      events: [],
+      source: null,
+      error: 'Missing projectId or apiKey for Firestore REST fetch.',
+    };
   }
-  const url = `${baseUrl}/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/events?pageSize=1000&key=${encodeURIComponent(apiKey)}`
+  const url = `${baseUrl}/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/events?pageSize=1000&key=${encodeURIComponent(apiKey)}`;
   try {
-    const res = await fetch(url)
+    const res = await fetch(url);
     if (!res.ok) {
       return {
         events: [],
         source: null,
         error: `Firestore REST request failed: ${res.status} ${res.statusText}`,
-      }
+      };
     }
-    const payload = await res.json()
-    const docs = Array.isArray(payload?.documents) ? payload.documents : []
+    const payload = await res.json();
+    const docs = Array.isArray(payload?.documents) ? payload.documents : [];
     const events = docs
-      .map(doc => {
-        const id = doc.name?.split('/').pop()
-        const fields = unfirestore(doc.fields || {})
-        return normalizeEvent({ id, ...fields })
+      .map((doc) => {
+        const id = doc.name?.split('/').pop();
+        const fields = unfirestore(doc.fields || {});
+        return normalizeEvent({ id, ...fields });
       })
-      .filter(isIncludedInPrerender)
-    return { events, source: `firestore-rest:${projectId}`, error: null }
+      .filter(isIncludedInPrerender);
+    return { events, source: `firestore-rest:${projectId}`, error: null };
   } catch (err) {
-    return { events: [], source: null, error: `Firestore REST fetch threw: ${err.message}` }
+    return { events: [], source: null, error: `Firestore REST fetch threw: ${err.message}` };
   }
 }
 
@@ -1095,43 +1179,44 @@ export async function loadEventsFromFirestoreRest({
 export function sanitizeRegionDoc(doc) {
   // Names and districts come only from the register in code (mergeRegions ignores them in a
   // doc), so only the switchable public fields are kept.
-  if (!doc || !isRegionSlug(doc.id)) return null
-  const out = { id: doc.id }
-  if (typeof doc.order === 'number') out.order = doc.order
-  if (typeof doc.active === 'boolean') out.active = doc.active
+  if (!doc || !isRegionSlug(doc.id)) return null;
+  const out = { id: doc.id };
+  if (typeof doc.order === 'number') out.order = doc.order;
+  if (typeof doc.active === 'boolean') out.active = doc.active;
   if (doc.seo && typeof doc.seo === 'object') {
-    const seo = {}
-    if (typeof doc.seo.title === 'string') seo.title = doc.seo.title
-    if (typeof doc.seo.description === 'string') seo.description = doc.seo.description
-    out.seo = seo
+    const seo = {};
+    if (typeof doc.seo.title === 'string') seo.title = doc.seo.title;
+    if (typeof doc.seo.description === 'string') seo.description = doc.seo.description;
+    out.seo = seo;
   }
-  if (typeof doc.timezone === 'string') out.timezone = doc.timezone
-  return out
+  if (typeof doc.timezone === 'string') out.timezone = doc.timezone;
+  return out;
 }
 
 // Later docs win per id; fields merge (a live doc without `seo` keeps the
 // snapshot's, like mergeEventsByIdentity).
 export function mergeRegionDocs(base, incoming) {
-  const byId = new Map()
+  const byId = new Map();
   for (const doc of [...base, ...incoming]) {
-    const clean = sanitizeRegionDoc(doc)
-    if (clean) byId.set(clean.id, { ...(byId.get(clean.id) || {}), ...clean })
+    const clean = sanitizeRegionDoc(doc);
+    if (clean) byId.set(clean.id, { ...(byId.get(clean.id) || {}), ...clean });
   }
-  return [...byId.values()]
+  return [...byId.values()];
 }
 
 export function loadRegionsFromExport(exportPath) {
-  const file = path.join(exportPath, 'regions.json')
+  const file = path.join(exportPath, 'regions.json');
   if (!fs.existsSync(file)) {
-    return { regions: [], source: null, error: `No regions.json at ${file}` }
+    return { regions: [], source: null, error: `No regions.json at ${file}` };
   }
   try {
-    const raw = JSON.parse(fs.readFileSync(file, 'utf8'))
-    if (!Array.isArray(raw)) return { regions: [], source: null, error: 'regions.json is not an array' }
-    const regions = raw.map(unfirestore).map(sanitizeRegionDoc).filter(Boolean)
-    return { regions, source: file, error: null }
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!Array.isArray(raw))
+      return { regions: [], source: null, error: 'regions.json is not an array' };
+    const regions = raw.map(unfirestore).map(sanitizeRegionDoc).filter(Boolean);
+    return { regions, source: file, error: null };
   } catch (err) {
-    return { regions: [], source: null, error: `Failed to read regions.json: ${err.message}` }
+    return { regions: [], source: null, error: `Failed to read regions.json: ${err.message}` };
   }
 }
 
@@ -1140,21 +1225,23 @@ export async function loadRegionsFromFirestoreAdmin({
   appName = `prerender-admin-regions-${Date.now()}`,
   fallbackPath = 'scripts/service-account.json',
 } = {}) {
-  const { credential, error: credentialError } = resolveServiceAccountCredential({ fallbackPath })
-  if (!credential) return { regions: [], error: credentialError }
+  const { credential, error: credentialError } = resolveServiceAccountCredential({ fallbackPath });
+  if (!credential) return { regions: [], error: credentialError };
   try {
-    const admin = await import('firebase-admin/app')
-    const { getFirestore } = await import('firebase-admin/firestore')
-    const app = admin.initializeApp({ credential: admin.cert(credential), projectId }, appName)
+    const admin = await import('firebase-admin/app');
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const app = admin.initializeApp({ credential: admin.cert(credential), projectId }, appName);
     try {
-      const snapshot = await getFirestore(app).collection('regions').get()
-      const regions = snapshot.docs.map(doc => sanitizeRegionDoc({ id: doc.id, ...doc.data() })).filter(Boolean)
-      return { regions, error: null }
+      const snapshot = await getFirestore(app).collection('regions').get();
+      const regions = snapshot.docs
+        .map((doc) => sanitizeRegionDoc({ id: doc.id, ...doc.data() }))
+        .filter(Boolean);
+      return { regions, error: null };
     } finally {
-      app.delete().catch(() => {})
+      app.delete().catch(() => {});
     }
   } catch (err) {
-    return { regions: [], error: `Regions Admin SDK read threw: ${err.message}` }
+    return { regions: [], error: `Regions Admin SDK read threw: ${err.message}` };
   }
 }
 
@@ -1162,33 +1249,42 @@ export async function loadRegionsFromFirestoreAdmin({
 // events of non-staff organisers, from their directory listings and the
 // admin_users ids (src/utils/onlineEventEligibility.js). Without Admin SDK
 // credentials the events stay unchanged (online events shown, fail open).
-export async function annotateOnlineEventsFromFirestoreAdmin(events, regions, {
-  projectId = 'spirieventsvbg',
-  appName = `prerender-admin-listings-${Date.now()}`,
-  fallbackPath = 'scripts/service-account.json',
-} = {}) {
-  const uids = onlineOrganizerUids(events)
-  if (uids.length === 0) return { events, error: null }
-  const { credential, error: credentialError } = resolveServiceAccountCredential({ fallbackPath })
-  if (!credential) return { events, error: credentialError }
+export async function annotateOnlineEventsFromFirestoreAdmin(
+  events,
+  regions,
+  {
+    projectId = 'spirieventsvbg',
+    appName = `prerender-admin-listings-${Date.now()}`,
+    fallbackPath = 'scripts/service-account.json',
+  } = {}
+) {
+  const uids = onlineOrganizerUids(events);
+  if (uids.length === 0) return { events, error: null };
+  const { credential, error: credentialError } = resolveServiceAccountCredential({ fallbackPath });
+  if (!credential) return { events, error: credentialError };
   try {
-    const admin = await import('firebase-admin/app')
-    const { getFirestore } = await import('firebase-admin/firestore')
-    const app = admin.initializeApp({ credential: admin.cert(credential), projectId }, appName)
+    const admin = await import('firebase-admin/app');
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const app = admin.initializeApp({ credential: admin.cert(credential), projectId }, appName);
     try {
-      const db = getFirestore(app)
+      const db = getFirestore(app);
       const [staffSnap, profileSnaps] = await Promise.all([
         db.collection('admin_users').get(),
-        db.getAll(...uids.map(uid => db.doc(`users/${uid}/publicProfile/data`))),
-      ])
-      const listings = Object.fromEntries(profileSnaps.map((snap, i) => [uids[i], snap.exists ? snap.data() : null]))
-      const staffUids = staffSnap.docs.map(d => d.id)
-      return { events: annotateOnlineRegionIds(events, { regions, listings, staffUids }), error: null }
+        db.getAll(...uids.map((uid) => db.doc(`users/${uid}/publicProfile/data`))),
+      ]);
+      const listings = Object.fromEntries(
+        profileSnaps.map((snap, i) => [uids[i], snap.exists ? snap.data() : null])
+      );
+      const staffUids = staffSnap.docs.map((d) => d.id);
+      return {
+        events: annotateOnlineRegionIds(events, { regions, listings, staffUids }),
+        error: null,
+      };
     } finally {
-      app.delete().catch(() => {})
+      app.delete().catch(() => {});
     }
   } catch (err) {
-    return { events, error: `Listings Admin SDK read threw: ${err.message}` }
+    return { events, error: `Listings Admin SDK read threw: ${err.message}` };
   }
 }
 
@@ -1197,50 +1293,56 @@ export async function loadRegionsFromFirestoreRest({
   apiKey,
   baseUrl = 'https://firestore.googleapis.com',
 } = {}) {
-  if (!projectId || !apiKey) return { regions: [], error: 'Missing projectId or apiKey for regions REST fetch.' }
-  const url = `${baseUrl}/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/regions?pageSize=100&key=${encodeURIComponent(apiKey)}`
+  if (!projectId || !apiKey)
+    return { regions: [], error: 'Missing projectId or apiKey for regions REST fetch.' };
+  const url = `${baseUrl}/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/regions?pageSize=100&key=${encodeURIComponent(apiKey)}`;
   try {
-    const res = await fetch(url)
-    if (!res.ok) return { regions: [], error: `Regions REST request failed: ${res.status} ${res.statusText}` }
-    const payload = await res.json()
-    const docs = Array.isArray(payload?.documents) ? payload.documents : []
+    const res = await fetch(url);
+    if (!res.ok)
+      return { regions: [], error: `Regions REST request failed: ${res.status} ${res.statusText}` };
+    const payload = await res.json();
+    const docs = Array.isArray(payload?.documents) ? payload.documents : [];
     const regions = docs
-      .map(doc => sanitizeRegionDoc({ id: doc.name?.split('/').pop(), ...unfirestore(doc.fields || {}) }))
-      .filter(Boolean)
-    return { regions, error: null }
+      .map((doc) =>
+        sanitizeRegionDoc({ id: doc.name?.split('/').pop(), ...unfirestore(doc.fields || {}) })
+      )
+      .filter(Boolean);
+    return { regions, error: null };
   } catch (err) {
-    return { regions: [], error: `Regions REST fetch threw: ${err.message}` }
+    return { regions: [], error: `Regions REST fetch threw: ${err.message}` };
   }
 }
 
 export async function loadRegionsFromFirestore(firebaseConfig) {
   try {
-    const { initializeApp } = await import('firebase/app')
-    const { getFirestore, collection, getDocs } = await import('firebase/firestore')
-    const db = getFirestore(initializeApp(firebaseConfig, `prerender-regions-${Date.now()}`))
-    const snapshot = await getDocs(collection(db, 'regions'))
-    const regions = snapshot.docs.map(doc => sanitizeRegionDoc({ id: doc.id, ...doc.data() })).filter(Boolean)
-    return { regions, error: null }
+    const { initializeApp } = await import('firebase/app');
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+    const db = getFirestore(initializeApp(firebaseConfig, `prerender-regions-${Date.now()}`));
+    const snapshot = await getDocs(collection(db, 'regions'));
+    const regions = snapshot.docs
+      .map((doc) => sanitizeRegionDoc({ id: doc.id, ...doc.data() }))
+      .filter(Boolean);
+    return { regions, error: null };
   } catch (err) {
-    return { regions: [], error: `Regions client SDK read threw: ${err.message}` }
+    return { regions: [], error: `Regions client SDK read threw: ${err.message}` };
   }
 }
 
 function pickBundlePath(assetsDir, ext) {
-  const files = fs.readdirSync(assetsDir)
-  const candidates = files.filter(f => f.endsWith(`.${ext}`) && !f.includes('map'))
+  const files = fs.readdirSync(assetsDir);
+  const candidates = files.filter((f) => f.endsWith(`.${ext}`) && !f.includes('map'));
   if (candidates.length === 0) {
-    throw new Error(`No ${ext.toUpperCase()} bundle found in ${assetsDir}`)
+    throw new Error(`No ${ext.toUpperCase()} bundle found in ${assetsDir}`);
   }
-  const entry = candidates.find(f => /^index-/.test(f))
-  const chosen = entry || candidates[0]
+  const entry = candidates.find((f) => /^index-/.test(f));
+  const chosen = entry || candidates[0];
   if (!entry && candidates.length > 1) {
     console.warn(
       `No index-* ${ext.toUpperCase()} entry found in ${assetsDir}; falling back to ${chosen}. ` +
         `Picked this one because fs.readdirSync order is not guaranteed — verify it is the real app entry.`
-    )
+    );
   }
-  return `/assets/${chosen}`
+  return `/assets/${chosen}`;
 }
 
 // Vite writes the real entry tags into dist/index.html. Reading them from
@@ -1248,30 +1350,30 @@ function pickBundlePath(assetsDir, ext) {
 // can also end up named `index-<hash>.js`, and picking the wrong file would
 // ship every prerendered page without the app.
 export function bundlePathsFromIndexHtml(html) {
-  if (typeof html !== 'string') return { js: null, css: null }
-  const js = html.match(/<script[^>]*type="module"[^>]*src="(\/assets\/[^"]+\.js)"/)
-  const css = html.match(/<link[^>]*rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"/)
-  return { js: js ? js[1] : null, css: css ? css[1] : null }
+  if (typeof html !== 'string') return { js: null, css: null };
+  const js = html.match(/<script[^>]*type="module"[^>]*src="(\/assets\/[^"]+\.js)"/);
+  const css = html.match(/<link[^>]*rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"/);
+  return { js: js ? js[1] : null, css: css ? css[1] : null };
 }
 
 function readEntryFromIndexHtml(distPath) {
   try {
-    return bundlePathsFromIndexHtml(fs.readFileSync(path.join(distPath, 'index.html'), 'utf8'))
+    return bundlePathsFromIndexHtml(fs.readFileSync(path.join(distPath, 'index.html'), 'utf8'));
   } catch {
-    return { js: null, css: null }
+    return { js: null, css: null };
   }
 }
 
 function findJsBundlePath(assetsDir) {
-  return pickBundlePath(assetsDir, 'js')
+  return pickBundlePath(assetsDir, 'js');
 }
 
 function findCssBundlePath(assetsDir) {
-  return pickBundlePath(assetsDir, 'css')
+  return pickBundlePath(assetsDir, 'css');
 }
 
 function ensureDir(dir) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -1282,7 +1384,7 @@ export const DEFAULT_FIREBASE_CONFIG = {
   messagingSenderId: '54424804895',
   appId: '1:54424804895:web:e9caf19748530550a63f2a',
   measurementId: 'G-34TNY65VBC',
-}
+};
 
 export async function prerender({
   rootDir = ROOT_DIR,
@@ -1294,30 +1396,32 @@ export async function prerender({
   skipAdmin = false,
 } = {}) {
   if (!fs.existsSync(distPath)) {
-    throw new Error(`dist folder not found at ${distPath}. Run \`npm run build\` (vite build) first.`)
+    throw new Error(
+      `dist folder not found at ${distPath}. Run \`npm run build\` (vite build) first.`
+    );
   }
 
-  let events = []
-  let source = null
+  let events = [];
+  let source = null;
 
   // Theme snapshot: load whatever's in data-export/theme.json so the
   // prerendered HTML paints the same palette admins see in the Theme tab.
   // Falls back to bundled defaults if the file is missing or stale.
-  const themeResult = loadThemeFromExport(exportPath)
-  const theme = themeResult.theme
+  const themeResult = loadThemeFromExport(exportPath);
+  const theme = themeResult.theme;
   if (themeResult.error) {
-    console.warn(`Theme snapshot not used: ${themeResult.error}`)
+    console.warn(`Theme snapshot not used: ${themeResult.error}`);
   } else {
-    console.log(`Loaded theme from ${themeResult.source}`)
+    console.log(`Loaded theme from ${themeResult.source}`);
   }
 
-  const exportResult = loadEventsFromExport(exportPath)
-  events = exportResult.events
-  source = exportResult.source
+  const exportResult = loadEventsFromExport(exportPath);
+  events = exportResult.events;
+  source = exportResult.source;
   if (exportResult.error) {
-    console.warn(`data-export not usable: ${exportResult.error}`)
+    console.warn(`data-export not usable: ${exportResult.error}`);
   } else {
-    console.log(`Loaded ${events.length} events from export: ${source}`)
+    console.log(`Loaded ${events.length} events from export: ${source}`);
   }
 
   // events.json is the deterministic offline snapshot, but it can lag
@@ -1336,7 +1440,7 @@ export async function prerender({
   // both live reads fail (e.g. Netlify build with rules blocking
   // anonymous access), we keep the snapshot as-is and the build
   // stays reproducible.
-  const liveSources = []
+  const liveSources = [];
 
   // Admin SDK is the first live source tried because, unlike the REST and
   // client SDK paths, it can read the events collection at all on production
@@ -1348,15 +1452,17 @@ export async function prerender({
   // Firestore (a freshly created approved event).
   if (!skipAdmin) {
     try {
-      const adminResult = await loadEventsFromFirestoreAdmin({ projectId: firebaseConfig.projectId })
+      const adminResult = await loadEventsFromFirestoreAdmin({
+        projectId: firebaseConfig.projectId,
+      });
       if (adminResult.events.length > 0) {
-        liveSources.push({ label: 'firestore-admin', events: adminResult.events })
-        console.log(`Merged ${adminResult.events.length} live events from Firestore Admin SDK.`)
+        liveSources.push({ label: 'firestore-admin', events: adminResult.events });
+        console.log(`Merged ${adminResult.events.length} live events from Firestore Admin SDK.`);
       } else if (adminResult.error) {
-        console.warn(`Firestore Admin SDK skipped: ${adminResult.error}`)
+        console.warn(`Firestore Admin SDK skipped: ${adminResult.error}`);
       }
     } catch (err) {
-      console.warn(`Firestore Admin SDK threw: ${err.message}`)
+      console.warn(`Firestore Admin SDK threw: ${err.message}`);
     }
   }
 
@@ -1365,73 +1471,95 @@ export async function prerender({
       const restResult = await loadEventsFromFirestoreRest({
         projectId: firebaseConfig.projectId,
         apiKey: firebaseConfig.apiKey,
-      })
+      });
       if (restResult.events.length > 0) {
-        liveSources.push({ label: 'firestore-rest', events: restResult.events })
-        console.log(`Merged ${restResult.events.length} live events from Firestore REST.`)
+        liveSources.push({ label: 'firestore-rest', events: restResult.events });
+        console.log(`Merged ${restResult.events.length} live events from Firestore REST.`);
       } else if (restResult.error) {
-        console.warn(`Firestore REST fetch failed: ${restResult.error}`)
+        console.warn(`Firestore REST fetch failed: ${restResult.error}`);
       }
     } catch (err) {
-      console.warn(`Firestore REST fetch threw: ${err.message}`)
+      console.warn(`Firestore REST fetch threw: ${err.message}`);
     }
   }
 
   if (!skipFirestore) {
     try {
-      const fsResult = await loadEventsFromFirestore(firebaseConfig)
+      const fsResult = await loadEventsFromFirestore(firebaseConfig);
       if (fsResult.events.length > 0) {
-        liveSources.push({ label: 'firestore-sdk', events: fsResult.events })
-        console.log(`Merged ${fsResult.events.length} live events from Firestore SDK.`)
+        liveSources.push({ label: 'firestore-sdk', events: fsResult.events });
+        console.log(`Merged ${fsResult.events.length} live events from Firestore SDK.`);
       } else if (fsResult.error) {
-        console.warn(`Live Firestore read failed: ${fsResult.error}`)
+        console.warn(`Live Firestore read failed: ${fsResult.error}`);
       }
     } catch (err) {
-      console.error(`Live Firestore read failed: ${err.message}`)
-      if (err.stack) console.error(err.stack)
+      console.error(`Live Firestore read failed: ${err.message}`);
+      if (err.stack) console.error(err.stack);
     }
   }
 
   if (liveSources.length > 0) {
-    const before = events.length
+    const before = events.length;
     for (const { events: liveEvents } of liveSources) {
-      events = mergeEventsByIdentity(events, liveEvents)
+      events = mergeEventsByIdentity(events, liveEvents);
     }
     if (events.length !== before) {
-      console.log(`Merged live events into prerender (${before} → ${events.length}).`)
+      console.log(`Merged live events into prerender (${before} → ${events.length}).`);
     }
-    source = `${source || 'unknown'} + ${liveSources.map((s) => s.label).join(', ')}`
+    source = `${source || 'unknown'} + ${liveSources.map((s) => s.label).join(', ')}`;
   }
 
+  // The committed snapshot is not filtered on load: drop curated events
+  // without consent here too, so no source can bring one back.
+  events = events.filter((event) => !isCuratedWithoutConsent(event));
+
   if (events.length === 0) {
-    console.warn('No events loaded from any source — prerendering without event pages.')
+    console.warn('No events loaded from any source — prerendering without event pages.');
   }
 
   // Regions: snapshot (optional), then live sources on top, merged over the
   // static register. Any failure leaves the static register (Vorarlberg only).
-  let regionDocs = []
-  const regionsExport = loadRegionsFromExport(exportPath)
-  if (!regionsExport.error) regionDocs = mergeRegionDocs(regionDocs, regionsExport.regions)
-  const regionReads = []
-  if (!skipAdmin) regionReads.push(['Admin SDK', () => loadRegionsFromFirestoreAdmin({ projectId: firebaseConfig.projectId })])
-  if (!skipRest) regionReads.push(['REST', () => loadRegionsFromFirestoreRest({ projectId: firebaseConfig.projectId, apiKey: firebaseConfig.apiKey })])
-  if (!skipFirestore) regionReads.push(['SDK', () => loadRegionsFromFirestore(firebaseConfig)])
+  let regionDocs = [];
+  const regionsExport = loadRegionsFromExport(exportPath);
+  if (!regionsExport.error) regionDocs = mergeRegionDocs(regionDocs, regionsExport.regions);
+  const regionReads = [];
+  if (!skipAdmin)
+    regionReads.push([
+      'Admin SDK',
+      () => loadRegionsFromFirestoreAdmin({ projectId: firebaseConfig.projectId }),
+    ]);
+  if (!skipRest)
+    regionReads.push([
+      'REST',
+      () =>
+        loadRegionsFromFirestoreRest({
+          projectId: firebaseConfig.projectId,
+          apiKey: firebaseConfig.apiKey,
+        }),
+    ]);
+  if (!skipFirestore) regionReads.push(['SDK', () => loadRegionsFromFirestore(firebaseConfig)]);
   for (const [label, read] of regionReads) {
     try {
-      const result = await read()
-      if (result.regions.length > 0) regionDocs = mergeRegionDocs(regionDocs, result.regions)
-      else if (result.error) console.warn(`Regions ${label} read skipped: ${result.error}`)
+      const result = await read();
+      if (result.regions.length > 0) regionDocs = mergeRegionDocs(regionDocs, result.regions);
+      else if (result.error) console.warn(`Regions ${label} read skipped: ${result.error}`);
     } catch (err) {
-      console.warn(`Regions ${label} read threw: ${err.message}`)
+      console.warn(`Regions ${label} read threw: ${err.message}`);
     }
   }
-  const regions = mergeRegions(regionDocs)
-  const regionPlan = getRegionPagePlan(regions)
-  console.log(`Active regions: ${activeRegions(regions).map(r => r.slug).join(', ') || 'none'}.`)
+  const regions = mergeRegions(regionDocs);
+  const regionPlan = getRegionPagePlan(regions);
+  console.log(
+    `Active regions: ${
+      activeRegions(regions)
+        .map((r) => r.slug)
+        .join(', ') || 'none'
+    }.`
+  );
 
-  const writtenFiles = []
-  const skippedEvents = []
-  const seenPaths = new Set()
+  const writtenFiles = [];
+  const skippedEvents = [];
+  const seenPaths = new Set();
 
   // Resolve the JS/CSS bundle paths once, before generating event pages,
   // so every `/event/<slug>/index.html` can ship the same bundle tags as
@@ -1440,84 +1568,130 @@ export async function prerender({
   // description renders as escaped markup. Resolving upfront lets the
   // `generateEventHtml` call below wire React up the same way the calendar
   // page already does.
-  const assetsPath = path.join(distPath, 'assets')
-  const entry = readEntryFromIndexHtml(distPath)
-  const hasAssets = fs.existsSync(assetsPath)
-  const jsBundlePath = hasAssets ? entry.js || findJsBundlePath(assetsPath) : null
-  const cssBundlePath = hasAssets ? entry.css || findCssBundlePath(assetsPath) : null
+  const assetsPath = path.join(distPath, 'assets');
+  const entry = readEntryFromIndexHtml(distPath);
+  const hasAssets = fs.existsSync(assetsPath);
+  const jsBundlePath = hasAssets ? entry.js || findJsBundlePath(assetsPath) : null;
+  const cssBundlePath = hasAssets ? entry.css || findCssBundlePath(assetsPath) : null;
 
   for (const event of events) {
-    const eventPath = getEventPath(event)
+    const eventPath = getEventPath(event);
     if (!eventPath) {
-      skippedEvents.push({ id: event.id, title: event.title, reason: 'no slug and no id' })
-      continue
+      skippedEvents.push({ id: event.id, title: event.title, reason: 'no slug and no id' });
+      continue;
     }
     if (seenPaths.has(eventPath)) {
-      skippedEvents.push({ id: event.id, title: event.title, reason: `duplicate path ${eventPath}` })
-      continue
+      skippedEvents.push({
+        id: event.id,
+        title: event.title,
+        reason: `duplicate path ${eventPath}`,
+      });
+      continue;
     }
-    seenPaths.add(eventPath)
+    if (isEventPathTooLong(eventPath)) {
+      skippedEvents.push({
+        id: event.id,
+        title: event.title,
+        reason: `path longer than ${MAX_EVENT_PATH_LENGTH} chars (${String(eventPath).length}), served by SPA fallback without prerender`,
+      });
+      continue;
+    }
+    seenPaths.add(eventPath);
 
-    const eventDir = path.join(distPath, 'event', eventPath)
-    ensureDir(eventDir)
-    const html = generateEventHtml(event, theme, jsBundlePath, cssBundlePath, regions)
-    const filePath = path.join(eventDir, 'index.html')
-    fs.writeFileSync(filePath, html)
-    writtenFiles.push({ path: `/event/${eventPath}/index.html`, slug: eventPath, title: event.title })
+    // One broken event must never abort the whole build.
+    try {
+      const eventDir = path.join(distPath, 'event', eventPath);
+      ensureDir(eventDir);
+      const html = generateEventHtml(event, theme, jsBundlePath, cssBundlePath, regions);
+      const filePath = path.join(eventDir, 'index.html');
+      fs.writeFileSync(filePath, html);
+    } catch (err) {
+      skippedEvents.push({
+        id: event.id,
+        title: event.title,
+        reason: `write failed: ${err.message}`,
+      });
+      continue;
+    }
+    writtenFiles.push({
+      path: `/event/${eventPath}/index.html`,
+      slug: eventPath,
+      title: event.title,
+    });
   }
 
-  console.log(`Prerendered ${writtenFiles.length} event pages.`)
+  console.log(`Prerendered ${writtenFiles.length} event pages.`);
   if (skippedEvents.length > 0) {
-    console.warn(`Skipped ${skippedEvents.length} events:`)
+    console.warn(`Skipped ${skippedEvents.length} events:`);
     for (const skipped of skippedEvents) {
-      console.warn(`  - ${skipped.title || skipped.id} (${skipped.reason})`)
+      console.warn(`  - ${skipped.title || skipped.id} (${skipped.reason})`);
     }
   }
 
   if (jsBundlePath && cssBundlePath) {
-    const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme, regions)
+    const calendarHtml = generateCalendarPageHtml(
+      events,
+      jsBundlePath,
+      cssBundlePath,
+      theme,
+      regions
+    );
     // TEMPORARY (2026-11-10): see public/redirect-heute.js. Injected here, not in the
     // generator, so the golden hash of generateCalendarPageHtml stays untouched.
     const withTempRedirect = calendarHtml.replace(
       '<meta charset="UTF-8" />',
       '<meta charset="UTF-8" />\n  <script src="/redirect-heute.js"></script>'
-    )
-    fs.writeFileSync(path.join(distPath, 'index.html'), withTempRedirect)
-    writtenFiles.push({ path: '/index.html', slug: null, title: SITE_NAME })
-    console.log(`Prerendered calendar index page with ${events.length} events.`)
+    );
+    fs.writeFileSync(path.join(distPath, 'index.html'), withTempRedirect);
+    writtenFiles.push({ path: '/index.html', slug: null, title: SITE_NAME });
+    console.log(`Prerendered calendar index page with ${events.length} events.`);
   } else {
-    console.warn(`No assets/ directory in dist; skipping calendar prerender.`)
+    console.warn(`No assets/ directory in dist; skipping calendar prerender.`);
   }
 
   if (regionPlan.length > 0) {
     if (jsBundlePath && cssBundlePath) {
-      const activeRegionIds = activeRegions(regions).map(r => r.id)
-      let regionEvents = events
+      const activeRegionIds = activeRegions(regions).map((r) => r.id);
+      let regionEvents = events;
       if (!skipAdmin) {
-        const annotated = await annotateOnlineEventsFromFirestoreAdmin(events, regions, { projectId: firebaseConfig.projectId })
-        if (annotated.error) console.warn(`Online event listings skipped: ${annotated.error}`)
-        regionEvents = annotated.events
+        const annotated = await annotateOnlineEventsFromFirestoreAdmin(events, regions, {
+          projectId: firebaseConfig.projectId,
+        });
+        if (annotated.error) console.warn(`Online event listings skipped: ${annotated.error}`);
+        regionEvents = annotated.events;
       }
       for (const { region, kind, path: pagePath } of regionPlan) {
-        const pageDir = path.join(distPath, ...pagePath.split('/').filter(Boolean))
-        ensureDir(pageDir)
-        const html = generateRegionPageHtml(region, kind, regionEvents, jsBundlePath, cssBundlePath, theme, {
-          activeCount: activeRegionIds.length,
-          activeRegionIds,
-        })
-        fs.writeFileSync(path.join(pageDir, 'index.html'), html)
-        writtenFiles.push({ path: `${pagePath}/index.html`, slug: null, title: `${region.name} (${kind})` })
+        const pageDir = path.join(distPath, ...pagePath.split('/').filter(Boolean));
+        ensureDir(pageDir);
+        const html = generateRegionPageHtml(
+          region,
+          kind,
+          regionEvents,
+          jsBundlePath,
+          cssBundlePath,
+          theme,
+          {
+            activeCount: activeRegionIds.length,
+            activeRegionIds,
+          }
+        );
+        fs.writeFileSync(path.join(pageDir, 'index.html'), html);
+        writtenFiles.push({
+          path: `${pagePath}/index.html`,
+          slug: null,
+          title: `${region.name} (${kind})`,
+        });
       }
-      console.log(`Prerendered ${regionPlan.length} region pages.`)
+      console.log(`Prerendered ${regionPlan.length} region pages.`);
     } else {
-      console.warn('No assets/ directory in dist; skipping region page prerender.')
+      console.warn('No assets/ directory in dist; skipping region page prerender.');
     }
   }
 
-  const sitemap = generateSitemap(events, regions)
-  fs.writeFileSync(path.join(distPath, 'sitemap.xml'), sitemap)
-  writtenFiles.push({ path: '/sitemap.xml', slug: null, title: 'sitemap' })
-  console.log(`Generated sitemap.xml with ${events.length} event URLs.`)
+  const sitemap = generateSitemap(events, regions);
+  fs.writeFileSync(path.join(distPath, 'sitemap.xml'), sitemap);
+  writtenFiles.push({ path: '/sitemap.xml', slug: null, title: 'sitemap' });
+  console.log(`Generated sitemap.xml with ${events.length} event URLs.`);
 
   const manifest = {
     generatedAt: new Date().toISOString(),
@@ -1526,12 +1700,12 @@ export async function prerender({
     prerenderedPages: writtenFiles.length,
     pages: writtenFiles,
     skippedEvents,
-  }
+  };
   fs.writeFileSync(
     path.join(distPath, 'prerender-manifest.json'),
     JSON.stringify(manifest, null, 2)
-  )
-  console.log(`Wrote dist/prerender-manifest.json`)
+  );
+  console.log(`Wrote dist/prerender-manifest.json`);
 
   return {
     writtenFiles,
@@ -1539,14 +1713,14 @@ export async function prerender({
     source,
     manifest,
     manifestPath: path.join(distPath, 'prerender-manifest.json'),
-  }
+  };
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
-  prerender().catch(err => {
-    console.error('prerender failed:', err.message)
-    if (err.stack) console.error(err.stack)
-    process.exitCode = 1
-  })
+  prerender().catch((err) => {
+    console.error('prerender failed:', err.message);
+    if (err.stack) console.error(err.stack);
+    process.exitCode = 1;
+  });
 }

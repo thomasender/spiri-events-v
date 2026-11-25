@@ -13,6 +13,25 @@ export function getCustomSeriesDates(event) {
   return [...all].filter((d) => !exceptionDates.includes(d)).sort();
 }
 
+// Start and end time of one date of an event. Dates of a `custom` series may
+// have their own time in `customTimes` { 'YYYY-MM-DD': { time, endTime } }
+// (Trello 6afd86b4); an entry overrides both values. Every other date, and
+// always the event's own date, has the event's time. For a multi-day event the end time is the one of its last day.
+export function getCustomOccurrenceTime(event, date) {
+  const entry =
+    event?.recurrence === 'custom' && date !== event.date ? event.customTimes?.[date] : null;
+  if (entry && typeof entry === 'object') {
+    return { time: entry.time || '', endTime: entry.endTime || '' };
+  }
+  return { time: event?.time || '', endTime: event?.endTime || '' };
+}
+
+// True when the date has a time of its own, different from the event's time.
+export function hasOwnOccurrenceTime(event, date) {
+  const own = getCustomOccurrenceTime(event, date);
+  return own.time !== (event?.time || '') || own.endTime !== (event?.endTime || '');
+}
+
 // Returns the sorted, de-duplicated list of dates to show on the event detail
 // page for any recurring event. For `custom` series this is the full series
 // (past + future, including the implicit `event.date`). For `weekly`,
@@ -140,6 +159,46 @@ function monthlyOccurrenceYmd(startIso, recurrence, monthsAhead) {
     return formatDate(y, m, nthWeekdayOfMonth(y, m, weekday, getNthWeekdayOrdinal(startIso)));
   }
   return formatDate(y, m, Math.min(day, daysInMonth));
+}
+
+// Start days (YYYY-MM-DD) of every date of a weekly / biweekly / monthly /
+// monthlyWeekday series from `date` up to `recurrenceEndDate` (inclusive).
+// Unlike the occurrence expansion it neither drops exception dates nor past
+// days: the form needs the whole series to let the organizer take dates out.
+// Returns [] without an end date or for other kinds of events.
+export function getSeriesStartDates(event) {
+  if (!event?.date || !event.recurrenceEndDate) return [];
+  const { recurrence } = event;
+  const weekly = recurrence === 'weekly' || recurrence === 'biweekly';
+  if (!weekly && !isMonthlyRecurrence(recurrence)) return [];
+  if (event.recurrenceEndDate < event.date) return [];
+
+  const dates = [];
+  if (weekly) {
+    const step = recurrence === 'biweekly' ? 14 : 7;
+    const { year, month, day } = parseYmd(event.date);
+    for (let i = 0; i < 1000; i++) {
+      const d = new Date(Date.UTC(year, month, day + i * step));
+      const ymd = formatDate(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      if (ymd > event.recurrenceEndDate) break;
+      dates.push(ymd);
+    }
+    return dates;
+  }
+  for (let i = 0; i < 1000; i++) {
+    const ymd = monthlyOccurrenceYmd(event.date, recurrence, i);
+    if (ymd > event.recurrenceEndDate) break;
+    dates.push(ymd);
+  }
+  return dates;
+}
+
+// Exception dates that still belong to the series. Dates before `keepBefore`
+// (e.g. today when editing) are kept untouched.
+export function pruneExceptionDates(event, keepBefore = '') {
+  const exceptions = Array.isArray(event?.exceptionDates) ? event.exceptionDates : [];
+  const inSeries = new Set(getSeriesStartDates(event));
+  return exceptions.filter((d) => (keepBefore && d < keepBefore) || inSeries.has(d));
 }
 
 function isMonthlyRecurrence(recurrence) {
@@ -292,6 +351,8 @@ function expandCustom(event, mode) {
     if (lastDay < today) continue;
     if (isHiddenCancelledDate(event, occurrenceStart)) continue;
     const isCancelled = isOccurrenceCancelled(event, occurrenceStart);
+    // Each date carries its own time; the event's date keeps the time from above.
+    const { time, endTime } = getCustomOccurrenceTime(event, occurrenceStart);
 
     if (mode === 'calendar' && eventDays > 1) {
       for (let d = 0; d < eventDays; d++) {
@@ -299,6 +360,8 @@ function expandCustom(event, mode) {
         dayDate.setDate(dayDate.getDate() + d);
         occurrences.push({
           ...event,
+          time,
+          endTime,
           date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
           isMultiDayStart: d === 0,
           isMultiDayEnd: d === eventDays - 1,
@@ -308,6 +371,8 @@ function expandCustom(event, mode) {
     } else {
       occurrences.push({
         ...event,
+        time,
+        endTime,
         date: occurrenceStart,
         isMultiDayStart: true,
         isMultiDayEnd: true,

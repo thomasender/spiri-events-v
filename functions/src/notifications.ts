@@ -36,8 +36,14 @@ import {
   sendSubmittedAdminMail,
   resolveOwnerRegionContact,
 } from './adminEventRouting';
-import { REGION_MODERATOR_ROLE } from './staffRoles';
+import { REGION_MODERATOR_ROLE, parseStaffRole } from './staffRoles';
+import { isCuratedEvent, isUnclaimedCuratedEvent } from './eventImport';
 import { isRegionId, regionNameOf } from './regions';
+import {
+  MODERATION_LOG_COLLECTION,
+  actorRoleFromStaffDoc,
+  buildClarificationLogEntry,
+} from './moderationLog';
 import {
   buildEmailPayload,
   NotificationType,
@@ -56,6 +62,14 @@ import {
   PreferenceKey,
   NotificationPreferenceMap,
 } from './userPreferences';
+import {
+  ownerReviewMessagePush,
+  ownerStatusPush,
+  staffReplyPush,
+  staffSubmittedPush,
+} from './pushRouting';
+import { pickResponsibleStaff } from './eventEditNotice';
+import { sendPushPlan } from './push';
 
 const REGION = 'europe-west3';
 const ADMINS_RECIPIENT = 'admins' as const;
@@ -120,6 +134,8 @@ function snapshotToEventSnapshot(data: FirebaseFirestore.DocumentData | undefine
     trashReason: readString(data.trashReason),
     trashKind: readString(data.trashKind),
     contentKey: eventContentKey(data),
+    curated: isCuratedEvent(data),
+    curatedUnclaimed: isUnclaimedCuratedEvent(data),
   };
 }
 
@@ -407,6 +423,37 @@ async function dispatchSubmittedAdminMail(
   return { recipients: result.sent, dryRun: options.dryRun };
 }
 
+/**
+ * Push "Neues Event eingereicht" to the Super-Admins and the moderators of the
+ * event's region (opt-in pushStaffReview). Independent of
+ * ADMIN_EVENT_EMAILS_ENABLED and of Mailgun; never throws.
+ */
+async function pushSubmittedToStaff(
+  eventId: string,
+  decision: NotificationDecision,
+  eventData: FirebaseFirestore.DocumentData | undefined
+): Promise<void> {
+  if (decision.type !== 'submitted') return;
+  try {
+    const [superAdmins, moderatorDocs] = await Promise.all([
+      getAdminAccounts(),
+      loadModeratorDocs(),
+    ]);
+    await sendPushPlan(
+      staffSubmittedPush({
+        decision,
+        eventData,
+        superAdminUids: superAdmins.map((a) => a.uid),
+        moderatorDocs,
+        actorUid: readString(eventData?.createdBy),
+      }),
+      { eventId, type: 'submitted' }
+    );
+  } catch (err) {
+    logger.error('Staff push for a submission failed', { eventId, err });
+  }
+}
+
 function markNotified(eventId: string, status: EventSnapshot['status']): Promise<void> {
   const db = getFirestore();
   return db
@@ -520,6 +567,8 @@ export const onEventCreated = onDocumentCreated(
       return;
     }
 
+    await pushSubmittedToStaff(eventId, decision, event.data?.data());
+
     const dryRun = isMailgunDryRun(process.env);
     const secrets = safeSecrets(dryRun);
     if (!secrets) {
@@ -576,6 +625,21 @@ export const onEventStatusChanged = onDocumentUpdated(
       return;
     }
 
+    // Push goes out on its own, before and independent of the mail (never throws).
+    const afterData = event.data?.after.data();
+    await sendPushPlan(
+      ownerStatusPush({
+        decision,
+        beforeStatus: before.status,
+        ownerUid: after.createdBy,
+        actorUid: readString(
+          decision.type === 'published' ? afterData?.approvedBy : afterData?.trashedBy
+        ),
+      }),
+      { eventId, type: decision.type }
+    );
+    await pushSubmittedToStaff(eventId, decision, afterData);
+
     const dryRun = isMailgunDryRun(process.env);
     const secrets = safeSecrets(dryRun);
     if (!secrets) {
@@ -606,6 +670,85 @@ export const onEventStatusChanged = onDocumentUpdated(
     }
   }
 );
+
+/**
+ * Moderation log entry "Rückfrage gestellt" when the team writes on a pending
+ * event (at most one per event and Vienna day: fixed doc id + create()).
+ * Never throws: the mail to the organizer must not depend on it.
+ */
+async function logClarification(
+  eventId: string,
+  eventData: Record<string, unknown>,
+  message: AdminMessageSnapshot
+): Promise<void> {
+  try {
+    const uid = message.authorUid;
+    const db = getFirestore();
+    const staffDoc = uid ? (await db.doc(`admin_users/${uid}`).get()).data() : undefined;
+    const built = buildClarificationLogEntry({
+      eventId,
+      event: eventData,
+      message,
+      actor: {
+        uid: uid ?? null,
+        name: message.authorName ?? null,
+        role: actorRoleFromStaffDoc(uid ?? null, staffDoc),
+      },
+      atMs: Date.now(),
+    });
+    if (!built) return;
+    await db
+      .collection(MODERATION_LOG_COLLECTION)
+      .doc(built.id)
+      .create({ at: FieldValue.serverTimestamp(), ...built.entry });
+  } catch (err) {
+    // ALREADY_EXISTS: there is an entry for this event and day already.
+    if ((err as { code?: unknown })?.code === 6) return;
+    logger.error('Failed to write clarification log entry', { eventId, err });
+  }
+}
+
+/**
+ * The organizer answered in the review chat: push "Antwort in Klärung" to the
+ * staff member responsible for the conversation (first staff message author,
+ * still staff), rate-limited per event and person. Never throws.
+ */
+async function pushReplyToResponsible(
+  eventId: string,
+  eventData: Record<string, unknown>,
+  message: AdminMessageSnapshot
+): Promise<void> {
+  if (message.authorRole !== 'User') return;
+  try {
+    const db = getFirestore();
+    const messages = await db.collection('events').doc(eventId).collection('messages').get();
+    const responsible = pickResponsibleStaff({
+      kind: 'edited',
+      ownerUid: readString(eventData.createdBy),
+      messages: messages.docs.map((d) => ({
+        authorRole: d.get('authorRole'),
+        authorUid: d.get('authorUid'),
+        atMs:
+          typeof d.get('createdAt')?.toMillis === 'function' ? d.get('createdAt').toMillis() : null,
+      })),
+      revisions: [],
+    });
+    if (!responsible) return;
+    const roleDoc = await db.doc(`admin_users/${responsible}`).get();
+    if (!parseStaffRole(roleDoc.data())) return;
+    await sendPushPlan(
+      staffReplyPush({
+        eventId,
+        title: readString(eventData.title),
+        message,
+        responsibleUid: responsible,
+      }),
+      { eventId, messageId: message.id, type: 'review_reply' }
+    );
+  } catch (err) {
+    logger.error('Staff push for a review reply failed', { eventId, err });
+  }
+}
 
 export const onAdminMessageCreated = onDocumentCreated(
   {
@@ -640,11 +783,23 @@ export const onAdminMessageCreated = onDocumentCreated(
     const title = readString(eventData.title);
     const slug = readString(eventData.slug);
 
+    await logClarification(eventId, eventData, snapshot);
+    await pushReplyToResponsible(eventId, eventData, snapshot);
+
     const decision = decideAdminMessageNotification(eventId, snapshot, eventSnapshot, title, slug);
     if (!decision) {
       logger.debug('No admin message notification needed', { eventId, messageId });
       return;
     }
+
+    await sendPushPlan(
+      ownerReviewMessagePush({
+        decision,
+        ownerUid: eventSnapshot.createdBy,
+        authorUid: snapshot.authorUid,
+      }),
+      { eventId, messageId, type: 'changes_requested' }
+    );
 
     const dryRun = isMailgunDryRun(process.env);
     const secrets = safeSecrets(dryRun);

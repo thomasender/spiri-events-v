@@ -179,3 +179,92 @@
   max-height: 40vh;
   overflow-y: auto;
 }
+
+.review-curation-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+.review-approve-error {
+  color: var(--error);
+  margin: var(--space-2) 0;
+}
+
+/* "Instagram-Post anpassen" (ReviewInstagramOutdated.jsx) */
+.review-section--instagram .review-section-count {
+  background-color: var(--pending-bg);
+  color: var(--pending-text);
+}
+
+.review-instagram-posts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-instagram-post {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card, #fff);
+}
+
+.review-instagram-post-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.review-instagram-region {
+  color: var(--text-secondary);
+  font-size: var(--text-85);
+}
+
+.review-instagram-fields {
+  margin: var(--space-1) 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-90);
+}
+
+.review-instagram-caption-label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-85);
+  font-weight: 600;
+}
+
+.review-instagram-caption {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-90);
+  resize: vertical;
+}
+
+.review-instagram-howto {
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-85);
+}
+
+.review-instagram-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.review-instagram-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}

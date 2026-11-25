@@ -15,6 +15,7 @@ import { sanitizeError, isEventPast } from './instagramPublish';
 import type { TriggerOutcome } from './instagramPublish';
 import type { InstagramEventInput } from './instagramContent';
 import { refreshInstagramToken, type RefreshDeps, type RefreshOutcome } from './instagramToken';
+import { hasLaunchPlan, isBeforeLaunch } from './instagramRegionLaunch';
 
 export const REGION_ACCOUNT_PREFIX = 'region_';
 /** Region ids are used inside a Firestore path; never allow anything else. */
@@ -42,6 +43,8 @@ export interface RegionAccount {
   expiresAt: Date | null;
   refreshedAt: Date | null;
   enabled: boolean;
+  /** Launch plan start (instagramRegionLaunch.ts); before it the region posts nothing. */
+  launchStartAt?: Date | null;
 }
 
 export interface Credentials {
@@ -64,6 +67,7 @@ export function parseRegionAccount(
   const userId = typeof data.userId === 'string' ? data.userId.trim() : '';
   const accessToken = typeof data.accessToken === 'string' ? data.accessToken.trim() : '';
   if (!userId || !accessToken) return null;
+  const launchStartAt = toDate(data.launchStartAt);
   return {
     regionId,
     userId,
@@ -71,15 +75,21 @@ export function parseRegionAccount(
     expiresAt: toDate(data.expiresAt),
     refreshedAt: toDate(data.refreshedAt),
     enabled: data.enabled === true,
+    ...(launchStartAt ? { launchStartAt } : {}),
   };
 }
 
-/** Usable for publishing: enabled, complete and the token has not expired. */
+/**
+ * Usable for publishing: enabled, complete, the token has not expired and a
+ * launch plan (if any) has started. Before launchStartAt the region posts
+ * nothing at all (feed, backfill, carousel, stories, admin retry).
+ */
 export function isAccountUsable(
   account: RegionAccount | null,
   now: Date
 ): account is RegionAccount {
   if (!account || !account.enabled) return false;
+  if (isBeforeLaunch(account.launchStartAt, now)) return false;
   return !account.expiresAt || account.expiresAt.getTime() > now.getTime();
 }
 
@@ -339,6 +349,18 @@ export async function backfillRegion(
   }
   log('Instagram backfill finished', { ...result });
   return result;
+}
+
+/**
+ * The automatic one-batch backfill on switching a region on. Not with a launch
+ * plan: then the launch drip (instagramRegionLaunch.ts) posts the backlog.
+ */
+export function shouldAutoBackfill(
+  before: Record<string, unknown> | undefined | null,
+  after: Record<string, unknown> | undefined | null,
+  regionId: string
+): boolean {
+  return becameEnabled(before, after, regionId) && !hasLaunchPlan(after);
 }
 
 /** True when a write to a region account doc switches publishing on. */

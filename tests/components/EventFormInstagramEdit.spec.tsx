@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 // Editing an existing (also old) event: the organizer can opt in to Instagram,
@@ -337,6 +337,38 @@ describe('EventForm — editing an approved event', () => {
     });
   });
 
+  it('messengers for the contact number are a free change, dropped with the number', async () => {
+    const withPhone = {
+      ...oldApprovedEvent,
+      kontakt: '0664 1234567',
+      kontaktMessenger: ['whatsapp'],
+    };
+    const { unmount } = renderForm(withPhone);
+    expect(screen.getByLabelText('WhatsApp')).toBeChecked();
+    fireEvent.click(screen.getByLabelText('Telegram'));
+    submitForm();
+    expect(await savedPayload()).toEqual({
+      kontaktMessenger: ['whatsapp', 'telegram'],
+      instagramConsent: false,
+      status: 'approved',
+    });
+    unmount();
+    mockEvents.updateEvent.mockClear();
+
+    renderForm(withPhone);
+    fireEvent.change(screen.getByLabelText('Kontakt für Teilnehmer:innen *'), {
+      target: { value: 'owner@test.local' },
+    });
+    expect(screen.queryByTestId('contact-messenger-choice')).toBeNull();
+    submitForm();
+    expect(await savedPayload()).toEqual({
+      kontakt: 'owner@test.local',
+      kontaktMessenger: [],
+      instagramConsent: false,
+      status: 'approved',
+    });
+  });
+
   it('an unchanged cover and crop are not sent along with a free change', async () => {
     renderForm({ ...oldApprovedEvent, imageZoom: 1.5 });
 
@@ -363,14 +395,20 @@ describe('EventForm — editing an approved event', () => {
         }),
     ],
     [
-      'cover photo removed',
-      () => fireEvent.click(screen.getByTestId('title-image-focal-picker-remove')),
+      // Removing it without a new one is refused (the Titelbild is required).
+      'cover photo replaced',
+      () =>
+        fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
+          target: { files: [new File(['x'], 'neu.jpg', { type: 'image/jpeg' })] },
+        }),
     ],
   ])('%s change: asks for re-approval and saves as pending', async (_name, change) => {
     renderForm(oldApprovedEvent);
 
     change();
-    expect(screen.getByTestId('submit-event-button').textContent).toContain('Erneut einreichen');
+    await waitFor(() =>
+      expect(screen.getByTestId('submit-event-button').textContent).toContain('Erneut einreichen')
+    );
     submitForm();
 
     expect(await screen.findByText('Event erneut einreichen')).toBeTruthy();
@@ -393,5 +431,51 @@ describe('EventForm — editing an approved event', () => {
     expect(screen.queryByText('Event erneut einreichen')).toBeNull();
     expect(payload.status).toBe('approved');
     expect(payload.title).toBe('Korrigiert');
+  });
+});
+
+describe('EventForm — Serientermine-Übersicht', () => {
+  const ymdFromToday = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, '0'),
+      String(d.getDate()).padStart(2, '0'),
+    ].join('-');
+  };
+  // Weekly, started three weeks ago, runs for three more weeks: 3 past and
+  // 4 upcoming dates (the first upcoming one is today + 0 .. 6 days away, so
+  // we anchor on today itself).
+  const weekly = {
+    ...oldApprovedEvent,
+    date: ymdFromToday(-21),
+    recurrence: 'weekly',
+    recurrenceEndDate: ymdFromToday(21),
+    exceptionDates: [ymdFromToday(-14)],
+  };
+
+  it('lists only upcoming dates, saves a removed one and keeps past exceptions', async () => {
+    renderForm(weekly);
+    const list = screen.getByTestId('series-dates');
+    // today + 0, 7, 14, 21
+    expect(within(list).getByText('Deine Termine (4)')).toBeInTheDocument();
+    expect(within(list).getAllByRole('listitem')).toHaveLength(4);
+
+    fireEvent.click(within(list).getAllByRole('button', { name: /entfernen$/ })[1]);
+    expect(within(list).getByText('Deine Termine (3, 1 entfernt)')).toBeInTheDocument();
+
+    submitForm();
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    const payload = (mockEvents.updateEvent.mock.calls[0] as unknown as unknown[])[1] as Record<
+      string,
+      unknown
+    >;
+    expect(payload.exceptionDates).toEqual([ymdFromToday(-14), ymdFromToday(7)]);
+  });
+
+  it('shows no overview for a one-off event', () => {
+    renderForm(oldApprovedEvent);
+    expect(screen.queryByTestId('series-dates')).toBeNull();
   });
 });

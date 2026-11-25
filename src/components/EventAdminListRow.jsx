@@ -82,6 +82,8 @@ export default function EventAdminListRow({
   showInKlaerungBy = false,
   inKlaerungByName = null,
   regionLabel = null,
+  extraBadges = null,
+  approveBlockedReason = null,
   onApprove,
   onSubmit,
   onRevert,
@@ -200,6 +202,7 @@ export default function EventAdminListRow({
                   <span>Serie</span>
                 </span>
               )}
+              {extraBadges}
             </div>
           </div>
 
@@ -303,9 +306,9 @@ export default function EventAdminListRow({
           <button
             onClick={() => onApprove?.(event.id)}
             className="btn btn-success btn-sm event-card-action"
-            disabled={approving === event.id}
+            disabled={approving === event.id || Boolean(approveBlockedReason)}
             aria-label="Genehmigen"
-            title={approving === event.id ? 'Genehmige...' : 'Genehmigen'}
+            title={approveBlockedReason || (approving === event.id ? 'Genehmige...' : 'Genehmigen')}
           >
             <CheckCircle size={16} />
           </button>

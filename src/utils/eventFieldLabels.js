@@ -21,10 +21,12 @@ export const FIELD_LABELS = {
   recurrence: 'Wiederholung',
   recurrenceEndDate: 'Wiederholung bis',
   customDates: 'Termine',
+  customTimes: 'Uhrzeiten der Termine',
   exceptionDates: 'Ausnahmen',
   isOnline: 'Online',
   organizer: 'Veranstalter',
   kontakt: 'Kontakt',
+  kontaktMessenger: 'Messenger',
   registration: 'Anmeldung',
   imageUrl: 'Bild',
   imageThumbUrl: 'Vorschaubild',
@@ -36,4 +38,5 @@ export const FIELD_LABELS = {
   instagramExtraHandles: 'Weitere Instagram-Namen',
   cancelled: 'Abgesagt',
   cancelledDates: 'Abgesagte Termine',
+  regionId: 'Region',
 };

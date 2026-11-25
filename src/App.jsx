@@ -24,6 +24,7 @@ import NoAccess from './components/NoAccess';
 import RegionProvider from './components/RegionProvider';
 import RegionChooser from './components/RegionChooser';
 import PlaceSelectionSync from './components/PlaceSelectionSync';
+import PushTokenRefresh from './components/PushTokenRefresh';
 import {
   RegionAboutRoute,
   RegionDirectoryRoute,
@@ -60,6 +61,8 @@ const AuthActionPage = lazyWithReload(() => import('./pages/AuthActionPage'));
 const ChatPage = lazyWithReload(() => import('./pages/ChatPage'));
 const MessengerPage = lazyWithReload(() => import('./pages/MessengerPage'));
 const ModeratorOnboardingPage = lazyWithReload(() => import('./pages/ModeratorOnboardingPage'));
+const ClaimEventsPage = lazyWithReload(() => import('./pages/ClaimEventsPage'));
+const ImportPreviewPage = lazyWithReload(() => import('./pages/ImportPreviewPage'));
 
 // Helmet updates document.title on the next animation frame; wait a moment so
 // page_view carries the new page's title rather than the previous one.
@@ -176,6 +179,7 @@ function AppLayout() {
       <ScrollToTop />
       <AnalyticsRouteTracker />
       <PlaceSelectionSync />
+      <PushTokenRefresh />
       <Header />
       <NetworkBanner />
       <RegionChooser />
@@ -198,8 +202,16 @@ function AppLayout() {
               <Route path="/auth-action" element={<AuthActionPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/einladung" element={<ModeratorOnboardingPage />} />
+              <Route path="/uebernehmen" element={<ClaimEventsPage />} />
               <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
               <Route path="/impressum" element={<LegalPage page="impressum" />} />
+              <Route path="/datenschutz-import" element={<LegalPage page="datenschutz-import" />} />
+              {/* Private preview of the event import: noindex, never in sitemap/prerender. */}
+              <Route path="/vorschau/import/:token" element={<ImportPreviewPage />} />
+              <Route
+                path="/nutzungsbedingungen"
+                element={<LegalPage page="nutzungsbedingungen" />}
+              />
               <Route
                 path="/admin"
                 element={
@@ -226,14 +238,8 @@ function AppLayout() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/new"
-                element={
-                  <ProtectedRoute>
-                    <EventFormPage />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Open to guests: the wizard asks for the login only at the end (docs/guest-event-draft.md). */}
+              <Route path="/admin/new" element={<EventFormPage />} />
               <Route
                 path="/admin/edit/:id"
                 element={

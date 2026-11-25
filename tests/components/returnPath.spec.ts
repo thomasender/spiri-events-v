@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getReturnPath } from '../../src/utils/returnPath';
+import { afterVerifyPath, getReturnPath } from '../../src/utils/returnPath';
 
 describe('getReturnPath', () => {
   it('returns a same-site path from router state', () => {
@@ -14,5 +14,22 @@ describe('getReturnPath', () => {
   it('rejects external and protocol-relative targets', () => {
     expect(getReturnPath({ from: 'https://evil.example' })).toBe('/');
     expect(getReturnPath({ from: '//evil.example' })).toBe('/');
+  });
+});
+
+describe('afterVerifyPath (where the e-mail confirmation link leads)', () => {
+  it('allows only the whitelisted event wizard and claim page', () => {
+    expect(afterVerifyPath('/admin/new')).toBe('/admin/new');
+    expect(afterVerifyPath('/uebernehmen')).toBe('/uebernehmen');
+    expect(afterVerifyPath('/uebernehmen?claim=x')).toBe('/');
+  });
+
+  it('sends everything else home, so the link is no open redirect', () => {
+    expect(afterVerifyPath(null)).toBe('/');
+    expect(afterVerifyPath('')).toBe('/');
+    expect(afterVerifyPath('/admin')).toBe('/');
+    expect(afterVerifyPath('/admin/new?x=1')).toBe('/');
+    expect(afterVerifyPath('https://evil.example')).toBe('/');
+    expect(afterVerifyPath('//evil.example/admin/new')).toBe('/');
   });
 });

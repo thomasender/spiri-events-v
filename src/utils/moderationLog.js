@@ -16,6 +16,7 @@ export const ACTION_META = {
   deleted: { label: 'Endgültig gelöscht', tone: 'error' },
   edited: { label: 'Bearbeitet', tone: 'info' },
   cancelled: { label: 'Abgesagt', tone: 'warning' },
+  clarification: { label: 'Rückfrage gestellt', tone: 'info' },
   submitted: { label: 'Eingereicht', tone: 'neutral' },
   status: { label: 'Status geändert', tone: 'neutral' },
 };
@@ -241,4 +242,87 @@ export function personOptions(moderators = [], entries = []) {
   return [...byUid.entries()]
     .map(([uid, name]) => ({ uid, name }))
     .sort((a, b) => a.name.localeCompare(b.name, 'de-AT'));
+}
+
+/** Firestore Timestamp, Date, {seconds} or ISO string -> millis (0 when unknown). */
+export function timeToMillis(value) {
+  return entryAtMillis({ at: value });
+}
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** "seit 5 Min." style length of a time span: "12 Min.", "3 Std.", "1 Tag", "3 Tage". */
+export function formatDuration(since, now = Date.now()) {
+  const start = timeToMillis(since);
+  if (!start) return '–';
+  const diff = Math.max(0, timeToMillis(now) - start);
+  if (diff < HOUR) return `${Math.max(1, Math.floor(diff / MINUTE))} Min.`;
+  if (diff < DAY) return `${Math.floor(diff / HOUR)} Std.`;
+  const days = Math.floor(diff / DAY);
+  return days === 1 ? '1 Tag' : `${days} Tage`;
+}
+
+const DAY_MONTH = new Intl.DateTimeFormat('de-AT', {
+  day: 'numeric',
+  month: 'numeric',
+  timeZone: 'Europe/Vienna',
+});
+
+/** "3.11." (Vienna time), or '' when unknown. */
+export function formatShortDate(value) {
+  const ms = timeToMillis(value);
+  return ms ? DAY_MONTH.format(new Date(ms)) : '';
+}
+
+/**
+ * Per event the key moments found in the loaded log entries: first
+ * submission, latest edit and latest approval (millis, null = not in the
+ * loaded entries). Result: { [eventId]: { submittedAt, editedAt, approvedAt } }.
+ */
+export function groupLogByEvent(entries = []) {
+  const byEvent = {};
+  for (const entry of entries) {
+    if (!entry?.eventId) continue;
+    const ms = entryAtMillis(entry);
+    if (!ms) continue;
+    const g = (byEvent[entry.eventId] ||= { submittedAt: null, editedAt: null, approvedAt: null });
+    if (entry.action === 'submitted') {
+      if (g.submittedAt == null || ms < g.submittedAt) g.submittedAt = ms;
+    } else if (entry.action === 'edited') {
+      if (g.editedAt == null || ms > g.editedAt) g.editedAt = ms;
+    } else if (entry.action === 'approved') {
+      if (g.approvedAt == null || ms > g.approvedAt) g.approvedAt = ms;
+    }
+  }
+  return byEvent;
+}
+
+/**
+ * Public page of the event as of this entry, or null when there is none:
+ * only published events (status 'approved') have one; pending, rejected,
+ * trashed and deleted events do not.
+ */
+export function eventPublicPath(entry) {
+  if (!entry?.eventId || entry.action === 'deleted') return null;
+  const published =
+    entry.statusTo === 'approved' || (!entry.statusTo && entry.action === 'approved');
+  if (!published) return null;
+  return `/event/${entry.eventSlug || entry.eventId}`;
+}
+
+/** Edit page for events that still exist (not deleted, not in the trash). */
+export function eventEditPath(entry) {
+  if (!entry?.eventId || entry.action === 'deleted' || entry.statusTo === 'trashed') return null;
+  if (entry.action === 'trashed' && !entry.statusTo) return null;
+  return `/admin/edit/${entry.eventId}`;
+}
+
+/** Search for the "In Klärung" block: title and moderator. */
+export function matchesClarificationSearch(row, search) {
+  const words = normalize(search).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const haystack = normalize([row.title, row.moderatorName].filter(Boolean).join(' '));
+  return words.every((w) => haystack.includes(w));
 }

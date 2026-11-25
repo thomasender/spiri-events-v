@@ -21,6 +21,8 @@ import {
   stripHtml,
   truncateTitle,
   siteDomainForRegion,
+  eventPageUrl,
+  buildFirstComment,
 } from '../../functions/src/instagram/instagramContent';
 import { renderEventImage } from '../../functions/src/instagram/instagramImage';
 
@@ -199,6 +201,20 @@ describe('instagram content', () => {
       );
       expect(caption).toContain('🗓 die Termine: 26. Okt; 2. Nov\n');
       expect(caption).not.toContain('wiederholt sich');
+    });
+
+    it('adds the own time to a custom date that has one', () => {
+      const caption = buildCaption(
+        {
+          ...base,
+          recurrence: 'custom',
+          customDates: ['2026-11-02', '2026-11-09'],
+          customTimes: { '2026-11-09': { time: '19:00', endTime: '' } },
+        },
+        null,
+        now
+      );
+      expect(caption).toContain('🗓 die Termine: 26. Okt; 2. Nov; 9. Nov 19:00 Uhr\n');
     });
 
     it('lists exactly 20 dates but leaves the line out with more than 20', () => {
@@ -492,6 +508,39 @@ describe('instagram domain follows the country of the region', () => {
     expect(caption).not.toContain('thetribe');
     expect(buildCaption({ title: 'Yoga', date: '2026-12-01' })).toContain(BIO_LINK_LINE);
     expect(BIO_LINK_LINE).toContain('www.deintribe.at');
+  });
+
+  it('event links use the country domain of the region, without a region path', () => {
+    expect(eventPageUrl('kakao', 'bodensee')).toBe('https://www.deintribe.de/event/kakao');
+    expect(eventPageUrl('kakao', 'aargau')).toBe('https://www.deintribe.ch/event/kakao');
+    // Vorarlberg (and a missing region) moved from thetribe.at to deintribe.at on purpose.
+    expect(eventPageUrl('kakao', 'vorarlberg')).toBe('https://www.deintribe.at/event/kakao');
+    expect(eventPageUrl('kakao')).toBe('https://www.deintribe.at/event/kakao');
+    expect(eventPageUrl('', 'bodensee')).toBe('https://www.deintribe.de');
+    expect(buildFirstComment({ slug: 'kakao' })).toBe(
+      'ℹ️ Alle Infos zum Event: https://www.deintribe.at/event/kakao'
+    );
+  });
+
+  it('Bodensee feed output names no other domain and no Vorarlberg', () => {
+    const event = {
+      title: 'Yoga am See',
+      date: '2026-12-01',
+      time: '18:00',
+      city: 'Konstanz',
+      bezirk: 'Landkreis Konstanz',
+      category: 'Yoga',
+      regionId: 'bodensee',
+      slug: 'yoga-am-see',
+    };
+    const all = [
+      buildCaption(event),
+      buildFirstComment(event),
+      JSON.stringify(buildEventImageModel(event)),
+    ].join('\n');
+    expect(all).toContain('https://www.deintribe.de/event/yoga-am-see');
+    expect(all).toContain('www.deintribe.de');
+    expect(all).not.toMatch(/thetribe|deintribe\.at|vorarlberg/i);
   });
 });
 

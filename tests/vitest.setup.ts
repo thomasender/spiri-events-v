@@ -24,6 +24,14 @@ vi.mock('../src/lib/clubMembersStore', () => {
   return { subscribe: () => () => {}, getSnapshot: () => state };
 });
 
+// Event-claim callables (banner in the Verwaltung, wizard hint): nothing to claim.
+// Specs that test the claim UI mock '../../src/lib/eventClaim' themselves.
+vi.mock('../src/lib/eventClaim', () => ({
+  claimCuratedEvents: async () => ({ status: 'claimed', organizers: [], eventCount: 0 }),
+  listMyClaimableEvents: async () => ({ events: [], total: 0 }),
+  findCuratedMatches: async () => ({ matches: [] }),
+}));
+
 // jsdom has no canvas: the confetti after submitting an event gets an inert stand-in.
 // Specs that test the confetti mock 'canvas-confetti' themselves.
 vi.mock('canvas-confetti', () => {

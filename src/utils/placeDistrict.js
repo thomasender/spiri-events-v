@@ -26,13 +26,17 @@ function inRegion(entry, region) {
 
 /**
  * `{ regionId, bezirk }` of a place of the list (a picked suggestion): its register district
- * and the region holding that district now. Null for a place without a known district.
+ * and the region holding that district now. A place the list knows no district for
+ * ("Klagenfurt", "Krems", "Innsbruck-Arzl") still belongs to the region it lies in, with an
+ * empty Bezirk: the event must be reviewed by that region's team, never fall back to the
+ * region the person happens to be in (Trello 5dDYWLrm). Null when not even the region is known.
  */
 export function assignmentForEntry(entry, regions = []) {
-  if (!entry || entry.kind !== 'place' || !entry.districtKey) return null;
-  const bezirk = CATALOG_BY_KEY.get(entry.districtKey)?.name;
+  if (!entry || entry.kind !== 'place') return null;
   const regionId = regionIdForEntry(entry, regions);
-  return bezirk && regionId ? { regionId, bezirk } : null;
+  if (!regionId) return null;
+  const bezirk = entry.districtKey ? CATALOG_BY_KEY.get(entry.districtKey)?.name : '';
+  return { regionId, bezirk: bezirk ?? '' };
 }
 
 /** `{ regionId, bezirk }` of a Vorarlberg Gemeinde (gemeinden.js): its Bezirk, Vorarlberg. */
@@ -44,8 +48,9 @@ export function assignmentForGemeinde(gemeinde, regions = []) {
 
 /**
  * `{ regionId, bezirk }` for an Ort typed by name, across all regions: a Vorarlberg Gemeinde
- * first, else the places of that name in the list when they all lie in ONE district. Null when
- * the name is unknown, has no district or is ambiguous ("Neustadt"): never chooses.
+ * first, else the places of that name in the list when they all lie in ONE district (a place
+ * without a known district: its region, empty Bezirk). Null when the name is unknown, has no
+ * region or is ambiguous ("Neustadt"): never chooses.
  */
 export function placeAssignment(index, regions, city) {
   const gemeinde = findGemeinde(city);

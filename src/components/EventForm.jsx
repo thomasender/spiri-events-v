@@ -11,7 +11,6 @@ import { useProfile } from '../hooks/useProfile';
 import { resolveOrganizerPhotoURL } from '../utils/organizerPhoto';
 import {
   uploadImage,
-  uploadEventCover,
   CoverUploadError,
   COVER_UPLOAD_ERROR,
   deleteImageByUrl,
@@ -39,7 +38,12 @@ import {
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
+  buildCustomTimesPayload,
+  invalidCustomTimeDates,
+  moveFormCustomTime,
+  setFormCustomTime,
 } from '../utils/customSeriesUpdates';
+import CustomDateTimeInputs from './CustomDateTimeInputs';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import {
   bezirkLabel,
@@ -72,8 +76,20 @@ import {
   extractDescriptionImageUrls,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
-import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
+import {
+  REGISTRATION_MAX_LENGTH,
+  KONTAKT_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
+  contactPhone,
+  normalizeMessengerSelection,
+} from '../utils/contactFormat';
+import ContactMessengerChoice from './ContactMessengerChoice';
+import SeriesDatesOverview from './SeriesDatesOverview';
+import { pruneExceptionDates } from '../utils/eventOccurrences';
 import { reviewEditChanges } from '../utils/eventReviewFields';
+import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
+import { newEventId } from '../utils/eventId';
+import { useBackgroundCoverUpload } from '../hooks/useBackgroundCoverUpload';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -94,6 +110,9 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  // Own times of single dates ({ 'YYYY-MM-DD': { time?, endTime? } }), see CustomDateTimeInputs.
+  customTimes: {},
+  exceptionDates: [],
   category: '',
   bezirk: '',
   city: '',
@@ -105,8 +124,24 @@ const INITIAL_STATE = {
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
+  // Messengers for the phone number in `kontakt` (Trello 6af6d067).
+  kontaktMessenger: [],
   registration: '',
 };
+
+const todayYmd = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Dates taken out of a weekly / biweekly / monthly series: past ones stay as stored,
+// upcoming ones that no longer lie in the series (changed start / end) fall away.
+// Other kinds of events keep what is stored.
+function seriesExceptionDates(formData) {
+  if (['none', 'custom'].includes(formData.recurrence || 'none'))
+    return formData.exceptionDates || [];
+  return pruneExceptionDates(formData, todayYmd());
+}
 
 function getOrganizerDefault(displayName, email) {
   const trimmed = (displayName || '').trim();
@@ -190,6 +225,11 @@ export default function EventForm({ event }) {
         recurrence: event.recurrence || 'none',
         recurrenceEndDate: event.recurrenceEndDate || '',
         customDates: Array.isArray(event.customDates) ? [...event.customDates] : [],
+        customTimes:
+          event.customTimes && typeof event.customTimes === 'object'
+            ? { ...event.customTimes }
+            : {},
+        exceptionDates: Array.isArray(event.exceptionDates) ? [...event.exceptionDates] : [],
         category: event.category || '',
         bezirk: event.isOnline ? '' : event.bezirk || '',
         city: event.isOnline ? '' : event.city || '',
@@ -203,10 +243,14 @@ export default function EventForm({ event }) {
           email: storedOrganizer.email || '',
         },
         kontakt: event.kontakt || '',
+        kontaktMessenger: normalizeMessengerSelection(event.kontaktMessenger),
         registration: event.registration || '',
       };
     }
-    const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
+    const organizerDefault = getOrganizerDefault(
+      profile?.displayName || user?.displayName,
+      user?.email
+    );
     return {
       ...INITIAL_STATE,
       organizer: {
@@ -282,6 +326,7 @@ export default function EventForm({ event }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const createdEventRef = useRef(null);
+  const eventIdRef = useRef(null);
   const [submitError, setSubmitError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [wobblingAction, setWobblingAction] = useState(null);
@@ -398,11 +443,13 @@ export default function EventForm({ event }) {
         recurrence: 'none',
         recurrenceEndDate: '',
         customDates: [],
+        customTimes: {},
       }));
       setErrors((prev) => ({
         ...prev,
         recurrenceEndDate: null,
         customDates: null,
+        customTimes: null,
       }));
     }
   };
@@ -442,6 +489,11 @@ export default function EventForm({ event }) {
     if (!formData.category) {
       newErrors.category = 'Kategorie ist erforderlich';
     }
+    // The Titelbild is required: it can be replaced, but not just removed
+    // (old events that never had one stay editable).
+    if (imageRemoved && !imageFile && originalImageUrl) {
+      newErrors.image = 'Bitte lade ein Titelbild hoch';
+    }
     if (formData.contribution === 'fee' && formData.fee && Number(formData.fee) < 0) {
       newErrors.fee = 'Bitte gib einen gültigen Betrag ein';
     }
@@ -476,6 +528,17 @@ export default function EventForm({ event }) {
     ) {
       newErrors.customDates = 'Bitte mindestens ein Datum hinzufügen';
     }
+    if (
+      formData.recurrence === 'custom' &&
+      !formData.endDate &&
+      invalidCustomTimeDates(
+        formData.customTimes,
+        (formData.customDates || []).filter((d) => d !== formData.date),
+        formData
+      ).length > 0
+    ) {
+      newErrors.customTimes = 'Die Endzeit muss nach der Startzeit liegen';
+    }
     if (!isValidLink(formData.link)) {
       newErrors.link = 'Bitte gib eine gültige URL ein';
     }
@@ -492,7 +555,7 @@ export default function EventForm({ event }) {
     }
     if (instagramConsent && !event?.instagramConsent && instagramImageCandidates.length === 0) {
       newErrors.instagramImage =
-        'Für das Teilen auf Instagram brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
+        'Für das Teilen auf Social Media brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
     }
     return newErrors;
   };
@@ -518,8 +581,7 @@ export default function EventForm({ event }) {
     if (!recommendation.isRecommended) {
       setErrors((prev) => ({
         ...prev,
-        image:
-          'Tipp: Für beste Darstellung empfehlen wir 16:9 (Querformat) oder 9:16 (Hochformat). Andere Formate funktionieren auch, können aber abgeschnitten angezeigt werden.',
+        image: `${IMAGE_FORMAT_HINT} Andere Formate funktionieren auch, können aber abgeschnitten angezeigt werden.`,
       }));
     } else {
       setErrors((prev) => ({ ...prev, image: null }));
@@ -570,19 +632,22 @@ export default function EventForm({ event }) {
     }
   };
 
+  // The Titelbild starts uploading in the background as soon as it is picked
+  // (or restored from the wizard draft); saving only waits for that upload.
+  const { awaitCover, markCoverSaved } = useBackgroundCoverUpload({
+    file: imageFile,
+    enabled: Boolean(user),
+    getEventId: () =>
+      (eventIdRef.current ??= event?.id ?? createdEventRef.current?.id ?? newEventId()),
+  });
+
   const handleImageUpload = async (eventId) => {
     if (!imageFile) return null;
 
     setImageUploading(true);
     setImageProgress(0);
     try {
-      return await uploadEventCover(imageFile, {
-        eventId,
-        onProgress: setImageProgress,
-      });
-    } catch (err) {
-      console.error('Image upload failed:', err);
-      throw new CoverUploadError(err);
+      return await awaitCover(imageFile, eventId, setImageProgress);
     } finally {
       setImageUploading(false);
     }
@@ -622,6 +687,8 @@ export default function EventForm({ event }) {
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
       // A Bezirk / Landkreis chosen in the select belongs to the region of the form.
       ...(name === 'bezirk' ? { placeRegionId: '' } : {}),
+      // Own times of single dates only belong to "An einzelnen Terminen".
+      ...(name === 'recurrence' && value !== 'custom' ? { customTimes: {} } : {}),
       // A new region has its own Bezirke / Landkreise (and Orte): drop what no longer fits.
       ...(name === 'regionId'
         ? {
@@ -715,19 +782,39 @@ export default function EventForm({ event }) {
   };
 
   const handleRemoveCustomDate = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).filter((_, i) => i !== index),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).filter((_, i) => i !== index);
+      const removed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, removed, '', customDates),
+      };
+    });
   };
 
   const handleCustomDateChange = (index, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      customDates: (prev.customDates || []).map((d, i) => (i === index ? value : d)),
-    }));
+    setFormData((prev) => {
+      const customDates = (prev.customDates || []).map((d, i) => (i === index ? value : d));
+      const changed = (prev.customDates || [])[index];
+      return {
+        ...prev,
+        customDates,
+        customTimes: moveFormCustomTime(prev.customTimes, changed, value, customDates),
+      };
+    });
     if (errors.customDates) {
       setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
+  const handleCustomTimeChange = (date, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      customTimes: setFormCustomTime(prev.customTimes, date, field, value),
+    }));
+    if (errors.customTimes) {
+      setErrors((prev) => ({ ...prev, customTimes: null }));
     }
   };
 
@@ -830,6 +917,17 @@ export default function EventForm({ event }) {
             ),
           ].sort()
         : [],
+    // Only the dates whose time differs from the one above (Trello 6afd86b4); times of
+    // dates no longer in the series fall away.
+    customTimes:
+      formData.recurrence === 'custom'
+        ? buildCustomTimesPayload(
+            formData.customTimes,
+            (formData.customDates || []).filter((d) => d !== formData.date),
+            formData
+          )
+        : {},
+    exceptionDates: seriesExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     city: formData.isOnline ? '' : canonicalCity(formData.city),
@@ -842,6 +940,10 @@ export default function EventForm({ event }) {
       photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
+    // Only with a phone number in the contact; otherwise the choice is dropped.
+    kontaktMessenger: contactPhone(formData.kontakt)
+      ? normalizeMessengerSelection(formData.kontaktMessenger)
+      : [],
     registration: formData.registration.trim(),
     ...buildInstagramData(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
@@ -941,21 +1043,47 @@ export default function EventForm({ event }) {
     setResubmitWarning(false);
 
     try {
-      // A retry after a failed cover upload reuses the event that already exists.
-      let docRef = createdEventRef.current;
-      if (event) {
-        await updateEvent(event.id, eventData);
-        docRef = { id: event.id };
-      } else if (docRef) {
-        await updateEvent(docRef.id, eventData);
-      } else {
-        docRef = await addEvent(eventData, eventData.status || 'pending');
-        createdEventRef.current = docRef;
-      }
-
       const instagramSource = eventData.instagramConsent
         ? effectiveInstagramImageChoice?.source
         : null;
+      // The new Titelbild is uploaded BEFORE the event is written: a failed
+      // upload then leaves the event (and its old photo) untouched instead of
+      // saving it without a photo (Trello 7iDvAj4U). A retry after a failed
+      // upload reuses the same id / existing event.
+      let docRef = createdEventRef.current;
+      if (!eventIdRef.current) eventIdRef.current = event?.id ?? docRef?.id ?? newEventId();
+      const eventId = eventIdRef.current;
+      const data = { ...eventData };
+      let newImageUrl = null;
+      if (imageFile) {
+        const uploaded = await handleImageUpload(eventId);
+        newImageUrl = uploaded.url;
+        data.imageUrl = uploaded.url;
+        data.imageThumbUrl = uploaded.thumbUrl;
+        if (!isDefaultFocalPoint(imageFocalPoint)) {
+          data.imageFocalPoint = imageFocalPoint;
+        }
+        if (imageZoom > MIN_IMAGE_ZOOM) {
+          data.imageZoom = imageZoom;
+        }
+        if (instagramSource === COVER_SOURCE) {
+          data.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
+            coverUrl: uploaded.url,
+          });
+        }
+      }
+
+      if (event) {
+        await updateEvent(event.id, data);
+        docRef = { id: event.id };
+      } else if (docRef) {
+        await updateEvent(docRef.id, data);
+      } else {
+        docRef = await addEvent(data, data.status || 'pending', eventId);
+        createdEventRef.current = docRef;
+      }
+      if (imageFile) markCoverSaved();
+
       if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
         const instagramUploadUrl = await uploadImage(instagramFile, { eventId: docRef.id });
         await updateEvent(docRef.id, {
@@ -966,20 +1094,6 @@ export default function EventForm({ event }) {
       }
 
       if (imageFile) {
-        const { url: newImageUrl, thumbUrl: newThumbUrl } = await handleImageUpload(docRef.id);
-        const patch = { imageUrl: newImageUrl, imageThumbUrl: newThumbUrl };
-        if (!isDefaultFocalPoint(imageFocalPoint)) {
-          patch.imageFocalPoint = imageFocalPoint;
-        }
-        if (imageZoom > MIN_IMAGE_ZOOM) {
-          patch.imageZoom = imageZoom;
-        }
-        if (instagramSource === COVER_SOURCE) {
-          patch.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
-            coverUrl: newImageUrl,
-          });
-        }
-        await updateEvent(docRef.id, patch);
         if (originalImageUrl && originalImageUrl !== newImageUrl) {
           await deleteImageByUrl(originalImageUrl);
           await deleteImageByUrl(originalImageThumbUrl);
@@ -1155,7 +1269,7 @@ export default function EventForm({ event }) {
               <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
               <span className="input-info">
                 <Info size={14} />
-                <span>E-Mail oder Telefonnummer</span>
+                <span>Telefonnummer oder E-Mail</span>
               </span>
             </div>
             <input
@@ -1169,6 +1283,13 @@ export default function EventForm({ event }) {
               className={errors.kontakt ? 'input-error' : ''}
             />
             {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+            <ContactMessengerChoice
+              kontakt={formData.kontakt}
+              value={formData.kontaktMessenger}
+              onChange={(kontaktMessenger) =>
+                setFormData((prev) => ({ ...prev, kontaktMessenger }))
+              }
+            />
           </div>
 
           <div className="form-group">
@@ -1186,7 +1307,7 @@ export default function EventForm({ event }) {
               value={formData.registration}
               onChange={handleChange}
               maxLength={REGISTRATION_MAX_LENGTH}
-              placeholder="z.B. Buchungslink, E-Mail oder Telefonnummer"
+              placeholder="z.B. Buchungslink, Telefonnummer oder E-Mail"
             />
           </div>
 
@@ -1202,8 +1323,11 @@ export default function EventForm({ event }) {
               type="text"
               value={formData.title}
               onChange={handleChange}
+              maxLength={TITLE_MAX_LENGTH}
               placeholder="z.B. Morgen-Yoga im Park"
-              className={errors.title ? 'input-error' : ''}
+              className={
+                errors.title || formData.title.length >= TITLE_MAX_LENGTH ? 'input-error' : ''
+              }
             />
             {errors.title && <span className="error-text">{errors.title}</span>}
           </div>
@@ -1387,6 +1511,22 @@ export default function EventForm({ event }) {
                 />
                 <span>Freie Spende</span>
               </label>
+              {/* Only imported events can have "Keine Angabe" (no price stated by the organizer):
+                  shown so the state is visible while editing, never offered when creating. */}
+              {event?.contribution === 'unspecified' && (
+                <label
+                  className={`radio-label ${formData.contribution === 'unspecified' ? 'active' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="contribution"
+                    value="unspecified"
+                    checked={formData.contribution === 'unspecified'}
+                    onChange={handleChange}
+                  />
+                  <span>Keine Angabe</span>
+                </label>
+              )}
             </div>
           </div>
 
@@ -1626,7 +1766,7 @@ export default function EventForm({ event }) {
                 <label>Termine</label>
                 <span className="input-info">
                   <Info size={14} />
-                  <span>Füge einzelne Termine hinzu</span>
+                  <span>Füge einzelne Termine hinzu, die Uhrzeit kannst du pro Termin ändern</span>
                 </span>
               </div>
               <div className="custom-dates-list" data-testid="custom-dates-list">
@@ -1638,6 +1778,19 @@ export default function EventForm({ event }) {
                       onChange={(e) => handleCustomDateChange(index, e.target.value)}
                       data-testid={`custom-date-input-${index}`}
                       aria-label={`Termin ${index + 1}`}
+                    />
+                    <CustomDateTimeInputs
+                      index={index}
+                      date={date}
+                      customTimes={formData.customTimes}
+                      defaults={formData}
+                      fixed={Boolean(date) && date === formData.date}
+                      invalid={
+                        !formData.endDate &&
+                        date !== formData.date &&
+                        invalidCustomTimeDates(formData.customTimes, [date], formData).length > 0
+                      }
+                      onChange={handleCustomTimeChange}
                     />
                     <button
                       type="button"
@@ -1665,6 +1818,11 @@ export default function EventForm({ event }) {
                   {errors.customDates}
                 </span>
               )}
+              {errors.customTimes && (
+                <span className="error-text" data-testid="custom-times-error">
+                  {errors.customTimes}
+                </span>
+              )}
             </div>
           )}
 
@@ -1690,6 +1848,17 @@ export default function EventForm({ event }) {
                 <span className="error-text">{errors.recurrenceEndDate}</span>
               )}
             </div>
+          )}
+
+          {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
+            <SeriesDatesOverview
+              date={formData.date}
+              recurrence={formData.recurrence}
+              recurrenceEndDate={formData.recurrenceEndDate}
+              exceptionDates={formData.exceptionDates}
+              fromDate={todayYmd()}
+              onChange={(exceptionDates) => setFormData((prev) => ({ ...prev, exceptionDates }))}
+            />
           )}
 
           <div className="form-group">
@@ -1732,6 +1901,8 @@ export default function EventForm({ event }) {
             <p className="image-hint" data-testid="title-image-hint">
               Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür
               weniger – lade sie lieber in die Beschreibung hoch.
+              <br />
+              {IMAGE_FORMAT_HINT}
             </p>
             {imagePreview ? (
               <div className="image-preview-container">
@@ -1826,7 +1997,7 @@ export default function EventForm({ event }) {
               open
               data-testid="instagram-image-accordion"
             >
-              <summary>Foto und Bildausschnitt für Instagram wählen</summary>
+              <summary>Foto und Bildausschnitt für Social Media wählen</summary>
               <InstagramImagePicker
                 candidates={instagramImageCandidates}
                 value={effectiveInstagramImageChoice}

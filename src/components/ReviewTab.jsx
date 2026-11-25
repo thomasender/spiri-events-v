@@ -22,10 +22,22 @@ import { resolveRegionId } from '../utils/regions';
 import { buildRejectUpdate, buildTrashUpdate } from '../utils/trashUpdates';
 import { rejectionReasonFromMessage } from '../utils/rejectionTemplates';
 import EventAdminListRow from './EventAdminListRow';
+import {
+  NO_CONSENT_APPROVE_MESSAGE,
+  approveBlockedReason,
+  isCuratedEvent,
+  isCuratedWithoutConsent,
+  isUnclaimedCuratedEvent,
+} from '../utils/eventImport';
 import AdminCoverPreview from './AdminCoverPreview';
 import { AdminInstagramPreview } from './InstagramPostPreview';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
+import ModerationGuidanceNotice from './ModerationGuidanceNotice';
+import ReviewImportAwaiting from './ReviewImportAwaiting';
+import ReviewInstagramOutdated from './ReviewInstagramOutdated';
+import { useOutdatedInstagramPosts } from '../hooks/useInstagramAdmin';
+import { useAllImportOrganizers } from '../hooks/useImportData';
 import './ReviewTab.css';
 
 const APPROVED_WINDOW_DAYS = 7;
@@ -113,6 +125,19 @@ function ReviewImageCheck({ event }) {
   );
 }
 
+// Badges for imported (curated) events; rendered inside the card, next to the other badges.
+function CurationBadges({ event }) {
+  if (!isCuratedEvent(event)) return null;
+  return (
+    <span className="review-curation-badges" data-testid={`review-curation-${event.id}`}>
+      <span className="badge">importiert</span>
+      {isCuratedWithoutConsent(event) && <span className="badge">ohne Consent</span>}
+    </span>
+  );
+}
+
+const NO_CONSENT_MESSAGE = NO_CONSENT_APPROVE_MESSAGE;
+
 export default function ReviewTab() {
   const { user, role, staffRegionIds } = useAuth();
   const { labelFor, nameOf, regions } = useRegionLabels();
@@ -123,7 +148,26 @@ export default function ReviewTab() {
   // (the rules forbid her content edits), so she gets no edit link on
   // other people's events.
   const canEdit = (evt) => access.isSuperAdmin || evt.createdBy === user?.uid;
-  const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
+  const {
+    pendingEvents: allPendingEvents,
+    loading: pendingLoading,
+    approveEvent,
+  } = usePendingEvents();
+  // Imported events still waiting for the organizer's consent get their own section: the team
+  // cannot decide them (docs/event-import.md).
+  const pendingEvents = useMemo(
+    () => allPendingEvents.filter((e) => !isCuratedWithoutConsent(e)),
+    [allPendingEvents]
+  );
+  const awaitingOrganizer = useMemo(
+    () => allPendingEvents.filter((e) => isCuratedWithoutConsent(e)),
+    [allPendingEvents]
+  );
+  const organizerDocs = useAllImportOrganizers(access.isSuperAdmin && awaitingOrganizer.length > 0);
+  const organizersById = useMemo(
+    () => Object.fromEntries(organizerDocs.items.map((o) => [o.id, o])),
+    [organizerDocs.items]
+  );
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
   const {
     unreadCountByEvent,
@@ -136,9 +180,14 @@ export default function ReviewTab() {
   // Super-Admin: every region that is active or has items; a moderator: hers).
   const regionOptions = useMemo(() => {
     const counts = {};
+    const importCounts = {};
     pendingEvents.forEach((event) => {
       const id = resolveRegionId(event);
       counts[id] = (counts[id] || 0) + 1;
+    });
+    awaitingOrganizer.forEach((event) => {
+      const id = resolveRegionId(event);
+      importCounts[id] = (importCounts[id] || 0) + 1;
     });
     let ids;
     if (access.isRegionModerator) {
@@ -146,6 +195,7 @@ export default function ReviewTab() {
     } else {
       const withItems = new Set([
         ...Object.keys(counts),
+        ...Object.keys(importCounts),
         ...allApprovedEvents.map((e) => resolveRegionId(e)),
       ]);
       ids = regions.filter((r) => r.active || withItems.has(r.id)).map((r) => r.id);
@@ -153,8 +203,13 @@ export default function ReviewTab() {
         if (!ids.includes(id)) ids.push(id);
       });
     }
-    return ids.map((id) => ({ id, name: nameOf(id), count: counts[id] || 0 }));
-  }, [access, pendingEvents, allApprovedEvents, regions, nameOf]);
+    return ids.map((id) => ({
+      id,
+      name: nameOf(id),
+      count: counts[id] || 0,
+      importCount: importCounts[id] || 0,
+    }));
+  }, [access, pendingEvents, awaitingOrganizer, allApprovedEvents, regions, nameOf]);
   const showRegionFilter = regionOptions.length > 1;
   const regionFilter =
     showRegionFilter && regionOptions.some((o) => o.id === storedRegionFilter)
@@ -170,23 +225,34 @@ export default function ReviewTab() {
   };
   const inFilter = (event) => regionFilter === 'all' || resolveRegionId(event) === regionFilter;
   const { unreadByEvent: editAlerts, markRead: markAlertRead } = useAdminAlerts(user?.uid, true);
+  // Published Instagram posts of edited events (Trello 6af4ca87): a Super-Admin reads all,
+  // a moderator those of her regions.
+  const outdatedPosts = useOutdatedInstagramPosts(access.isStaff, moderatorRegionKey || null);
 
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [approveSuccess, setApproveSuccess] = useState(null);
+  const [approveError, setApproveError] = useState(null);
   const [mutating, setMutating] = useState(false);
   // Pending (needs action) and "In Klärung" start open; the approved history starts closed.
   const [openSections, setOpenSections] = useState({
     pending: true,
     klaerung: true,
     approved: false,
+    importAwaiting: false,
+    instagram: true,
   });
   const toggleSection = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleApprove = async (eventId) => {
     const target = pendingEvents.find((e) => e.id === eventId);
+    setApproveError(null);
+    if (target && isCuratedWithoutConsent(target)) {
+      setApproveError(NO_CONSENT_MESSAGE);
+      return;
+    }
     setApprovingId(eventId);
     try {
       await approveEvent(eventId);
@@ -194,6 +260,11 @@ export default function ReviewTab() {
       setApproveSuccess(target ? { eventTitle: target.title } : null);
     } catch (err) {
       console.error('Approve failed:', err);
+      setApproveError(
+        err?.code === 'permission-denied' && target && isCuratedEvent(target)
+          ? NO_CONSENT_MESSAGE
+          : 'Das Event konnte nicht genehmigt werden. Bitte versuche es noch einmal.'
+      );
     } finally {
       setApprovingId(null);
     }
@@ -240,11 +311,16 @@ export default function ReviewTab() {
       id: evt.id,
       eventTitle: evt.title,
       eventPath: `/event/${evt.slug || evt.id}`,
-      reason: rejectionReasonFromMessage(lastStaffMessageByEvent[evt.id]?.text),
+      // Unclaimed curated events have no organizer to mail: no reason needed,
+      // and the backend sends nothing (docs/event-import.md).
+      internal: isUnclaimedCuratedEvent(evt),
+      reason: isUnclaimedCuratedEvent(evt)
+        ? ''
+        : rejectionReasonFromMessage(lastStaffMessageByEvent[evt.id]?.text),
     });
 
   const handleReject = async () => {
-    if (!rejectTarget?.reason) return;
+    if (!rejectTarget || (!rejectTarget.reason && !rejectTarget.internal)) return;
     setMutating(true);
     try {
       const db = getFirestore(getApp());
@@ -267,6 +343,7 @@ export default function ReviewTab() {
       id: evt.id,
       eventTitle: evt.title,
       reasonRequired: requiresDeleteReason(user, evt, role, staffRegionIds),
+      internal: isUnclaimedCuratedEvent(evt),
     });
 
   const recentlyApproved = useMemo(() => {
@@ -320,8 +397,15 @@ export default function ReviewTab() {
     : 'Hier landen alle Events, die auf deine Freigabe warten';
 
   const pendingShown = pendingInKlaerung.length + pendingNeu.length;
+  const awaitingShown = awaitingOrganizer.filter(inFilter);
+  const outdatedShown = outdatedPosts.filter(
+    (post) => regionFilter === 'all' || post.regionId === regionFilter
+  );
   const hasAnyContent =
-    pendingEvents.length > 0 || recentlyApproved.length > 0 || regionFilter !== 'all';
+    allPendingEvents.length > 0 ||
+    recentlyApproved.length > 0 ||
+    outdatedPosts.length > 0 ||
+    regionFilter !== 'all';
 
   if (!hasAnyContent) {
     return (
@@ -356,6 +440,13 @@ export default function ReviewTab() {
         </div>
       </div>
 
+      {pendingEvents.length > 0 && <ModerationGuidanceNotice />}
+      {approveError && (
+        <p className="review-approve-error" role="alert" data-testid="review-approve-error">
+          {approveError}
+        </p>
+      )}
+
       {showRegionFilter && (
         <div className="review-region-filter">
           <label htmlFor="review-region-filter">Region</label>
@@ -367,17 +458,23 @@ export default function ReviewTab() {
           >
             <option value="all">{`Alle (${pendingEvents.length})`}</option>
             {regionOptions.map((o) => (
-              <option key={o.id} value={o.id}>{`${o.name} (${o.count})`}</option>
+              <option key={o.id} value={o.id}>
+                {`${o.name} (${o.count})`}
+                {o.importCount > 0 ? ` · ${o.importCount} Import` : ''}
+              </option>
             ))}
           </select>
         </div>
       )}
 
-      {pendingShown === 0 && recentlyApproved.length === 0 && (
-        <p className="review-subsection-empty" data-testid="review-region-empty">
-          Für diese Region gibt es aktuell nichts zu prüfen.
-        </p>
-      )}
+      {pendingShown === 0 &&
+        awaitingShown.length === 0 &&
+        recentlyApproved.length === 0 &&
+        outdatedShown.length === 0 && (
+          <p className="review-subsection-empty" data-testid="review-region-empty">
+            Für diese Region gibt es aktuell nichts zu prüfen.
+          </p>
+        )}
 
       {pendingShown > 0 && (
         <section
@@ -430,6 +527,8 @@ export default function ReviewTab() {
                         fromPath="/admin?tab=review"
                         isAdmin
                         showEdit={canEdit(event)}
+                        extraBadges={<CurationBadges event={event} />}
+                        approveBlockedReason={approveBlockedReason(event)}
                         approving={approvingId}
                         unreadCount={unreadCountByEvent[event.id] || 0}
                         hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -491,6 +590,8 @@ export default function ReviewTab() {
                           fromPath="/admin?tab=review"
                           isAdmin
                           showEdit={canEdit(event)}
+                          extraBadges={<CurationBadges event={event} />}
+                          approveBlockedReason={approveBlockedReason(event)}
                           approving={approvingId}
                           unreadCount={unreadCountByEvent[event.id] || 0}
                           hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -508,6 +609,46 @@ export default function ReviewTab() {
             )}
           </div>
         </section>
+      )}
+
+      {awaitingShown.length > 0 && (
+        <ReviewImportAwaiting
+          events={awaitingShown}
+          organizers={organizersById}
+          isSuperAdmin={access.isSuperAdmin}
+          open={openSections.importAwaiting}
+          onToggle={() => toggleSection('importAwaiting')}
+          renderRow={(event) => (
+            <div key={event.id}>
+              <EventAdminListRow
+                event={event}
+                regionLabel={labelFor(event)}
+                showStatus
+                showDuplicate={false}
+                showSubmittedAt
+                fromPath="/admin?tab=review"
+                isAdmin
+                showReject={canReject(event)}
+                showEdit={canEdit(event)}
+                extraBadges={<CurationBadges event={event} />}
+                unreadCount={unreadCountByEvent[event.id] || 0}
+                hasMessages={Boolean(hasMessagesByEvent[event.id])}
+                onReject={openReject}
+                onDeleteClick={(evt) => openDelete(evt)}
+              />
+            </div>
+          )}
+        />
+      )}
+
+      {outdatedShown.length > 0 && (
+        <ReviewInstagramOutdated
+          posts={outdatedShown}
+          open={openSections.instagram}
+          onToggle={() => toggleSection('instagram')}
+          nameOf={nameOf}
+          showRegion={showRegionFilter}
+        />
       )}
 
       {recentlyApproved.length > 0 && (
@@ -553,6 +694,7 @@ export default function ReviewTab() {
                   showEdit={canEdit(event)}
                   onDeleteClick={(evt) => openDelete(evt)}
                 />
+                <CurationBadges event={event} />
               </div>
             ))}
           </div>
@@ -579,7 +721,7 @@ export default function ReviewTab() {
         title="In Papierkorb verschieben"
         message={
           deleteTarget
-            ? `Das Event „${deleteTarget.eventTitle}" wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht.`
+            ? `Das Event „${deleteTarget.eventTitle}" wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht.${deleteTarget.internal ? ' Es wird keine E-Mail verschickt.' : ''}`
             : ''
         }
         confirmLabel="In Papierkorb"
@@ -599,9 +741,13 @@ export default function ReviewTab() {
         onCancel={() => setRejectTarget(null)}
         loading={mutating}
         danger
-        confirmDisabled={!rejectTarget?.reason}
+        confirmDisabled={!rejectTarget?.reason && !rejectTarget?.internal}
       >
-        {rejectTarget?.reason ? (
+        {rejectTarget?.internal ? (
+          <p data-testid="review-reject-internal">
+            {`Das Event „${rejectTarget.eventTitle}" wird abgelehnt und in den Papierkorb verschoben. Es gehört noch der Redaktion und hat keine Veranstalter:in, deshalb wird keine E-Mail verschickt.`}
+          </p>
+        ) : rejectTarget?.reason ? (
           <>
             <p>
               {`Das Event „${rejectTarget.eventTitle}" wird abgelehnt und in den Papierkorb der einreichenden Person verschoben. Sie bekommt eine E-Mail mit dieser Nachricht als Grund:`}

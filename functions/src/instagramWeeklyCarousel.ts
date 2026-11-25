@@ -4,7 +4,9 @@ import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { runWeeklyCarousels } from './instagram/instagramCarousel';
-import { buildCarouselDeps, resolveInstagramAccessToken } from './instagramDeps';
+import { INSTAGRAM_SCHEDULED_REGION_IDS, runForRegions } from './instagram/instagramRegionConfig';
+import { buildCarouselDeps, memoizedEventLister } from './instagramDeps';
+import { resolveCredentialsForRegion } from './instagramRegionStore';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
 
 if (getApps().length === 0) {
@@ -14,12 +16,16 @@ if (getApps().length === 0) {
 const IG_ACCESS_TOKEN = defineSecret('IG_ACCESS_TOKEN');
 const IG_USER_ID = defineSecret('IG_USER_ID');
 
+// Sunday 10:00 Vienna (same wall clock as Berlin): one carousel per Bezirk of
+// every scheduled region (Vorarlberg first, then Bodensee), each with its own
+// account. Regions run one after the other within the 1800 s timeout; a region
+// without a usable account is skipped, a failing one does not stop the next.
 export const instagramWeeklyCarousel = onSchedule(
   {
     schedule: '0 10 * * 0',
     timeZone: 'Europe/Vienna',
     region: 'europe-west3',
-    timeoutSeconds: 540,
+    timeoutSeconds: 1800,
     memory: '1GiB',
     secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
   },
@@ -33,14 +39,24 @@ export const instagramWeeklyCarousel = onSchedule(
       return;
     }
 
-    const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
-    const userId = IG_USER_ID.value();
-    if (!accessToken || !userId) {
-      logger.warn('IG_ACCESS_TOKEN or IG_USER_ID is not configured; skipping carousels');
-      return;
-    }
-
-    const outcome = await runWeeklyCarousels(buildCarouselDeps(db, accessToken, userId));
-    logger.info('Instagram weekly carousels processed', outcome);
+    // Every region reads the same approved events: query them once per run.
+    const listEvents = memoizedEventLister(db);
+    const outcome = await runForRegions(
+      INSTAGRAM_SCHEDULED_REGION_IDS,
+      async (regionId) => {
+        const credentials = await resolveCredentialsForRegion(db, regionId, {
+          accessToken: IG_ACCESS_TOKEN.value(),
+          userId: IG_USER_ID.value(),
+        });
+        if (!credentials) return null;
+        return {
+          ...buildCarouselDeps(db, credentials.accessToken, credentials.userId),
+          listEvents,
+        };
+      },
+      (deps, regionId) => runWeeklyCarousels(deps, regionId),
+      (message, data) => logger.warn(message, data)
+    );
+    logger.info('Instagram weekly carousels processed', { regions: outcome });
   }
 );

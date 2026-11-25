@@ -25,6 +25,9 @@ import {
   Wallet,
   HelpCircle,
   ScrollText,
+  Sparkles,
+  Bell,
+  Download,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -41,16 +44,19 @@ import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
+import FunFactsTab from '../components/FunFactsTab';
 import ModerationTab from '../components/ModerationTab';
 import ModerationLogTab from '../components/ModerationLogTab';
 import RegionsTab from '../components/RegionsTab';
+import ImportTab from '../components/ImportTab';
 import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
 import LedgerTab from '../components/LedgerTab';
 import FaqTab from '../components/FaqTab';
+import StaffNotificationsTab from '../components/StaffNotificationsTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
-import EmailVerificationModal from '../components/EmailVerificationModal';
+import ClaimableEventsBanner from '../components/ClaimableEventsBanner';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -58,6 +64,7 @@ import { useReviewNotifications } from '../hooks/useReviewNotifications';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
+import { useStaffNotifications } from '../hooks/useStaffNotifications';
 import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
 import './AdminPage.css';
 
@@ -104,6 +111,7 @@ const TAB_GROUPS = [
     Icon: BarChart3,
     tabs: [
       { id: 'analytics', label: 'Statistik', Icon: BarChart3 },
+      { id: 'funfacts', label: 'Fun Facts', Icon: Sparkles },
       { id: 'ledger', label: 'Finanzen', Icon: Wallet },
       { id: 'theme', label: 'Theme', Icon: Palette },
       { id: 'trash', label: 'Papierkorb', Icon: Trash2 },
@@ -114,8 +122,10 @@ const TAB_GROUPS = [
     label: 'Regionen',
     Icon: MapPin,
     tabs: [
+      { id: 'team', label: 'Team-Hinweise', Icon: Bell },
       { id: 'moderation', label: 'Moderation', Icon: ShieldCheck },
       { id: 'regions', label: 'Regionen', Icon: MapPin },
+      { id: 'import', label: 'Import', Icon: Download },
       { id: 'about', label: 'Über uns', Icon: Info },
     ],
   },
@@ -137,11 +147,14 @@ const PANELS = {
   chat: ChatTab,
   instagram: InstagramTab,
   analytics: AnalyticsTab,
+  funfacts: FunFactsTab,
   mailgun: MailgunTab,
   ledger: LedgerTab,
   faq: FaqTab,
+  team: StaffNotificationsTab,
   moderation: ModerationTab,
   regions: RegionsTab,
+  import: ImportTab,
   about: RegionAboutTab,
 };
 
@@ -167,7 +180,11 @@ export default function AdminPage() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { hasFeedback } = useHasFeedback(isAdmin);
   const { count: trashedCount } = useTrashedEventsCount();
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  // Team notes (moderator applications, new moderators): staff only (Trello 6afc59ed).
+  const { unreadCount: teamUnreadCount } = useStaffNotifications(
+    user?.uid,
+    allowedTabs.has('team')
+  );
   const { events } = useEvents(user);
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
@@ -200,8 +217,11 @@ export default function AdminPage() {
       chat: allowedTabs.has('chat'),
       instagram: isAdmin,
       analytics: isAdmin,
+      funfacts: isAdmin,
+      team: allowedTabs.has('team'),
       moderation: isAdmin,
       regions: isAdmin,
+      import: isAdmin,
       about: allowedTabs.has('about'),
       mailgun: isAdmin,
       ledger: isAdmin,
@@ -271,6 +291,7 @@ export default function AdminPage() {
       count: isAdmin ? unreadFeedbackCount : 0,
       label: `${unreadFeedbackCount} ungelesenes Feedback`,
     },
+    team: { count: teamUnreadCount, label: `${teamUnreadCount} neue Team-Hinweise` },
   };
   const formatCount = (n) => (n > 9 ? '9+' : n);
 
@@ -292,26 +313,17 @@ export default function AdminPage() {
           <h1>Verwaltung</h1>
           <p>Verwalte deine Events und Nachrichten</p>
         </div>
-        {canCreateEvents ? (
-          <Link to="/admin/new" className="btn btn-primary">
-            <PlusCircle size={18} aria-hidden="true" />
-            <span>Neues Event</span>
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-primary btn-disabled"
-            onClick={() => setVerificationModalOpen(true)}
-            title="Bitte bestätige zuerst deine E-Mail-Adresse."
-            data-testid="new-event-locked"
-          >
-            <PlusCircle size={18} aria-hidden="true" />
-            <span>Neues Event</span>
-          </button>
-        )}
+        {/* Also without a confirmed e-mail: the wizard asks for it only at the end. */}
+        <Link to="/admin/new" className="btn btn-primary">
+          <PlusCircle size={18} aria-hidden="true" />
+          <span>Neues Event</span>
+        </Link>
       </header>
 
       {!canCreateEvents && <EmailVerificationBanner />}
+
+      {/* Curated events waiting for this account's confirmed address (docs/event-import.md). */}
+      {activeTab === 'events' && <ClaimableEventsBanner />}
 
       {hashEventId && <EventStatusMismatchBanner key={hashEventId} eventId={hashEventId} />}
 
@@ -415,11 +427,6 @@ export default function AdminPage() {
           </div>
         ) : null
       )}
-
-      <EmailVerificationModal
-        open={verificationModalOpen}
-        onClose={() => setVerificationModalOpen(false)}
-      />
     </div>
   );
 }

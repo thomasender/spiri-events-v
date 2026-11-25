@@ -88,6 +88,29 @@ describe('instagram_posts', () => {
     }
   });
 
+  it('a moderator reads (and lists) only the outdated posts of her regions, never writes', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'admin_users/modTirol'), {
+        role: 'RegionModerator',
+        regionIds: ['tirol'],
+      });
+      await setDoc(doc(db, 'instagram_posts/feed_t'), { outdated: true, regionId: 'tirol' });
+      await setDoc(doc(db, 'instagram_posts/feed_w'), { outdated: true, regionId: 'wien' });
+    });
+    const db = env.authenticatedContext('modTirol').firestore();
+    await assertSucceeds(getDoc(doc(db, 'instagram_posts/feed_t')));
+    await assertFails(getDoc(doc(db, 'instagram_posts/feed_w')));
+    // Posts without regionId (Vorarlberg legacy records) stay admin-only.
+    await assertFails(getDoc(doc(db, 'instagram_posts/p1')));
+    const posts = collection(db, 'instagram_posts');
+    await assertSucceeds(
+      getDocs(query(posts, where('outdated', '==', true), where('regionId', '==', 'tirol')))
+    );
+    await assertFails(getDocs(query(posts, where('outdated', '==', true))));
+    await assertFails(updateDoc(doc(db, 'instagram_posts/feed_t'), { outdated: false }));
+  });
+
   describe.each(Object.entries(adminVariants))('%s', (_n, make) => {
     it('can read', async () => {
       await assertSucceeds(getDoc(doc(make().firestore(), 'instagram_posts/p1')));
@@ -364,6 +387,46 @@ describe('events.registration', () => {
       updateDoc(doc(db, 'events/ev1'), { registration: 'Anmeldung unter a@b.at' })
     );
     await assertFails(updateDoc(doc(db, 'events/ev1'), { registration: 'a'.repeat(301) }));
+  });
+});
+
+describe('events.kontaktMessenger', () => {
+  const base = { createdBy: 'owner', status: 'draft', description: 'd' };
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+
+  it('create: absent, empty or up to 3 distinct known messengers OK', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(setDoc(doc(db, 'events/m1'), base));
+    await assertSucceeds(setDoc(doc(db, 'events/m2'), { ...base, kontaktMessenger: [] }));
+    await assertSucceeds(
+      setDoc(doc(db, 'events/m3'), {
+        ...base,
+        kontaktMessenger: ['whatsapp', 'telegram', 'signal'],
+      })
+    );
+  });
+
+  it('create: unknown values, duplicates, non-lists and too many rejected', async () => {
+    const db = owner().firestore();
+    await assertFails(setDoc(doc(db, 'events/m4'), { ...base, kontaktMessenger: ['threema'] }));
+    await assertFails(
+      setDoc(doc(db, 'events/m5'), { ...base, kontaktMessenger: ['whatsapp', 'whatsapp'] })
+    );
+    await assertFails(setDoc(doc(db, 'events/m6'), { ...base, kontaktMessenger: 'whatsapp' }));
+    await assertFails(
+      setDoc(doc(db, 'events/m7'), {
+        ...base,
+        kontaktMessenger: ['whatsapp', 'telegram', 'signal', 'whatsapp'],
+      })
+    );
+  });
+
+  it('update: known values OK, unknown rejected', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: ['telegram'] }));
+    await assertSucceeds(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: [] }));
+    await assertFails(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: ['sms'] }));
+    await assertFails(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: [1] }));
   });
 });
 
@@ -680,6 +743,7 @@ describe('events: owners cannot approve their own events', () => {
           firstSessionFree: true,
           link: 'https://neu.example',
           kontakt: '0664 123',
+          kontaktMessenger: ['whatsapp', 'signal'],
           registration: 'Bitte anmelden',
           category: 'Meditation',
           organizer: {
@@ -725,6 +789,17 @@ describe('events: owners cannot approve their own events', () => {
         })
       );
       await assertSucceeds(updateDoc(ownerRef('e'), { recurrenceEndDate: '', updatedAt: 3 }));
+    });
+
+    it('sets own times of single dates (customTimes) on an approved event, only as a map', async () => {
+      await seed('e', { status: 'approved', recurrence: 'custom', customDates: ['2026-11-01'] });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          customTimes: { '2026-11-01': { time: '18:00', endTime: '' } },
+          updatedAt: 1,
+        })
+      );
+      await assertFails(updateDoc(ownerRef('e'), { customTimes: '18:00', updatedAt: 2 }));
     });
 
     it('patches series exceptions and images on an approved event without touching status', async () => {

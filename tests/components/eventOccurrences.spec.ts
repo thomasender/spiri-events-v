@@ -1,11 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  getCustomOccurrenceTime,
   getEventOccurrences,
+  hasOwnOccurrenceTime,
   getNextUpcomingOccurrence,
   getNthWeekdayOrdinal,
   nthWeekdayOfMonth,
   getOccurrenceCount,
   getRecurrenceLabel,
+  getSeriesStartDates,
+  pruneExceptionDates,
 } from '../../src/utils/eventOccurrences';
 
 const dateStr = (offsetDays = 0) => {
@@ -189,21 +193,28 @@ describe('getEventOccurrences (list mode)', () => {
   });
 
   it('defaults end date for recurring events without recurrenceEndDate', () => {
-    const event = {
-      id: '1',
-      date: dateStr(5),
-      recurrence: 'weekly',
-    };
-    const result = getEventOccurrences(event);
-    expect(result.length).toBeGreaterThan(0);
-    const lastOccurrence = result[result.length - 1];
-    const lastDate = new Date(lastOccurrence.date + 'T12:00:00');
-    const startDate = new Date(dateStr(5) + 'T12:00:00');
-    const monthsDiff =
-      (lastDate.getFullYear() - startDate.getFullYear()) * 12 +
-      (lastDate.getMonth() - startDate.getMonth());
-    expect(monthsDiff).toBeGreaterThanOrEqual(1);
-    expect(monthsDiff).toBeLessThanOrEqual(3);
+    // Pin the clock: month/year-end arithmetic made this date-dependent.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0)); // 2026-10-15, local noon
+    try {
+      const event = {
+        id: '1',
+        date: dateStr(5),
+        recurrence: 'weekly',
+      };
+      const result = getEventOccurrences(event);
+      expect(result.length).toBeGreaterThan(0);
+      const lastOccurrence = result[result.length - 1];
+      const lastDate = new Date(lastOccurrence.date + 'T12:00:00');
+      const startDate = new Date(dateStr(5) + 'T12:00:00');
+      const monthsDiff =
+        (lastDate.getFullYear() - startDate.getFullYear()) * 12 +
+        (lastDate.getMonth() - startDate.getMonth());
+      expect(monthsDiff).toBeGreaterThanOrEqual(1);
+      expect(monthsDiff).toBeLessThanOrEqual(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns empty array for null events', () => {
@@ -879,5 +890,171 @@ describe('monthlyWeekday and monthly month-end handling (6adca49e)', () => {
       'Jeden letzten Freitag im Monat'
     );
     expect(getRecurrenceLabel({ date: '2026-01-30', recurrence: 'monthly' })).toBe('Jeden Monat');
+  });
+});
+
+describe('getSeriesStartDates', () => {
+  it('lists every week from the start date up to and including the end date', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'weekly',
+        recurrenceEndDate: '2026-01-26',
+      })
+    ).toEqual(['2026-01-05', '2026-01-12', '2026-01-19', '2026-01-26']);
+  });
+
+  it('steps by 14 days for biweekly series', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'biweekly',
+        recurrenceEndDate: '2026-02-08',
+      })
+    ).toEqual(['2026-01-05', '2026-01-19', '2026-02-02']);
+  });
+
+  it('keeps the day of month for monthly series and clamps at month end', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-31',
+        recurrence: 'monthly',
+        recurrenceEndDate: '2026-04-30',
+      })
+    ).toEqual(['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30']);
+  });
+
+  it('keeps the n-th weekday for monthlyWeekday series, "last" for a 5th weekday', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-14',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-03-31',
+      })
+    ).toEqual(['2026-01-14', '2026-02-11', '2026-03-11']);
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-30',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-03-31',
+      })
+    ).toEqual(['2026-01-30', '2026-02-27', '2026-03-27']);
+  });
+
+  it('ignores exception dates and past days', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2020-01-06',
+        recurrence: 'weekly',
+        recurrenceEndDate: '2020-01-20',
+        exceptionDates: ['2020-01-13'],
+      })
+    ).toEqual(['2020-01-06', '2020-01-13', '2020-01-20']);
+  });
+
+  it('returns [] without an end date, for other kinds and for an end before the start', () => {
+    expect(getSeriesStartDates({ date: '2026-01-05', recurrence: 'weekly' })).toEqual([]);
+    expect(getSeriesStartDates({ date: '2026-01-05', recurrence: 'none' })).toEqual([]);
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'custom',
+        recurrenceEndDate: '2026-02-01',
+      })
+    ).toEqual([]);
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'weekly',
+        recurrenceEndDate: '2026-01-01',
+      })
+    ).toEqual([]);
+    expect(getSeriesStartDates(null)).toEqual([]);
+  });
+});
+
+describe('pruneExceptionDates', () => {
+  const series = {
+    date: '2026-01-05',
+    recurrence: 'weekly',
+    recurrenceEndDate: '2026-01-26',
+  };
+
+  it('drops exceptions that are no longer part of the series', () => {
+    expect(
+      pruneExceptionDates({ ...series, exceptionDates: ['2026-01-12', '2026-01-13', '2026-02-02'] })
+    ).toEqual(['2026-01-12']);
+  });
+
+  it('keeps dates before keepBefore untouched', () => {
+    expect(
+      pruneExceptionDates(
+        { ...series, exceptionDates: ['2025-12-01', '2026-01-13', '2026-01-19'] },
+        '2026-01-10'
+      )
+    ).toEqual(['2025-12-01', '2026-01-19']);
+  });
+});
+
+describe('own times of single dates (custom, 6afd86b4)', () => {
+  const event = {
+    id: '1',
+    date: dateStr(5),
+    time: '10:00',
+    endTime: '12:00',
+    recurrence: 'custom',
+    customDates: [dateStr(5), dateStr(12), dateStr(19), dateStr(26)],
+    customTimes: {
+      [dateStr(12)]: { time: '18:00', endTime: '20:00' },
+      [dateStr(19)]: { time: '07:30' },
+      // The event's own date always keeps the time from above.
+      [dateStr(5)]: { time: '23:00', endTime: '23:30' },
+    },
+  };
+
+  it('each occurrence carries its own time, the others the event time', () => {
+    const byDate = Object.fromEntries(
+      getEventOccurrences(event).map((o) => [o.date, [o.time, o.endTime]])
+    );
+    expect(byDate).toEqual({
+      [dateStr(5)]: ['10:00', '12:00'],
+      [dateStr(12)]: ['18:00', '20:00'],
+      // An own start without an end means "no end", not the end from above.
+      [dateStr(19)]: ['07:30', ''],
+      [dateStr(26)]: ['10:00', '12:00'],
+    });
+  });
+
+  it('calendar mode gives every day of a multi-day occurrence the own time', () => {
+    const multi = { ...event, endDate: dateStr(6) };
+    const days = getEventOccurrences(multi, { mode: 'calendar' }).filter(
+      (o) => o.date === dateStr(12) || o.date === dateStr(13)
+    );
+    expect(days.map((o) => [o.date, o.time, o.endTime])).toEqual([
+      [dateStr(12), '18:00', '20:00'],
+      [dateStr(13), '18:00', '20:00'],
+    ]);
+  });
+
+  it('getCustomOccurrenceTime / hasOwnOccurrenceTime', () => {
+    expect(getCustomOccurrenceTime(event, dateStr(12))).toEqual({
+      time: '18:00',
+      endTime: '20:00',
+    });
+    expect(getCustomOccurrenceTime(event, dateStr(26))).toEqual({
+      time: '10:00',
+      endTime: '12:00',
+    });
+    expect(getCustomOccurrenceTime(event, dateStr(5))).toEqual({
+      time: '10:00',
+      endTime: '12:00',
+    });
+    expect(hasOwnOccurrenceTime(event, dateStr(12))).toBe(true);
+    expect(hasOwnOccurrenceTime(event, dateStr(26))).toBe(false);
+    // Only custom series have own times.
+    expect(hasOwnOccurrenceTime({ ...event, recurrence: 'weekly' }, dateStr(12))).toBe(false);
+    // Old events without customTimes.
+    const { customTimes: _unused, ...old } = event;
+    expect(getEventOccurrences(old).every((o) => o.time === '10:00')).toBe(true);
   });
 });

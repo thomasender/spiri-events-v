@@ -621,6 +621,7 @@ is a code change (see section 13).
   reject the query.
 - **Members tab for moderators:** per member of her regions name, username, registration date, Instagram handle and sharing consent, directory state; never the e-mail (`toModeratorMemberRow`).
 - **Coming-soon page** (`RegionComingSoonPage`): progress bar in percent of `REGION_EVENT_GOAL` (30, internal, never shown as a number; approved events of the region via `useRegionEventCount`), "Event eintragen" (events entered there get that region), invite button (share sheet or copied link), a quiet "Andere Regionen erkunden" link; no links to the active regions.
+  **Event teaser (Trello 6b046602):** above the progress bar `FeaturedEventTeaser` shows one hand-picked approved event (cover with focal point/zoom, eyebrow "Eröffnungsfeier", title, date, place, button "Zum Event" to `/event/<slug>`). Hard-wired in `src/config/featuredEventTeaser.js` (region `bodensee`, slug, `endDate`); the event is read by slug via `useFeaturedEvent` (approved only). Nothing renders for other regions, after `endDate`, or when the event is missing, not approved or over. **Remove the config, component and hook after the event** (27.11.2026).
 - Staff may see an inactive region's coming-soon page with a one-line note
   (`useCanPreviewRegion`); a real preview banner is a follow-up.
 - **Applying as Regions-Moderator:in:** `ModeratorApplyCard` (on the "Wo suchst du?" page and on
@@ -628,10 +629,46 @@ is a code change (see section 13).
   optional region and photo (shrunk in the browser by `compressImage`). The callable
   `submitModeratorApplication` (`functions/src/moderatorApplication.ts`, App Check observed,
   rate limit 3 per 30 min and client, honeypot field `website`) validates it (the photo must be
-  a real JPEG/PNG/WebP by its bytes, max 2 MB) and mails it to `admin@thetribe.at` with
-  Reply-To = the applicant and the photo inline (Mailgun multipart). On staging Mailgun is a
-  dummy, so the form answers with an error there. Making someone a moderator stays a manual
-  step in the admin tab "Moderation".
+  a real JPEG/PNG/WebP by its bytes, max 2 MB) and stores it (Trello 6afc59ed).
+  - **Data:** `moderator_applications/{id}` (name, email, message, `regionId` or null,
+    `hasPhoto`, `status` open / invited / done, `createdAt`, `reminderSentAt`, `invitedAt/By`,
+    `inviteId`, `doneAt`, `acceptedUid`). The photo is **not** stored: it only goes to the
+    Super-Admins as inline image of the mail (`hasPhoto` says there was one); no Storage path, no
+    `storage.rules` change. Only functions write; rules: Super-Admin reads all, a moderator
+    those with a `regionId` of her regions (`tests/rules/regions.rules.spec.ts`).
+  - **Who hears about it:** one `staff_notifications` doc per recipient (`recipientUid`, `kind`
+    application / applicationReminder / newModerator, `audience` superAdmin / moderator, name,
+    email, message, `regionIds`, `readAt`): every Super-Admin plus the moderators of the
+    application's region, each once; an application without region goes to the Super-Admins
+    only. The Super-Admins also get the mail (one per address from `getAdminEmails`, Reply-To =
+    applicant, photo inline); `admin@thetribe.at` is no longer a recipient. The mail is best
+    effort: the application is saved first. Pure logic: `functions/src/staffNotifications.ts`,
+    Firestore wiring `staffNotificationsStore.ts`. Rules: the recipient reads her own notes while
+    she is staff and may only set `readAt` (to `request.time`, once); index
+    `(recipientUid, createdAt desc)`.
+  - **Admin tab "Team-Hinweise"** (`?tab=team`, `StaffNotificationsTab`, Super-Admins and
+    moderators; badge on the tab and in the header "Verwaltung" dot): the notes, newest first,
+    marked read when the tab is open. An application note shows mail address, text and the
+    hint to add the person to the team's chat group (WhatsApp/Signal/Telegram), and the button
+    "Jetzt <Name> als Moderator hinzufügen". It calls `inviteModeratorApplicant`
+    (`moderatorInvites.ts`): the normal invitation (mail with the onboarding link) to the
+    applicant's address, role RegionModerator for the application's region only. Allowed for
+    the moderators of that region and Super-Admins (an application without region: Super-Admins,
+    who pick the region; with one active region it is used without a visible picker); Super-Admin
+    accounts are refused as before. Status becomes `invited`; after `acceptModeratorInvite`
+    `done`, and the button stays visible but inactive ("<Name> ist schon Moderator:in").
+  - **Reminder:** `remindOpenModeratorApplications` (daily 09:15 Vienna) - an application still
+    `open` three days after it came in gets one note + mail to the Super-Admins;
+    `reminderSentAt` is claimed in a transaction, so never twice. `invited` counts as "someone
+    got in touch".
+  - **New moderator:** `acceptModeratorInvite` (any invite, also from the tab "Moderation") closes
+    the person's not finished applications (same address) and writes "Neue:r Moderator:in" notes:
+    a confirmation for the Super-Admins and, for the moderators of the region(s), the reminder to
+    share the team's chat group. The mail "Neue Moderator:in" to the Super-Admins stays.
+  - Dark launch: region names in the notes only with two active regions.
+  - Applications sent before this change exist only as mails in `admin@thetribe.at`; they were
+    not imported. On staging Mailgun is a dummy, so the mail fails there (the application is
+    still saved and noted).
 - Admin mails (feedback, Instagram alerts) go to Super-Admins only. Submission
   mails are region-aware but currently switched off (section 7).
 - **Moderationsprotokoll (Trello 6af1bb84):** Super-Admin tab Events -> "Protokoll"
@@ -657,6 +694,26 @@ is a code change (see section 13).
     trash state, rejections before revisions existed, the person's role at the time (today's role
     is used). Until the script has run, the tab shows only what happened after the deploy.
   - No retention yet: the collection grows (a few entries per event).
+  - **Rückfrage + category/city:** `clarification` ("Rückfrage gestellt") is written by
+    `onAdminMessageCreated` (`functions/src/notifications.ts`) when staff (by `admin_users`)
+    writes a message on a `pending` event, except rejection reasons; doc id
+    `clarification-{eventId}-{YYYY-MM-DD Vienna}` with `create()`, so at most one per event and
+    day. New entries also carry the event's `category` and `city` (older ones: not set; the
+    backfill script was not re-run).
+- **Fun Facts:** Super-Admin tab Dashboard & Einstellungen -> "Fun Facts" (`FunFactsTab`,
+  `?tab=funfacts`; moderators get "Kein Zugriff"). Callable `adminFunFacts`
+  (`functions/src/adminFunFacts.ts`, pure logic `funFacts.ts`, tests `tests/lib/funFacts.spec.ts`)
+  reads the whole `moderation_log` plus `count()` on `users` and the `favorites` collection group,
+  stores the result in `app_stats/fun_facts` (`computedAt`; Super-Admin read, no client writes,
+  `tests/rules/revisions.rules.spec.ts`) and recomputes at most every 6 h; `force: true`
+  ("Aktualisieren") at most once a minute. Per event, first pass = first `submitted` to first
+  `approved`; a review round = a pending phase with `returned`, `rejected`, a staff edit (not
+  only `instagramImage`/`regionId`) or a `clarification`. "Eingereicht" also counts events whose
+  first decision came from `pending` without a logged submission (submitted before the log);
+  "direkt veröffentlicht" = first `approved` without a submission before it and not from
+  `pending`. The tab says "Gezählt seit <first entry>" and the share of `source: 'backfill'`
+  entries: purged expired events and their history are gone, and Rückfragen only count since
+  the release, so older review numbers look smoother than they were.
 
 ## 4. Activation
 

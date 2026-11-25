@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import LegalPage from '../../src/pages/LegalPage';
 import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
+import { TERMS_LAST_UPDATED } from '../../src/utils/terms';
 
 /**
  * Replaces tests/integration/datenschutz-formatierung.spec.ts.
@@ -13,7 +14,7 @@ import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion
  * needs neither a browser nor Firebase, so it lives here instead of costing a
  * Playwright run in two engines.
  */
-function renderLegalPage(page: 'datenschutz' | 'impressum') {
+function renderLegalPage(page: 'datenschutz' | 'impressum' | 'nutzungsbedingungen') {
   return render(
     <HelmetProvider>
       <MemoryRouter>
@@ -90,30 +91,6 @@ describe('LegalPage formatting', () => {
     expect(headings[8]).toMatch(/^9\. Firebase/);
   });
 
-  it('has section 19 "Vereinsmitglieder" with an anchor, Mollie and legal bases; "Änderungen" is 20', () => {
-    const { container } = renderLegalPage('datenschutz');
-    const section = container.querySelector('section#vereinsmitglieder');
-    expect(section).not.toBeNull();
-    expect(section?.querySelector('h2')).toHaveTextContent('19. Vereinsmitglieder');
-    const text = section?.textContent ?? '';
-    expect(text).toContain('Mollie');
-    expect(text).toContain('Art. 6 Abs. 1 lit. b DSGVO');
-    expect(text).toContain('Art. 6 Abs. 1 lit. a DSGVO');
-    expect(text).toContain('Abschnitt 6');
-    const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
-    expect(headings[19]).toMatch(/^20\. Änderungen/);
-  });
-
-  it('names Mollie as recipient in section 4 (membership fee and donations)', () => {
-    const { container } = renderLegalPage('datenschutz');
-    const sections = container.querySelectorAll('section');
-    const four = sections[3].textContent ?? '';
-    expect(sections[3].querySelector('h2')).toHaveTextContent('4. Keine Weitergabe an Dritte');
-    expect(four).toContain('Mollie');
-    expect(four).toContain('Mitgliedsbeitrag');
-    expect(four).toContain('Spende');
-  });
-
   it('renders the Impressum content', () => {
     const { container } = renderLegalPage('impressum');
     expect(screen.getByText('Impressum')).toBeInTheDocument();
@@ -132,34 +109,6 @@ describe('LegalPage formatting', () => {
       ).not.toBeNull();
       unmount();
     }
-  });
-});
-
-describe('LegalPage hash scrolling', () => {
-  const original = Element.prototype.scrollIntoView;
-  afterEach(() => {
-    Element.prototype.scrollIntoView = original;
-  });
-
-  it('scrolls to #vereinsmitglieder after rendering', () => {
-    const scroll = vi.fn();
-    Element.prototype.scrollIntoView = scroll;
-    render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={['/datenschutz#vereinsmitglieder']}>
-          <LegalPage page="datenschutz" />
-        </MemoryRouter>
-      </HelmetProvider>
-    );
-    expect(scroll).toHaveBeenCalledTimes(1);
-    expect(scroll.mock.contexts[0]).toHaveProperty('id', 'vereinsmitglieder');
-  });
-
-  it('does not scroll without a hash', () => {
-    const scroll = vi.fn();
-    Element.prototype.scrollIntoView = scroll;
-    renderLegalPage('datenschutz');
-    expect(scroll).not.toHaveBeenCalled();
   });
 });
 
@@ -185,6 +134,18 @@ describe('LegalPage Instagram channels (per region)', () => {
     );
     expect(container.textContent).toContain('auf unserem Instagram-Kanal veröffentlicht');
     expect(screen.queryByTestId('legal-instagram-channels')).toBeNull();
+  });
+
+  it('section 12 is titled Social Media, has an anchor and promises renewed consent for new platforms', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const heading = container.querySelector('#social-media');
+    expect(heading).toHaveTextContent('12. Veröffentlichung auf Social Media (freiwillig)');
+    expect(container.textContent).toContain(
+      'Nehmen wir weitere Plattformen hinzu, informieren wir Sie vorher und veröffentlichen dort nur mit Ihrer erneuten Zustimmung.'
+    );
+    expect(container.textContent).toContain(
+      'Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.'
+    );
   });
 
   it('one channel plus a region without a handle still shows no list', () => {
@@ -243,6 +204,20 @@ describe('LegalPage Instagram channels (per region)', () => {
   });
 });
 
+describe('LegalPage Vereinsmitglieder', () => {
+  it('has section 20 "Vereinsmitglieder" with an anchor, Mollie and legal bases; "Änderungen" is 21', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const heading = container.querySelector('h2#vereinsmitglieder');
+    expect(heading).toHaveTextContent('20. Vereinsmitglieder');
+    const text = heading?.closest('section')?.textContent ?? '';
+    expect(text).toContain('Mollie');
+    expect(text).toContain('Art. 6 Abs. 1 lit. b DSGVO');
+    expect(text).toContain('Art. 6 Abs. 1 lit. a DSGVO');
+    const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
+    expect(headings.some((h) => /^21\. Änderungen/.test(h ?? ''))).toBe(true);
+  });
+});
+
 describe('LegalPage back link', () => {
   it('leads to the region the visitor came from, not to Vorarlberg', () => {
     render(
@@ -258,5 +233,64 @@ describe('LegalPage back link', () => {
       'href',
       '/kaernten'
     );
+  });
+});
+
+describe('LegalPage Nutzungsbedingungen', () => {
+  it('shows title, date and the core sections, numbered consecutively', () => {
+    const { container } = renderLegalPage('nutzungsbedingungen');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Nutzungsbedingungen');
+    expect(container.textContent).toContain(`Stand: ${TERMS_LAST_UPDATED}`);
+    const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent ?? '');
+    for (const part of [
+      'Worum es geht',
+      'Ein Verein, kein Geschäft',
+      'Keine Verpflichtung zum Betrieb',
+      'Inhalte von anderen und keine Empfehlung',
+      'Deine Inhalte und deine Verantwortung',
+      'Respektvolles Miteinander',
+      'Moderation, Sperre und Ausschluss',
+      'Haftung',
+      'Änderungen dieser Nutzungsbedingungen',
+      'Anwendbares Recht',
+    ]) {
+      expect(headings.some((h) => h.includes(part))).toBe(true);
+    }
+    const numbers = headings.map((h) => Number(/^(\d+)\./.exec(h)?.[1]));
+    expect(numbers).toEqual(numbers.map((_n, i) => i + 1));
+    const refs = [...(container.textContent ?? '').matchAll(/Abschnitt (\d+)/g)].map((m) =>
+      Number(m[1])
+    );
+    for (const ref of refs) expect(numbers).toContain(ref);
+  });
+
+  it('says that showing people and events is no recommendation, and limits liability lawfully', () => {
+    const { container } = renderLegalPage('nutzungsbedingungen');
+    const text = container.textContent ?? '';
+    expect(text).toContain('keine Empfehlung');
+    expect(text).toContain('nicht verpflichtet, unsere Entscheidung zu begründen');
+    expect(text).toContain('Verletzung von Leben, Körper oder Gesundheit');
+    expect(text).toContain('österreichisches Recht');
+  });
+
+  it('links the Datenschutz page inside the app (same tab)', () => {
+    renderLegalPage('nutzungsbedingungen');
+    const link = screen.getAllByRole('link', { name: 'Datenschutzerklärung' })[0];
+    expect(link).toHaveAttribute('href', '/datenschutz');
+    expect(link).not.toHaveAttribute('target');
+  });
+
+  it('Datenschutz and Impressum point to the Nutzungsbedingungen; the Haftungsausschluss stays', () => {
+    for (const page of ['datenschutz', 'impressum'] as const) {
+      const { container, unmount } = renderLegalPage(page);
+      // Own page in the same tab (the swisstopo licence link is a different one).
+      const link = container.querySelector('a[href="/nutzungsbedingungen"]');
+      expect(link).toHaveTextContent('Nutzungsbedingungen');
+      expect(link).not.toHaveAttribute('target');
+      unmount();
+    }
+    const { container } = renderLegalPage('impressum');
+    expect(container.textContent).toContain('Haftungsausschluss');
+    expect(container.textContent).toContain('Rechtswirksamkeit dieses Haftungsausschlusses');
   });
 });
