@@ -148,9 +148,11 @@
 .xmas-flyer img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #fff;
+  height: auto;
+}
+/* With a real flyer the frame takes the image's own proportions, so no white bars. */
+.xmas-flyer:has(> img) {
+  aspect-ratio: auto;
 }
 .xmas-flyer-placeholder {
   display: flex;
