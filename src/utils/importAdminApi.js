@@ -156,3 +156,7 @@ export async function setModeratorsSeeInReview(value) {
     updatedAt: serverTimestamp(),
   });
 }
+
+/** Super-Admin: record a consent the organizer gave by e-mail (events, images, sync). */
+export const importRecordMailConsent = ({ organizerId }) =>
+  call('importRecordMailConsent', { organizerId });

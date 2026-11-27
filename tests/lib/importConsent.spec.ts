@@ -19,6 +19,7 @@ import {
   resolveOutreachRecipient,
   sendOutreachMailHandler,
   declineOrganizerHandler,
+  recordMailConsentHandler,
   submitImportConsentHandler,
   type CandidateDoc,
   type ConsentPlan,
@@ -590,6 +591,30 @@ describe('submitImportConsent', () => {
       ),
       'failed-precondition',
       'claimed'
+    );
+  });
+
+  it('Super-Admin records a consent given by mail: sync, events and images, marked as e-mail, audited', async () => {
+    const w = makeWorld();
+    const result = await recordMailConsentHandler(
+      { auth: { uid: 'admin' }, data: { organizerId: 'org1' } },
+      w.deps
+    );
+    expect(result).toMatchObject({ consent: 'sync_ok', syncMode: 'sync_consented', changed: true });
+    expect(w.organizers.get('org1')!.consentRecord).toMatchObject({
+      action: 'approve_sync',
+      source: 'email',
+      scopes: { event: true, images: true, persons: false },
+    });
+    expect(w.eventDocs.get('ev1')!.status).toBe('approved');
+    expect(w.audit.at(-1)).toMatchObject({
+      actorUid: 'admin',
+      consentAction: 'approve_sync',
+      source: 'email',
+    });
+    await expectCode(
+      recordMailConsentHandler({ auth: { uid: 'mod' }, data: { organizerId: 'org1' } }, w.deps),
+      'permission-denied'
     );
   });
 

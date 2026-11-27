@@ -47,6 +47,7 @@ import {
   normalizeOutreachSettings,
   planOrganizerPurge,
   declineOrganizerHandler,
+  recordMailConsentHandler,
   sendOutreachMailHandler,
   submitImportConsentHandler,
   type ImportDeps,
@@ -386,6 +387,22 @@ export const importDeclineOrganizer = onCall(
     logMissingAppCheck('importDeclineOrganizer', request);
     const result = await declineOrganizerHandler(request, firestoreDeps());
     logger.info('importDeclineOrganizer', { actorUid: request.auth?.uid, changed: result.changed });
+    return result;
+  }
+);
+
+/** Super-Admin: record a consent the organizer gave by e-mail (events, images, sync). */
+export const importRecordMailConsent = onCall(
+  { region: REGION, cors: ALLOWED_ORIGINS, memory: '512MiB', ...appCheckOptions() },
+  async (request) => {
+    logMissingAppCheck('importRecordMailConsent', request);
+    const result = await recordMailConsentHandler(request, firestoreDeps());
+    logger.info('importRecordMailConsent', {
+      actorUid: request.auth?.uid,
+      changed: result.changed,
+      approvedEvents: result.approvedEvents,
+      imagesCopied: result.imagesCopied,
+    });
     return result;
   }
 );
