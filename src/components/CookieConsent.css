@@ -74,6 +74,10 @@ body.cookie-banner-open .create-event-fab {
   bottom: calc(24px + var(--cookie-banner-offset, 0px) + 16px);
 }
 
+body.cookie-banner-open .christmas-fab {
+  bottom: calc(152px + var(--cookie-banner-offset, 0px) + 16px);
+}
+
 @media (max-width: 640px) {
   .cookie-consent {
     left: 8px;
@@ -88,5 +92,9 @@ body.cookie-banner-open .create-event-fab {
 
   body.cookie-banner-open .create-event-fab {
     bottom: calc(16px + var(--cookie-banner-offset, 0px) + 8px);
+  }
+
+  body.cookie-banner-open .christmas-fab {
+    bottom: calc(136px + var(--cookie-banner-offset, 0px) + 8px);
   }
 }

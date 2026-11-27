@@ -1,0 +1,111 @@
+/* Flyer-Popup zur Weihnachtsfeier. Liegt über dem Spendenpopup (1090),
+   unter dem PWA-Installdialog (1100). */
+.xmas-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1095;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(22, 24, 25, 0.5);
+  animation: xmas-popup-fade 200ms ease-out;
+}
+
+.xmas-popup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  background-color: var(--bg-primary); /* gleicher Ton wie der Flyer-Hintergrund */
+  border-radius: 20px;
+  box-shadow:
+    0 4px 24px rgba(22, 24, 25, 0.2),
+    0 16px 48px rgba(22, 24, 25, 0.16);
+  animation: xmas-popup-rise 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.xmas-popup-flyer {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 0 1 auto;
+  object-fit: contain;
+}
+
+.xmas-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.85);
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(22, 24, 25, 0.18);
+  transition: background-color 0.15s ease;
+}
+.xmas-popup-close:hover {
+  background-color: #fff;
+}
+.xmas-popup-close:focus-visible,
+.xmas-popup-later:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.xmas-popup-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-5) var(--space-4);
+}
+
+.xmas-popup-cta {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  text-align: center;
+  text-decoration: none;
+  font-size: var(--text-100);
+  font-weight: 500;
+}
+
+.xmas-popup-later {
+  padding: var(--space-2) var(--space-5);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: var(--text-90);
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+.xmas-popup-later:hover {
+  background-color: rgba(22, 24, 25, 0.05);
+}
+
+@keyframes xmas-popup-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes xmas-popup-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xmas-popup-overlay,
+  .xmas-popup {
+    animation: none;
+  }
+}

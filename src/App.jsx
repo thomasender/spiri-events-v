@@ -18,6 +18,9 @@ import ThemeApplier from './components/ThemeApplier';
 import LayoutApplier from './components/LayoutApplier';
 import DesignModeLauncher from './components/design/DesignModeLauncher';
 import ScrollToTop from './components/ScrollToTop';
+import WinterTheme from './components/WinterTheme';
+import ChristmasFab from './components/ChristmasFab';
+import ChristmasFlyerPopup from './components/ChristmasFlyerPopup';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
 import NoAccess from './components/NoAccess';
@@ -177,6 +180,7 @@ function AppLayout() {
       <SeedBootstrap />
       <ThemeApplier />
       <LayoutApplier />
+      <WinterTheme />
       <OnlineStatusBeacon />
       <ScrollToTop />
       <AnalyticsRouteTracker />
@@ -289,9 +293,11 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
       <Footer />
+      <ChristmasFab />
       <FeedbackButton />
       <CreateEventFab />
       <PwaInstallPrompt />
+      <ChristmasFlyerPopup />
       <DonationPopup />
       <CookieConsent />
       <OutboundLinkTracker />

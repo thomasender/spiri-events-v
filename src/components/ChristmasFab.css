@@ -1,0 +1,75 @@
+/* Dritter schwebender Button, sitzt über dem Feedback-Button.
+   Höhen: Event erstellen 24px, Feedback 88px, Weihnachtsfeier 152px (je ~48px + 16px Abstand). */
+.christmas-fab {
+  position: fixed;
+  bottom: 152px;
+  right: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background-color: #3f6b4f; /* tiefes Tannengrün */
+  color: white;
+  border-radius: 999px;
+  box-shadow:
+    0 4px 12px rgba(22, 24, 25, 0.12),
+    0 12px 28px rgba(63, 107, 79, 0.4);
+  font-family: var(--font-body);
+  font-size: var(--text-95);
+  font-weight: 500;
+  text-decoration: none;
+  z-index: 900;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.christmas-fab:hover {
+  background-color: #2f5640;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 16px rgba(22, 24, 25, 0.15),
+    0 14px 32px rgba(63, 107, 79, 0.5);
+}
+
+.christmas-fab:focus-visible {
+  outline: 2px solid #3f6b4f;
+  outline-offset: 3px;
+}
+
+.christmas-fab-tree {
+  flex-shrink: 0;
+  transform-origin: 50% 100%;
+}
+.christmas-fab-star {
+  fill: #f3c64e;
+}
+/* Der Baum wippt beim Drüberfahren ganz leicht */
+.christmas-fab:hover .christmas-fab-tree {
+  animation: christmas-fab-wiggle 0.6s ease-in-out;
+}
+@keyframes christmas-fab-wiggle {
+  25% {
+    transform: rotate(-8deg);
+  }
+  75% {
+    transform: rotate(8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .christmas-fab:hover .christmas-fab-tree {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .christmas-fab {
+    bottom: 136px;
+    right: 16px;
+  }
+}
