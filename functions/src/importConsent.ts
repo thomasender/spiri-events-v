@@ -127,6 +127,9 @@ export function outreachDayKey(nowMs: number): string {
 export const CONSENT_ACTIONS = ['approve_once', 'approve_sync', 'self_manage', 'decline'] as const;
 export type ConsentAction = (typeof CONSENT_ACTIONS)[number];
 
+/** Where a consent came from when it was not given on the preview page (a Super-Admin recorded it). */
+export type ConsentSource = 'email';
+
 export interface ConsentScopes {
   event: boolean;
   images: boolean;
@@ -487,12 +490,12 @@ export function planConsent({
   organizer: OrganizerRecord;
   events: CuratedEvent[];
   candidates: CandidateDoc[];
-  input: Pick<ConsentInput, 'action' | 'scopes' | 'wordingVersion'>;
+  input: Pick<ConsentInput, 'action' | 'scopes' | 'wordingVersion'> & { source?: ConsentSource };
   now: Date;
   curatorUid: string | null;
   slugs?: Record<string, string>;
 }): ConsentPlan {
-  const { action, scopes, wordingVersion } = input;
+  const { action, scopes, wordingVersion, source } = input;
   const plan: ConsentPlan = {
     organizerId: organizer.id,
     organizerPatch: { updatedAt: now },
@@ -502,7 +505,7 @@ export function planConsent({
     blocklist: [],
     imagesToCopy: [],
   };
-  const record = { at: now, wordingVersion, scopes, action };
+  const record = { at: now, wordingVersion, scopes, action, ...(source ? { source } : {}) };
 
   if (action === 'self_manage') {
     // Intent only, NOT consent: no consentRecord, events stay pending. The page
@@ -883,7 +886,8 @@ async function applyConsent(
   deps: ImportDeps,
   organizer: OrganizerRecord,
   input: ConsentInput,
-  actor: string
+  actor: string,
+  source?: ConsentSource
 ): Promise<ConsentResult> {
   const decision = decideConsent(organizer, input.action, input.scopes);
   if (decision.kind === 'refuse') {
@@ -916,7 +920,15 @@ async function applyConsent(
     }
   }
   const now = new Date(deps.now());
-  const plan = planConsent({ organizer, events, candidates, input, now, curatorUid, slugs });
+  const plan = planConsent({
+    organizer,
+    events,
+    candidates,
+    input: { ...input, source },
+    now,
+    curatorUid,
+    slugs,
+  });
   await deps.applyConsentPlan(plan);
   const approvedEvents = plan.eventUpdates.filter((u) => u.patch.status === 'approved').length;
   await deps.addAuditEntry({
@@ -926,6 +938,7 @@ async function applyConsent(
     consentAction: input.action,
     scopes: input.scopes,
     wordingVersion: input.wordingVersion,
+    ...(source ? { source } : {}),
     approvedEvents,
     deletedEvents: plan.eventDeletes.length,
     blocklisted: plan.blocklist.length,
@@ -962,6 +975,28 @@ export async function declineOrganizerHandler(
     wordingVersion: CONSENT_WORDING_VERSION,
   };
   return applyConsent(deps, organizer, input, actorUid as string);
+}
+
+/**
+ * Super-Admin: record a consent the organizer gave by e-mail (they did not click through the preview
+ * page). Same effect as `approve_sync` with the event and image scopes on the page: events go
+ * public, images are copied, the organizer is synced from now on. `consentRecord.source` = `email`.
+ */
+export async function recordMailConsentHandler(
+  request: CallableRequest,
+  deps: ImportDeps
+): Promise<ConsentResult> {
+  const actorUid = request.auth?.uid;
+  await assertSuperAdmin(actorUid, deps.readRoleDoc);
+  const organizerId = parseOrganizerId(request.data);
+  const organizer = await organizerOrNotFound(deps, organizerId);
+  const input: ConsentInput = {
+    token: '',
+    action: 'approve_sync',
+    scopes: { event: true, images: true, persons: false },
+    wordingVersion: CONSENT_WORDING_VERSION,
+  };
+  return applyConsent(deps, organizer, input, actorUid as string, 'email');
 }
 
 export interface OutreachResult {

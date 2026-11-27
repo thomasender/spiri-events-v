@@ -5,6 +5,7 @@ import {
   addToBlocklist,
   createPreviewLink,
   importDeclineOrganizer,
+  importRecordMailConsent,
   isOnBlocklist,
   isProductionProject,
   removeFromBlocklist,
@@ -103,6 +104,7 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
   const [preview, setPreview] = useState(null);
   const [confirmSend, setConfirmSend] = useState(false);
   const [confirmDecline, setConfirmDecline] = useState(false);
+  const [confirmMailConsent, setConfirmMailConsent] = useState(false);
   const validRecipient = EMAIL_RE.test(recipient.trim());
   const hasLink = Boolean(organizer.previewTokenHash);
 
@@ -159,6 +161,25 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
       setNotice({ kind: 'error', text: 'Das hat nicht geklappt. Bitte versuche es noch einmal.' });
     } finally {
       setConfirmDecline(false);
+      setBusy(false);
+    }
+  };
+
+  // "Ja" per Mail: the organizer agreed by e-mail instead of clicking through the preview page.
+  const canRecordMailConsent = organizer.consent === 'none' || organizer.consent === 'asked';
+  const recordMailConsent = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await importRecordMailConsent({ organizerId: organizer.id });
+      setNotice({
+        kind: 'success',
+        text: 'Einwilligung erfasst. Die Events sind veröffentlicht.',
+      });
+    } catch {
+      setNotice({ kind: 'error', text: 'Das hat nicht geklappt. Bitte versuche es noch einmal.' });
+    } finally {
+      setConfirmMailConsent(false);
       setBusy(false);
     }
   };
@@ -307,6 +328,17 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
             Mail an Veranstalter senden
           </button>
         )}
+        {canRecordMailConsent && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={busy}
+            onClick={() => setConfirmMailConsent(true)}
+            data-testid="record-mail-consent"
+          >
+            Einwilligung per Mail erfasst
+          </button>
+        )}
         {canMarkDeclined && (
           <button
             type="button"
@@ -329,6 +361,21 @@ function OrganizerCard({ organizer, candidateCount, eventCount, uid, control }) 
           </button>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmMailConsent}
+        title="Einwilligung per Mail erfassen?"
+        confirmLabel="Einwilligung erfassen"
+        cancelLabel="Abbrechen"
+        onConfirm={recordMailConsent}
+        onCancel={() => setConfirmMailConsent(false)}
+        loading={busy}
+      >
+        <p>
+          {organizer.name} hat per Mail zugestimmt. Ab jetzt werden die Events veröffentlicht (mit
+          Bildern) und künftige Events von der Webseite übernommen. Bitte nur erfassen, wenn die
+          Zustimmung schriftlich vorliegt.
+        </p>
+      </ConfirmDialog>
       <ConfirmDialog
         isOpen={confirmDecline}
         danger

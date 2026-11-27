@@ -54,6 +54,7 @@ const api = vi.hoisted(() => ({
   isProductionProject: () => state.production,
   saveOutreachSettings: vi.fn(async (_: unknown) => {}),
   importDeclineOrganizer: vi.fn(async (_: unknown) => ({ consent: 'declined' })),
+  importRecordMailConsent: vi.fn(async (_: unknown) => ({ consent: 'sync_ok' })),
   isOnBlocklist: vi.fn(async (_: unknown) => false),
   addToBlocklist: vi.fn(async (..._: unknown[]) => 'hash'),
   removeFromBlocklist: vi.fn(async (_: unknown) => 'hash'),
@@ -297,6 +298,22 @@ describe('Veranstalter', () => {
       await waitFor(() =>
         expect(api.importDeclineOrganizer).toHaveBeenCalledWith({ organizerId: 'o1' })
       );
+    });
+
+    it('records a consent given by mail after a confirm, only while not decided', async () => {
+      open();
+      fireEvent.click(screen.getByTestId('record-mail-consent'));
+      expect(api.importRecordMailConsent).not.toHaveBeenCalled();
+      fireEvent.click(confirmButton('Einwilligung erfassen'));
+      await waitFor(() =>
+        expect(api.importRecordMailConsent).toHaveBeenCalledWith({ organizerId: 'o1' })
+      );
+    });
+
+    it('offers no mail consent once the organizer decided', () => {
+      state.organizers = [organizer({ consent: 'manual_ok' })];
+      open();
+      expect(screen.queryByTestId('record-mail-consent')).toBeNull();
     });
 
     it('offers no decline once the organizer decided', () => {
