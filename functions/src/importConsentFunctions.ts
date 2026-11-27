@@ -391,7 +391,7 @@ export const importDeclineOrganizer = onCall(
   }
 );
 
-/** Super-Admin: record a consent the organizer gave by e-mail (events, images, sync). */
+/** Super-Admin: record a consent given by e-mail (events, images, sync; `consentRecord.source` = `email`). */
 export const importRecordMailConsent = onCall(
   { region: REGION, cors: ALLOWED_ORIGINS, memory: '512MiB', ...appCheckOptions() },
   async (request) => {
