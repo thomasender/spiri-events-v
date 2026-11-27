@@ -3,6 +3,7 @@
 //
 //   node scripts/import-scrape/find-images.mjs --region berlin --project spirieventsvbg --allow-prod
 //        dry run: lists what it would write
+//   ... --organizer <id>   only the candidates of this import organizer
 //   ... --apply        writes `imageUrl` on the candidates
 //
 // For each candidate without `imageUrl` the page of the event (`link`, else `sourceUrl`) is read politely
@@ -23,10 +24,11 @@ const arg = (name) => {
 };
 const region = arg('--region');
 const projectId = arg('--project') ?? STAGING_PROJECT_ID;
+const organizer = arg('--organizer');
 const apply = args.includes('--apply');
 if (!region) {
   console.error(
-    'Usage: node scripts/import-scrape/find-images.mjs --region <id> [--project tribe-vbg-staging | --project spirieventsvbg --allow-prod] [--apply]'
+    'Usage: node scripts/import-scrape/find-images.mjs --region <id> [--organizer <id>] [--project tribe-vbg-staging | --project spirieventsvbg --allow-prod] [--apply]'
   );
   process.exit(2);
 }
@@ -46,7 +48,10 @@ const client = await createAdminRestClient({
 console.log(`Ziel: ${projectId}${apply ? ' (schreibt)' : ' (Probelauf)'}, Region ${region}`);
 
 const candidates = (await client.queryEqual(IMPORT_CANDIDATES, 'regionId', region)).filter(
-  (d) => d.data.status !== 'rejected' && !d.data.imageUrl
+  (d) =>
+    d.data.status !== 'rejected' &&
+    !d.data.imageUrl &&
+    (!organizer || d.data.organizerRef === organizer)
 );
 const pages = new Map();
 let found = 0;

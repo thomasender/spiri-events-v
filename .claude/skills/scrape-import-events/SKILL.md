@@ -27,7 +27,10 @@ Talk to Thomas in German. Peter is not involved (no Trello comments to him from 
   wording, no summaries, no translations**, whatever the language. Publication only ever happens after the
   organizer consented in the preview, which shows the description and names it in the consent text. No personal
   names of private persons, **no images** (leave `imageUrl` empty; it is only allowed if it is a URL on the
-  organizer's own domain, and we never copy it).
+  organizer's own domain, and we never copy it). **Exception:** for an organizer whose `consentRecord.scopes.images`
+  is `true` (preview page or "Einwilligung per Mail erfasst", e.g. `latifee-studio`) take the event's own picture as
+  `imageUrl` (same domain rule), or run `find-images.mjs --organizer <id>` after the ingest; the copy into our storage
+  is then allowed. Check `consentRecord` in the Import tab / Firestore before, never assume.
 - Organizer record: name, website, `legalForm` (`company` | `verein` | `individual` | `unknown`; it only decides
   whether a personal name appears on the event, **not** whether we accept or mail: companies, associations and
   individuals are treated alike, Thomas' decision 2026-11-24), and a **functional contact address** (info@,
